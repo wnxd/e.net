@@ -55,6 +55,7 @@
     <LinkIncremental>false</LinkIncremental>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <TargetExt>.fne</TargetExt>
+    <TargetName>e_net</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

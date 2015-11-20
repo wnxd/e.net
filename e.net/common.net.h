@@ -15,6 +15,7 @@ const System::Reflection::BindingFlags BINDING_ALLINSTANCE = System::Reflection:
 #define CTOR MethodAttributes::SpecialName | MethodAttributes::RTSpecialName | MethodAttributes::HideBySig
 #define STATICMETHOD MethodAttributes::Static | MethodAttributes::HideBySig
 #define PROPERTYMETHOD MethodAttributes::SpecialName | MethodAttributes::HideBySig
+#define EXTERNMETHOD STATICMETHOD | MethodAttributes::PInvokeImpl
 
 #define typeof(type) type::typeid
 #define LPSTR2String(lpstr) Marshal::PtrToStringAnsi((IntPtr)(void*)lpstr)

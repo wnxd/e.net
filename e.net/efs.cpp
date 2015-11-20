@@ -300,6 +300,30 @@ vector<ESection_Program_Method> GetMethods(byte*& pointer, vector<ESection_Progr
 	return arr;
 }
 
+vector<ESection_Program_Dll> GetDlls(byte*& pointer)
+{
+	vector<ESection_Program_Dll> arr;
+	UINT length = GetData<UINT>(pointer) / 2;
+	size_t count = length / sizeof(ETAG);
+	ETAG* tags = new ETAG[count];
+	for (size_t i = 0; i < count; i++) tags[i] = GetData<ETAG>(pointer);
+	pointer += length;
+	for (size_t i = 0; i < count; i++)
+	{
+		ESection_Program_Dll spd;
+		spd.tag = tags[i];
+		spd.Public = GetData<int>(pointer);
+		spd.ReturnType = GetData<DataType>(pointer);
+		spd.ShowName = GetString(pointer);
+		spd.Remark = GetString(pointer);
+		spd.Lib = GetString(pointer);
+		spd.Name = GetString(pointer);
+		spd.Parameters = GetVariables(pointer);
+	}
+	delete tags;
+	return arr;
+}
+
 ESection_UserInfo GetUserInfo(byte* pointer)
 {
 	ESection_UserInfo sui;
@@ -341,5 +365,6 @@ ESection_Program GetLibraries(byte* pointer)
 	sp.Methods = GetMethods(pointer, &sp.ReferMethods);
 	sp.GlobalVariables = GetVariables(pointer);
 	sp.Structs = GetAssemblies(pointer, &sp.ReferStructs, false);
+	sp.Dlls = GetDlls(pointer);
 	return sp;
 }

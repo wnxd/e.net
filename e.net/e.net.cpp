@@ -413,6 +413,9 @@ bool ECompile::CompileClass()
 			}
 			this->_edata->Types->Add(assembly.Tag, type);
 		}
+		MethodReference^ StructLayout = module->ImportReference(typeof(StructLayoutAttribute)->GetConstructor(gcnew array<Type^> { typeof(LayoutKind) }));
+		CustomAttribute^ custom = gcnew CustomAttribute(StructLayout);
+		custom->ConstructorArguments->Add(CustomAttributeArgument(module->ImportReference(typeof(LayoutKind)), LayoutKind::Sequential));
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Structs)
 		{
 			TypeAttributes attr = STRUCT;
@@ -427,6 +430,7 @@ bool ECompile::CompileClass()
 				classname = classname->Substring(index + 1);
 			}
 			TypeDefinition^ type = gcnew TypeDefinition(_namespace, classname, attr, this->Type_ValueType);
+			type->CustomAttributes->Add(custom);
 			module->Types->Add(type);
 			this->_alltype->Add(type);
 			this->_edata->Types->Add(assembly.Tag, type);
@@ -444,33 +448,9 @@ bool ECompile::CompileClass()
 				TypeReference^ t = this->EDT2Type(var.DataType);
 				if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
 				String^ name = CStr2String(var.Name);
-				MethodReference^ ctor = module->ImportReference(typeof(::CompilerGeneratedAttribute)->GetConstructor(Type::EmptyTypes));
-				CustomAttribute^ custom = gcnew CustomAttribute(ctor);
-				FieldDefinition^ f = gcnew FieldDefinition("<c>k__BackingField", FieldAttributes::Private, t);
-				f->CustomAttributes->Add(custom);
+				FieldDefinition^ f = gcnew FieldDefinition(name, var.Remark == "private" ? FieldAttributes::Private : FieldAttributes::Public, t);
 				type->Fields->Add(f);
 				this->_edata->Fields->Add(var.Tag, f);
-				PropertyDefinition^ p = gcnew PropertyDefinition(name, PropertyAttributes::None, t);
-				MethodAttributes attr = (var.Remark == "private" ? MethodAttributes::Private : MethodAttributes::Public);
-				MethodDefinition^ get_method = gcnew MethodDefinition("get_" + name, attr | PROPERTYMETHOD, t);
-				get_method->CustomAttributes->Add(custom);
-				ILProcessor^ ILProcessor = get_method->Body->GetILProcessor();
-				AddILCode(ILProcessor, OpCodes::Ldarg_0);
-				AddILCode(ILProcessor, OpCodes::Ldfld, f);
-				AddILCode(ILProcessor, OpCodes::Ret);
-				type->Methods->Add(get_method);
-				p->GetMethod = get_method;
-				MethodDefinition^ set_method = gcnew MethodDefinition("set_" + name, attr | PROPERTYMETHOD, module->TypeSystem->Void);
-				set_method->CustomAttributes->Add(custom);
-				set_method->Parameters->Add(gcnew ParameterDefinition("value", ParameterAttributes::None, t));
-				ILProcessor = set_method->Body->GetILProcessor();
-				AddILCode(ILProcessor, OpCodes::Ldarg_0);
-				AddILCode(ILProcessor, OpCodes::Ldarg_1);
-				AddILCode(ILProcessor, OpCodes::Stfld, f);
-				AddILCode(ILProcessor, OpCodes::Ret);
-				type->Methods->Add(set_method);
-				p->SetMethod = set_method;
-				type->Properties->Add(p);
 			}
 		}
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Assemblies)
@@ -509,7 +489,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 			if (pm != NULL)
 			{
 				String^ name = CStr2String(pm.Name);
-				MethodDefinition^ method = nullptr;
+				MethodDefinition^ method;
 				bool ctor = false;
 				MethodAttributes attr = ((pm.Attributes & EMethodAttr::Public) == EMethodAttr::Public) ? MethodAttributes::Public : MethodAttributes::Private;
 				if (isstatic) attr = attr | MethodAttributes::Static;
@@ -627,6 +607,39 @@ bool ECompile::CompileCode()
 			FieldDefinition^ f = gcnew FieldDefinition(CStr2String(var.Name), FieldAttributes::Static, t);
 			global->Fields->Add(f);
 			this->_edata->GlobalVariables->Add(var.Tag, f);
+		}
+		for each (ESection_Program_Dll dll in this->_einfo->Program.Dlls)
+		{
+			TypeReference^ t = this->EDT2Type(dll.ReturnType);
+			if (dll.Remark == "array") t = gcnew ArrayType(t);
+			MethodDefinition^ method = gcnew MethodDefinition(CStr2String(dll.Name), EXTERNMETHOD, t);
+			for each (ESection_Variable param in dll.Parameters)
+			{
+				TypeReference^ t = this->EDT2Type(param.DataType);
+				ParameterAttributes attr = ParameterAttributes::None;
+				if ((param.Attributes & EVariableAttr::Array) == EVariableAttr::Array) t = gcnew ArrayType(t);
+				if ((param.Attributes & EVariableAttr::Out) == EVariableAttr::Out)
+				{
+					attr = attr | ParameterAttributes::Out;
+					t = gcnew ByReferenceType(t);
+				}
+				ParameterDefinition^ p = CreateParameter(CStr2String(param.Name), t, attr);
+				method->Parameters->Add(p);
+			}
+			method->IsPreserveSig = true;
+			method->PInvokeInfo->EntryPoint = CStr2String(dll.Lib);
+			global->Methods->Add(method);
+			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
+			this->_edata->Methods->Add(gcnew ELib_Method(-2, dll.tag), md);
+			String^ tagName = method->Name;
+			IList<EMethodData^>^ mdlist;
+			if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];
+			else
+			{
+				mdlist = gcnew List<EMethodData^>();
+				this->_edata->Symbols->Add(tagName, mdlist);
+			}
+			mdlist->Add(md);
 		}
 		this->LoadKrnln();
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Assemblies)

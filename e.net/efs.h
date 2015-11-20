@@ -292,6 +292,18 @@ struct ESection_Program_Method
 	bool operator!=(nullptr_t);
 };
 
+struct ESection_Program_Dll
+{
+	ETAG tag;
+	bool Public;
+	DataType ReturnType;
+	string ShowName;
+	string Remark;
+	string Lib;
+	string Name;
+	vector<ESection_Variable> Parameters;
+};
+
 struct ESection_Program
 {
 	vector<string> Libraries;
@@ -302,6 +314,7 @@ struct ESection_Program
 	vector<ESection_Variable> GlobalVariables;
 	vector<ESection_Program_Assembly> Structs;
 	vector<ESection_Program_Assembly> ReferStructs;
+	vector<ESection_Program_Dll> Dlls;
 };
 
 struct ESection_TagStatus
