@@ -598,6 +598,10 @@ bool ECompile::CompileCode()
 	try
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
+		if (module->EntryPoint != nullptr)
+		{
+
+		}
 		TypeDefinition^ global = module->GetType("<Module>");
 		global->Attributes = global->Attributes | STATICCLASS;
 		for each (ESection_Variable var in this->_einfo->Program.GlobalVariables)
