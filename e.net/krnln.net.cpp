@@ -470,7 +470,7 @@ MethodDefinition^ CreateBxor(ModuleDefinition^ module)
 
 MethodDefinition^ CreateSet(ModuleDefinition^ module)
 {
-	MethodDefinition^ method = CreateMethod("赋值", module->TypeSystem->Object, ToList(CreateParameter("被赋值的变量或变量数组", module->TypeSystem->Object, ParameterAttributes::Out), CreateParameter("用作赋于的值或资源", module->TypeSystem->Object)), STATICMETHOD);
+	MethodDefinition^ method = CreateMethod("赋值", module->TypeSystem->Void, ToList(CreateParameter("被赋值的变量或变量数组", module->TypeSystem->Object, ParameterAttributes::Out), CreateParameter("用作赋于的值或资源", module->TypeSystem->Object)), STATICMETHOD);
 	return method;
 }
 

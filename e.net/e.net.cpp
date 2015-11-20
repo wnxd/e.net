@@ -360,7 +360,7 @@ bool ECompile::CompileRefer()
 		if (this->_refer->Length == 0)
 		{
 			String^ mscorlib = Environment::GetFolderPath(Environment::SpecialFolder::Windows) + "\\Microsoft.NET\\Framework\\v4.0.30319\\mscorlib.dll";
-			this->_refer = gcnew array<String^> { mscorlib };
+			this->_refer = gcnew array < String^ > { mscorlib };
 		}
 		this->_alltype = gcnew List<TypeDefinition^>();
 		for each (String^ path in this->_refer)
@@ -413,7 +413,7 @@ bool ECompile::CompileClass()
 			}
 			this->_edata->Types->Add(assembly.Tag, type);
 		}
-		MethodReference^ StructLayout = module->ImportReference(typeof(StructLayoutAttribute)->GetConstructor(gcnew array<Type^> { typeof(LayoutKind) }));
+		MethodReference^ StructLayout = module->ImportReference(typeof(StructLayoutAttribute)->GetConstructor(gcnew array < Type^ > { typeof(LayoutKind) }));
 		CustomAttribute^ custom = gcnew CustomAttribute(StructLayout);
 		custom->ConstructorArguments->Add(CustomAttributeArgument(module->ImportReference(typeof(LayoutKind)), LayoutKind::Sequential));
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Structs)
@@ -598,10 +598,6 @@ bool ECompile::CompileCode()
 	try
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
-		if (module->EntryPoint != nullptr)
-		{
-
-		}
 		TypeDefinition^ global = module->GetType("<Module>");
 		global->Attributes = global->Attributes | STATICCLASS;
 		for each (ESection_Variable var in this->_einfo->Program.GlobalVariables)
@@ -637,11 +633,9 @@ bool ECompile::CompileCode()
 
 			}
 			else if (String::IsNullOrEmpty(Path::GetExtension(dllpath))) dllpath += ".dll";
-			String^ dllname = Path::GetFileName(dllpath);
-			if (dllpath == dllname) dllpath = Environment::GetFolderPath(Environment::SpecialFolder::SystemX86) + "\\" + dllpath;
-			ModuleReference^ dllmodule = gcnew ModuleReference(dllname);
+			ModuleReference^ dllmodule = gcnew ModuleReference(dllpath);
 			module->ModuleReferences->Add(dllmodule);
-			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CharSetNotSpec, CStr2String(dll.Name), dllmodule);
+			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CallConvWinapi, CStr2String(dll.Name), dllmodule);
 			global->Methods->Add(method);
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
 			this->_edata->Methods->Add(gcnew ELib_Method(-3, dll.tag), md);
@@ -691,6 +685,7 @@ bool ECompile::CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcess
 {
 	try
 	{
+		ModuleDefinition^ module = this->_assembly->MainModule;
 		size_t count = Offset.size();
 		size_t i = 0;
 		while (i < count)
@@ -702,7 +697,7 @@ bool ECompile::CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcess
 			switch (GetData<ECode_Head>(current))
 			{
 			case Call:
-				this->CompileCode_Call(MethodInfo, ILProcessor, current, current + size);
+				if (this->CompileCode_Call(MethodInfo, ILProcessor, current, current + size) != module->TypeSystem->Void) AddILCode(ILProcessor, OpCodes::Pop);
 				i++;
 				break;
 			case Ife:
