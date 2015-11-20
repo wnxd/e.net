@@ -23,13 +23,12 @@ EInfo* ParseEcode(byte* code)
 			{
 				long long t = offset;
 				ESection_SystemInfo ssi = GetData<ESection_SystemInfo>(code, t);
-				if (ssi.FileType != FileType::E || MAKELONG(ssi.Version2, ssi.Version1) < E5_4 || (ssi.CompileType != CompileType::WindowsForm && ssi.CompileType != CompileType::WindowsConsole && ssi.CompileType != CompileType::WindowsDLL)) return false;
+				if (ssi.FileType != FileType::E || (ssi.CompileType != CompileType::WindowsForm && ssi.CompileType != CompileType::WindowsConsole && ssi.CompileType != CompileType::WindowsDLL)) throw;
 				einfo->SystemInfo = ssi;
 			}
 			else if (strcmp(Block_Name, "用户信息段") == 0)
 			{
 				ESection_UserInfo sui = GetUserInfo(code + offset);
-				if (sui.PluginName != "e.net") return false;
 				einfo->UserInfo = sui;
 			}
 			else if (strcmp(Block_Name, "程序资源段") == 0)

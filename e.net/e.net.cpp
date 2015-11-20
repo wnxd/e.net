@@ -6,6 +6,7 @@
 
 using namespace std;
 using namespace System::IO;
+using namespace System::Windows::Forms;
 using namespace System::Collections::Generic;
 using namespace System::Runtime::CompilerServices;
 using namespace System::Text::RegularExpressions;
@@ -114,7 +115,11 @@ bool Compile(byte* pointer, Int64 len, String^ path, array<String^>^ refer)
 {
 	ECompile^ compile = gcnew ECompile(pointer, len, refer);
 	bool r = compile->Compile();
-	if (r) compile->Write(path);
+	if (r)
+	{
+		MessageBox::Show("±àÒë³É¹¦");
+		compile->Write(path);
+	}
 	delete compile;
 	return r;
 }
@@ -348,6 +353,7 @@ bool ECompile::CompileHead()
 	catch (Exception^ ex)
 	{
 		this->_assembly = nullptr;
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
@@ -372,6 +378,7 @@ bool ECompile::CompileRefer()
 	}
 	catch (Exception^ ex)
 	{
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
@@ -474,6 +481,7 @@ bool ECompile::CompileClass()
 	}
 	catch (Exception^ ex)
 	{
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
@@ -589,6 +597,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 	}
 	catch (Exception^ ex)
 	{
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
@@ -677,6 +686,7 @@ bool ECompile::CompileCode()
 	}
 	catch (Exception^ ex)
 	{
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
@@ -714,6 +724,7 @@ bool ECompile::CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcess
 	}
 	catch (Exception^ ex)
 	{
+		MessageBox::Show(ex->Message);
 		return false;
 	}
 }
