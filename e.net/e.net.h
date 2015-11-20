@@ -20,6 +20,7 @@ enum class EParamDataType
 	Param,
 	Var,
 	Field,
+	Property,
 	GlobalField,
 	Array,
 	IL

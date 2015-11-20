@@ -849,6 +849,12 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									else lastins->OpCode = OpCodes::Stfld;
 									break;
 								}
+								case EVariableType::Property:
+								{
+									param->DataType = EParamDataType::Property;
+									PropertyDefinition^ p = (PropertyDefinition^)vardata->Data;
+									lastins->Operand = p->SetMethod;
+								}
 								case EVariableType::GlobalField:
 									param->DataType = EParamDataType::GlobalField;
 									lastins->OpCode = OpCodes::Stsfld;
@@ -879,6 +885,9 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									break;
 								case EVariableType::Field:
 									param->DataType = EParamDataType::Field;
+									break;
+								case EVariableType::Property:
+									param->DataType = EParamDataType::Property;
 									break;
 								case EVariableType::GlobalField:
 									param->DataType = EParamDataType::GlobalField;
@@ -1173,6 +1182,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						case EParamDataType::Param:
 						case EParamDataType::Var:
 						case EParamDataType::Field:
+						case EParamDataType::Property:
 						case EParamDataType::GlobalField:
 						case EParamDataType::Array:
 						case EParamDataType::IL:
@@ -1189,6 +1199,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						case EParamDataType::Param:
 						case EParamDataType::Var:
 						case EParamDataType::Field:
+						case EParamDataType::Property:
 						case EParamDataType::GlobalField:
 						case EParamDataType::Array:
 						case EParamDataType::IL:
@@ -1302,12 +1313,14 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								case EParamDataType::Param:
 								case EParamDataType::Var:
 								case EParamDataType::Field:
+								case EParamDataType::Property:
 								case EParamDataType::GlobalField:
 								case EParamDataType::Array:
 								{
 									IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
 									if (item->IsAddress)
 									{
+										if (param->DataType == EParamDataType::Property) throw Error(item->Name, "属性不能传址");
 										Instruction^ lastins = code[code->Count - 1];
 										switch (param->DataType)
 										{
