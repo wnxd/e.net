@@ -29,7 +29,7 @@ using namespace System::Security::Permissions;
 // 您可以指定所有值，也可以使用“修订号”和“生成号”的默认值，
 // 方法是按如下所示使用“*”: 
 
-[assembly:AssemblyVersionAttribute("1.0.1119.1613")];
+[assembly:AssemblyVersionAttribute("1.1.1120.1602")];
 
 [assembly:ComVisible(false)];
 
