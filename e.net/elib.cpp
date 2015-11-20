@@ -53,7 +53,11 @@ INT WINAPI addin_func(INT nAddInFnIndex)
 			{
 				int index = path.find_last_of("\\");
 				string dic = path.substr(0, index);
+				char cur[MAX_PATH];
+				GetCurrentDirectory(MAX_PATH, cur);
+				SetCurrentDirectory(dic.c_str());
 				CompileILByFile(path.c_str(), dic.c_str());
+				SetCurrentDirectory(cur);
 				break;
 			}
 			case 1:
@@ -73,8 +77,8 @@ LIB_INFO s_lib_info =
 	LIB_FORMAT_VER,
 	TEXT(LI_LIB_GUID_STR),
 	1,
-	0,
-	0,
+	1,
+	1120,
 	0,
 	0,
 	0,
