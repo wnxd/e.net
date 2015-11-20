@@ -787,9 +787,11 @@ void Generate(string path)
 	if (File::Exists(mpath))
 	{
 		array<String^>^ list = File::ReadAllLines(mpath);
+		String^ cur = Path::GetDirectoryName(mpath);
 		List<Type^>^ tlist = gcnew List<Type^>();
 		for each (String^ file in list)
 		{
+			if (Path::GetFileName(file) == file) file = cur + "\\" + file;
 			Assembly^ assembly = Assembly::LoadFile(file);
 			array<Type^>^ types = assembly->GetTypes();
 			tlist->AddRange(types);
