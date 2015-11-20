@@ -612,7 +612,7 @@ bool ECompile::CompileCode()
 		{
 			TypeReference^ t = this->EDT2Type(dll.ReturnType);
 			if (dll.Remark == "array") t = gcnew ArrayType(t);
-			MethodDefinition^ method = gcnew MethodDefinition(CStr2String(dll.Name), EXTERNMETHOD, t);
+			MethodDefinition^ method = gcnew MethodDefinition(CStr2String(dll.ShowName), EXTERNMETHOD, t);
 			for each (ESection_Variable param in dll.Parameters)
 			{
 				TypeReference^ t = this->EDT2Type(param.DataType);
@@ -627,10 +627,20 @@ bool ECompile::CompileCode()
 				method->Parameters->Add(p);
 			}
 			method->IsPreserveSig = true;
-			method->PInvokeInfo->EntryPoint = CStr2String(dll.Lib);
+			String^ dllpath = CStr2String(dll.Lib);
+			if (String::IsNullOrEmpty(dllpath))
+			{
+
+			}
+			else if (String::IsNullOrEmpty(Path::GetExtension(dllpath))) dllpath += ".dll";
+			String^ dllname = Path::GetFileName(dllpath);
+			if (dllpath == dllname) dllpath = Environment::GetFolderPath(Environment::SpecialFolder::SystemX86) + "\\" + dllpath;
+			ModuleReference^ dllmodule = gcnew ModuleReference(dllname);
+			module->ModuleReferences->Add(dllmodule);
+			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CharSetNotSpec, CStr2String(dll.Name), dllmodule);
 			global->Methods->Add(method);
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
-			this->_edata->Methods->Add(gcnew ELib_Method(-2, dll.tag), md);
+			this->_edata->Methods->Add(gcnew ELib_Method(-3, dll.tag), md);
 			String^ tagName = method->Name;
 			IList<EMethodData^>^ mdlist;
 			if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];

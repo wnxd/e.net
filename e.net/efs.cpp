@@ -319,6 +319,7 @@ vector<ESection_Program_Dll> GetDlls(byte*& pointer)
 		spd.Lib = GetString(pointer);
 		spd.Name = GetString(pointer);
 		spd.Parameters = GetVariables(pointer);
+		arr.push_back(spd);
 	}
 	delete tags;
 	return arr;
