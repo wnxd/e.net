@@ -16,7 +16,7 @@ using namespace System::Runtime::InteropServices;
 #define CStr2String(cstr) Marshal::PtrToStringAnsi((IntPtr)((void*)cstr.c_str()))
 #define String2LPSTR(str) (char*)(void*)Marshal::StringToHGlobalAnsi(str)
 
-#define KRNLN "krnln\rd09f2340818511d396f6aaf844c7e325\r5\r3\r系统核心支持库"
+#define KRNLN "krnln\d09f2340818511d396f6aaf844c7e325\r3\r9\r系统核心支持库"
 
 const int null = NULL;
 const int not = -1;
