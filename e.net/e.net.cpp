@@ -246,13 +246,13 @@ EMethodData^ GetItemValue(IDictionary<ELib_Method^, EMethodData^>^ dictionary, E
 	return nullptr;
 }
 
-String^ FindLibrary(vector<string> libraries, string guid, short& i)
+String^ FindLibrary(vector<string> libraries, string name, short& i)
 {
 	size_t len = libraries.size();
 	for (i = 0; i < len; i++)
 	{
 		vector<string> arr = split(libraries[i], "\r");
-		if (arr[1] == guid) return CStr2String(libraries[i]);
+		if (arr[0] == name) return CStr2String(libraries[i]);
 	}
 	return nullptr;
 }

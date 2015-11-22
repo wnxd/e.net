@@ -3,9 +3,6 @@
 
 using namespace std;
 
-#define KRNLN "d09f2340818511d396f6aaf844c7e325"
-#define E_NET LI_LIB_GUID_STR
-
 enum ECode_Head : byte
 {
 	Call = 0x6A,
@@ -328,12 +325,13 @@ struct ESection_AuxiliaryInfo2
 	vector<ESection_TagStatus> Tags;
 };
 
-const int E5_4 = MAKELONG(4, 5);
 const byte Magic1[4] = { 'C', 'N', 'W', 'T' };
 const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
 const byte KEY[4] = { 25, 115, 0, 7 };
 
+#define KRNLN "krnln"
+#define E_NET "e_net"
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);
