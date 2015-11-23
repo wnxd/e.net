@@ -140,12 +140,13 @@ enum EMethodAttr : UINT
 	Public = 0x08
 };
 
-enum EVariableAttr : USHORT
+enum class EVariableAttr : USHORT
 {
 	None = 0x00,
 	Out = 0x02,
 	Optional = 0x04,
-	Array = 0x08
+	Array = 0x08,
+	Public = 0x0100,
 };
 
 enum class ETagStatus : UINT
@@ -310,6 +311,10 @@ const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
 const byte KEY[4] = { 0x19, 0x73, 0x00, 0x07 };
 
+#define SP "\r"
+#define DONET "@donet"
+#define DONET_NAMESPACE "@namespace"
+#define DONET_CLASS "@class"
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);

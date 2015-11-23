@@ -332,6 +332,10 @@ const byte KEY[4] = { 25, 115, 0, 7 };
 
 #define KRNLN "krnln"
 #define E_NET "e_net"
+#define SP "\r"
+#define DONET "@donet"
+#define DONET_NAMESPACE "@namespace"
+#define DONET_CLASS "@class"
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);

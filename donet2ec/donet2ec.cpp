@@ -6,7 +6,6 @@
 
 using namespace std;
 using namespace System;
-using namespace System::Collections::Generic;
 using namespace System::IO;
 using namespace System::Reflection;
 using namespace System::Runtime::InteropServices;
@@ -19,8 +18,8 @@ using namespace System::Runtime::InteropServices;
 #define KRNLN "krnln\rd09f2340818511d396f6aaf844c7e325\r3\r9\r系统核心支持库"
 
 const int null = NULL;
-const int not = -1;
 const int _true = TRUE;
+const int not = -1;
 const BindingFlags BINDING_STATIC = BindingFlags::Public | BindingFlags::Static | BindingFlags::DeclaredOnly;
 const BindingFlags BINDING_INSTANCE = BindingFlags::Public | BindingFlags::Instance | BindingFlags::DeclaredOnly;
 
@@ -31,6 +30,44 @@ static ref class Global
 public:
 	static Dictionary<Type^, UINT>^ typeList = gcnew Dictionary<Type^, UINT>();
 };
+
+TreeInfo::TreeInfo()
+{
+
+}
+
+TreeInfo::TreeInfo(TreeType type)
+{
+	this->Type = type;
+	this->Member = gcnew Dictionary<String^, TreeInfo^>();
+}
+
+TreeInfo^ AddTreeInfo(Dictionary<String^, TreeInfo^>^ tree, Type^ type)
+{
+	Dictionary<String^, TreeInfo^>^ member = tree;
+	if (!String::IsNullOrEmpty(type->Namespace))
+	{
+		array<String^>^ arr = type->Namespace->Split('.');
+		for each (String^ item in arr)
+		{
+			if (!member->ContainsKey(item)) member->Add(item, gcnew TreeInfo(TreeType::NameSpace));
+			member = member[item]->Member;
+		}
+	}
+	if (!member->ContainsKey(type->Name)) member->Add(type->Name, gcnew TreeInfo(TreeType::ClassName));
+	return member[type->Name];
+}
+
+String^ Join(String^ sp, ...array<String^>^ arr)
+{
+	String^ r = String::Empty;
+	for each (String^ item in arr)
+	{
+		if (r != String::Empty) r += sp;
+		r += item;
+	}
+	return r;
+}
 
 int GetTagID()
 {
@@ -70,7 +107,7 @@ DataType Type2EDT(Type^ type, EVariableAttr& attr)
 	else attr = EVariableAttr::None;
 	if (type->IsArray)
 	{
-		attr = (EVariableAttr)(attr | EVariableAttr::Array);
+		attr = (EVariableAttr)((USHORT)attr + (USHORT)EVariableAttr::Array);
 		type = type->GetElementType();
 	}
 	if (Global::typeList->ContainsKey(type)) return (DataType)Global::typeList[type];
@@ -86,6 +123,100 @@ DataType Type2EDT(Type^ type, EVariableAttr& attr)
 	else if (typeof(Delegate)->IsAssignableFrom(type)) return DataType::EDT_SUBPTR;
 	else if (type == typeof(void)) return DataType::EDT_VOID;
 	else return DataType::EDT_ALL;
+}
+
+UINT WriteGlobalVariable(strstream& globalvarhead, strstream& globalvaroffset, strstream& globalvardata, char* name, UINT type, char* remark = NULL)
+{
+	ETAG tag = GetTagID();
+	tag.Type2 = ETYPE::GlobalField;
+	globalvarhead.write(C(&tag), 4);
+	int offset = globalvardata.pcount();
+	globalvaroffset.write(C(&offset), 4);
+	strstream vdata(0, 0, strstream::out | strstream::binary);
+	vdata.write(C(&type), 4);
+	EVariableAttr attr = EVariableAttr::Public;
+	vdata.write(C(&attr), 2);
+	vdata.write(C(&null), 1);
+	int len = strlen(name);
+	vdata.write(name, len + 1);
+	if (remark == NULL) vdata.write(C(&null), 1);
+	else
+	{
+		len = strlen(remark);
+		vdata.write(remark, len + 1);
+	}
+	strstreambuf* tbuff = vdata.rdbuf();
+	len = tbuff->pcount();
+	globalvardata.write(C(&len), 4);
+	globalvardata.write(tbuff->str(), len);
+	return tag;
+}
+
+UINT WriteTree(strstream& structhead, strstream& structoffset, strstream& structdata, String^ name, Dictionary<String^, TreeInfo^>^ tree)
+{
+	strstream paramhead1(0, 0, strstream::out | strstream::binary);
+	strstream paramhead2(0, 0, strstream::out | strstream::binary);
+	strstream paramdata(0, 0, strstream::out | strstream::binary);
+	strstreambuf* tbuff;
+	int offset;
+	char* lpstr;
+	int len;
+	for each (KeyValuePair<String^, TreeInfo^>^ item in tree)
+	{
+		ETAG ptag = GetTagID();
+		ptag.Type2 = ETYPE::Variable;
+		paramhead1.write(C(&ptag), 4);
+		offset = paramdata.pcount();
+		paramhead2.write(C(&offset), 4);
+		strstream pdata(0, 0, strstream::out | strstream::binary);
+		UINT tag;
+		switch (item->Value->Type)
+		{
+		case TreeType::NameSpace:
+			if (item->Value->Member == nullptr || item->Value->Member->Count == 0) tag = DataType::EDT_VOID;
+			else tag = WriteTree(structhead, structoffset, structdata, name + "." + item->Key, item->Value->Member);
+			break;
+		case TreeType::ClassName:
+			tag = item->Value->Tag;
+			break;
+		}
+		pdata.write(C(&tag), 4);
+		pdata.write(C(&null), 2);
+		pdata.write(C(&null), 1);
+		lpstr = String2LPSTR(item->Key);
+		len = strlen(lpstr);
+		pdata.write(lpstr, len + 1);
+		pdata.write(C(&null), 1);
+		tbuff = pdata.rdbuf();
+		len = tbuff->pcount();
+		paramdata.write(C(&len), 4);
+		paramdata.write(tbuff->str(), len);
+	}
+	ETAG etag = GetTagID();
+	etag.Type2 = ETYPE::Struct;
+	structhead.write(C(&etag), 4);
+	offset = structdata.pcount();
+	structoffset.write(C(&offset), 4);
+	structdata.write(C(&_true), 4);
+	lpstr = String2LPSTR(name);
+	len = strlen(lpstr);
+	structdata.write(C(&len), 4);
+	structdata.write(lpstr, len);
+	lpstr = DONET_NAMESPACE;
+	len = strlen(lpstr);
+	structdata.write(C(&len), 4);
+	structdata.write(lpstr, len);
+	len = tree->Keys->Count;
+	structdata.write(C(&len), 4);
+	len = paramhead1.pcount() + paramhead2.pcount() + paramdata.pcount();
+	structdata.write(C(&len), 4);
+	tbuff = paramhead1.rdbuf();
+	structdata.write(tbuff->str(), tbuff->pcount());
+	tbuff = paramhead2.rdbuf();
+	structdata.write(tbuff->str(), tbuff->pcount());
+	tbuff = paramdata.rdbuf();
+	structdata.write(tbuff->str(), tbuff->pcount());
+	return etag;
 }
 
 void WriteHeader(fstream& fs)
@@ -208,12 +339,16 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 	strstream methodhead1(0, 0, strstream::out | strstream::binary);
 	strstream methodhead2(0, 0, strstream::out | strstream::binary);
 	strstream methoddata(0, 0, strstream::out | strstream::binary);
+	strstream globalvarhead1(0, 0, strstream::out | strstream::binary);
+	strstream globalvarhead2(0, 0, strstream::out | strstream::binary);
+	strstream globalvardata(0, 0, strstream::out | strstream::binary);
 	strstream structhead1(0, 0, strstream::out | strstream::binary);
 	strstream structhead2(0, 0, strstream::out | strstream::binary);
 	strstream structdata(0, 0, strstream::out | strstream::binary);
 	List<TypeOffsetInfo^>^ typeoffsetList = gcnew List<TypeOffsetInfo^>();
 	List<TypeOffsetInfo^>^ structoffsetList = gcnew List<TypeOffsetInfo^>();
 	List<TypeOffsetInfo^>^ offsetList = gcnew List<TypeOffsetInfo^>();
+	Dictionary<String^, TreeInfo^>^ tree = gcnew Dictionary<String^, TreeInfo^>();
 	for each (Type^ T in types)
 	{
 		if (T->IsPublic && !T->IsGenericType)
@@ -221,26 +356,28 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 			if (T->IsClass)
 			{
 				ETAG etag = GetTagID();
-				etag.Type2 = ETYPE::StaticClass;
+				etag.Type2 = ETYPE::Class;
+				TreeInfo^ info = AddTreeInfo(tree, T);
+				info->Tag = etag;
+				classlist.push_back(etag);
 				typehead1.write(C(&etag), 4);
 				int offset = typedata.pcount();
 				typehead2.write(C(&offset), 4);
 				typedata.write(C(&_true), 4);
 				typedata.write(C(&not), 4);
-				String^ name = T->FullName;
-				name = DotEncode(name);
-				String^ _typename = name + "_";
-				char* lpstr = String2LPSTR(name);
+				String^ name;
+				char* lpstr = "\1";
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
 				typedata.write(lpstr, len);
-				lpstr = "@donet";
+				lpstr = DONET_CLASS;
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
 				typedata.write(lpstr, len);
 				array<MethodInfo^>^ mlist = T->GetMethods(BINDING_STATIC);
 				len = mlist->Length * 4;
 				typedata.write(C(&len), 4);
+				IDictionary<String^, int>^ mnmap = gcnew Dictionary<String^, int>();
 				for each (MethodInfo^ mi in mlist)
 				{
 					ETAG mtag = GetTagID();;
@@ -258,16 +395,23 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					toi->mode = TypeOffsetInfoMode::Method;
 					offsetList->Add(toi);
 					methoddata.write(C(&null), 4);
-					name = _typename + DotEncode(mi->Name);
+					name = mi->Name;
+					if (mnmap->ContainsKey(name))
+					{
+						int i = mnmap[name];
+						name += "_" + (i++).ToString();
+						mnmap[name] = i;
+					}
+					else mnmap->Add(name, 1);
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
-					methoddata.write(C(lpstr), len);
-					name = "@donet" + mi->MetadataToken.ToString();
+					methoddata.write(lpstr, len);
+					name = Join(SP, DONET, mi->MetadataToken.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
-					methoddata.write(C(lpstr), len);
+					methoddata.write(lpstr, len);
 					methoddata.write(C(&null), 4);
 					methoddata.write(C(&null), 4);
 					array<ParameterInfo^>^ plist = mi->GetParameters();
@@ -350,7 +494,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
 				typedata.write(lpstr, len);
-				lpstr = "@donet";
+				lpstr = DONET;
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
 				typedata.write(lpstr, len);
@@ -358,7 +502,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				mlist = T->GetMethods(BINDING_INSTANCE);
 				len = (clist->Length + mlist->Length) * 4;
 				typedata.write(C(&len), 4);
-				IDictionary<String^, int>^ mnmap = gcnew Dictionary<String^, int>();
+				mnmap = gcnew Dictionary<String^, int>();
 				for each (ConstructorInfo^ ci in clist)
 				{
 					ETAG mtag = GetTagID();
@@ -382,12 +526,12 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
-					methoddata.write(C(lpstr), len);
-					name = "@donet" + ci->MetadataToken.ToString();
+					methoddata.write(lpstr, len);
+					name = Join(SP, DONET, ci->MetadataToken.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
-					methoddata.write(C(lpstr), len);
+					methoddata.write(lpstr, len);
 					methoddata.write(C(&null), 4);
 					methoddata.write(C(&null), 4);
 					array<ParameterInfo^>^ plist = ci->GetParameters();
@@ -478,7 +622,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
 					methoddata.write(C(lpstr), len);
-					name = "@donet" + mi->MetadataToken.ToString();
+					name = Join(SP, DONET, mi->MetadataToken.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
@@ -558,12 +702,11 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				structhead2.write(C(&offset), 4);
 				structdata.write(C(&_true), 4);
 				String^ name = T->FullName;
-				name = DotEncode(name);
 				char* lpstr = String2LPSTR(name);
 				len = strlen(lpstr);
 				structdata.write(C(&len), 4);
 				structdata.write(lpstr, len);
-				lpstr = "@donet";
+				lpstr = DONET;
 				len = strlen(lpstr);
 				structdata.write(C(&len), 4);
 				structdata.write(lpstr, len);
@@ -646,6 +789,24 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 			}
 		}
 	}
+	for each (KeyValuePair<String^, TreeInfo^>^ item in tree)
+	{
+		UINT tag;
+		char* type;
+		switch (item->Value->Type)
+		{
+		case TreeType::NameSpace:
+			if (item->Value->Member == nullptr || item->Value->Member->Count == 0) tag = DataType::EDT_VOID;
+			else tag = WriteTree(structhead1, structhead2, structdata, "#using_" + item->Key, item->Value->Member);
+			type = DONET_NAMESPACE;
+			break;
+		case TreeType::ClassName:
+			tag = item->Value->Tag;
+			type = DONET_CLASS;
+			break;
+		}
+		WriteGlobalVariable(globalvarhead1, globalvarhead2, globalvardata, String2LPSTR(item->Key), tag, type);
+	}
 	strstreambuf* lpbuff = typehead1.rdbuf();
 	len = lpbuff->pcount() * 2;
 	stream.write(C(&len), 4);
@@ -683,8 +844,16 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 		if (item->mode == TypeOffsetInfoMode::Param) memcpy(buf + item->offset + 4, &attr, 2);
 	}
 	stream.write(buf, len);
-	stream.write(C(&null), 4);
-	stream.write(C(&null), 4);
+	len = globalvarhead1.pcount() / 4;
+	stream.write(C(&len), 4);
+	len = globalvarhead1.pcount() + globalvarhead2.pcount() + globalvardata.pcount();
+	stream.write(C(&len), 4);
+	lpbuff = globalvarhead1.rdbuf();
+	stream.write(lpbuff->str(), lpbuff->pcount());
+	lpbuff = globalvarhead2.rdbuf();
+	stream.write(lpbuff->str(), lpbuff->pcount());
+	lpbuff = globalvardata.rdbuf();
+	stream.write(lpbuff->str(), lpbuff->pcount());
 	lpbuff = structhead1.rdbuf();
 	len = lpbuff->pcount() * 2;
 	stream.write(C(&len), 4);
