@@ -500,9 +500,7 @@ MethodDefinition^ CreateToStr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到文本", module->TypeSystem->String, ToList(CreateParameter("待转换的数据", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
 	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Object, "ToString")));
-	AddILCode(ILProcessor, OpCodes::Ret);
 	return method;
 }
 
@@ -695,5 +693,34 @@ MethodDefinition^ CreateFor(ModuleDefinition^ module)
 MethodDefinition^ CreateNext(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("变量循环尾", module->TypeSystem->Void, nullptr, STATICMETHOD);
+	return method;
+}
+
+MethodDefinition^ CreateEnd(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("结束", module->TypeSystem->Void, nullptr, STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Environment, "Exit", typeof(int))));
+	return method;
+}
+
+MethodDefinition^ CreateReDim(ModuleDefinition^ module)
+{
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", module->TypeSystem->Int32), CreateParameter("数组成员类型", module->ImportReference(typeof(RuntimeTypeHandle))));
+	MethodDefinition^ method = CreateMethod("重定义数组", module->TypeSystem->Void, params, STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Nop);
+	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Starg_S, params[1]);
+	ILProcessor->Append(ins);
+	
+
 	return method;
 }

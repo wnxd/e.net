@@ -1,9 +1,49 @@
 #pragma once
+#include "efs.h"
 
 using namespace System;
 using namespace System::Collections::Generic;
 using namespace Mono::Cecil;
 using namespace Mono::Cecil::Cil;
+
+enum krnln_method : UINT
+{
+	如果 = 0x00,
+	如果真 = 0x01,
+	判断 = 0x02,
+	返回 = 0x0D,
+	求余数 = 0x12,
+	相加 = 0x13,
+	相减 = 0x14,
+	负 = 0x15,
+	相乘 = 0x0F,
+	相除 = 0x10,
+	整除 = 0x11,
+	等于 = 0x26,
+	不等于 = 0x27,
+	小于 = 0x28,
+	大于 = 0x29,
+	小于或等于 = 0x2A,
+	大于或等于 = 0x2B,
+	并且 = 0x2D,
+	或者 = 0x2E,
+	取反 = 0x2F,
+	位取反 = 0x30,
+	位与 = 0x31,
+	位或 = 0x32,
+	位异或 = 0x33,
+	赋值 = 0x34,
+	到数值 = 0x59,
+	到文本 = 0x5A,
+	到字节 = 0x0275,
+	到短整数 = 0x0276,
+	到整数 = 0x0277,
+	到长整数 = 0x0278,
+	到小数 = 0x0279,
+	左移 = 0x027E,
+	右移 = 0x027F,
+	重定义数组
+};
 
 MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
 ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);

@@ -36,3 +36,4 @@ const System::Reflection::BindingFlags BINDING_ALLINSTANCE = System::Reflection:
 generic<typename T> IList<T>^ ToList(...array<T>^ args);
 bool operator==(TypeReference^ type1, TypeReference^ type2);
 bool operator!=(TypeReference^ type1, TypeReference^ type2);
+bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2);

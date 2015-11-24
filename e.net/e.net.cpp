@@ -124,11 +124,19 @@ bool Compile(byte* pointer, Int64 len, String^ path, array<String^>^ refer)
 	return r;
 }
 
-void DefaultConstructor(ModuleDefinition^ module, MethodDefinition^ method)
+void DefaultConstructor(ModuleDefinition^ module, MethodDefinition^ method, TypeDefinition^ basetype = nullptr)
 {
+	if (basetype == nullptr) basetype = module->TypeSystem->Object->Resolve();
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Ldarg_0);
-	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(typeof(Object)->GetConstructor(Type::EmptyTypes)));
+	for each (MethodDefinition^ item in basetype->Methods)
+	{
+		if (item->IsConstructor && item->Parameters->Count == 0)
+		{
+			AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(item));
+			break;
+		}
+	}
 }
 
 template<typename T> vector<T> ReadOffset(vector<byte> data)
@@ -144,7 +152,7 @@ template<typename T> vector<T> ReadOffset(vector<byte> data)
 	return arr;
 }
 
-MethodDefinition^ CreateConstructor(ModuleDefinition^ module, MethodAttributes attr = MethodAttributes::Private, IList<Mono::Cecil::ParameterDefinition^>^ params = nullptr)
+MethodDefinition^ CreateConstructor(ModuleDefinition^ module, MethodAttributes attr = MethodAttributes::Private, IList<Mono::Cecil::ParameterDefinition^>^ params = nullptr, TypeDefinition^ basetype = nullptr)
 {
 	MethodDefinition^ ctor;
 	if (attr.HasFlag(MethodAttributes::Static))
@@ -155,10 +163,21 @@ MethodDefinition^ CreateConstructor(ModuleDefinition^ module, MethodAttributes a
 	else
 	{
 		ctor = gcnew MethodDefinition(".ctor", attr | CTOR, module->TypeSystem->Void);
-		DefaultConstructor(module, ctor);
+		DefaultConstructor(module, ctor, basetype);
 	}
 	if (params != nullptr && params->Count > 0) for (int i = 0; i < params->Count; i++) ctor->Parameters->Add(params[i]);
 	return ctor;
+}
+
+void AddDefaultConstructor(ModuleDefinition^ module, TypeDefinition^ type)
+{
+	MethodDefinition^ method;
+	for each (method in type->Methods) if (method->IsConstructor && method->Parameters->Count == 0) return;
+	TypeDefinition^ basetype = type->BaseType->Resolve();
+	AddDefaultConstructor(module, basetype);
+	method = CreateConstructor(module, MethodAttributes::Private, nullptr, basetype);
+	method->Body->Instructions->Add(Instruction::Create(OpCodes::Ret));
+	type->Methods->Add(method);
 }
 
 ETagStatus GetTagStatus(vector<ESection_TagStatus> tags, ETAG tag)
@@ -477,6 +496,15 @@ bool ECompile::CompileClass()
 			}
 			if (!this->CompileMethod(type, assembly, isstatic)) return false;
 		}
+		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Assemblies)
+		{
+			if (assembly.Tag.Type2 == ETYPE::Class)
+			{
+				TypeDefinition^ type = this->_edata->Types[assembly.Tag];
+				AddDefaultConstructor(module, type);
+			rt:;
+			}
+		}
 		return true;
 	}
 	catch (Exception^ ex)
@@ -504,7 +532,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 				if (name == type->Name && pm.ReturnType == DataType::EDT_VOID)
 				{
 					ctor = true;
-					method = CreateConstructor(module, attr);
+					method = CreateConstructor(module, attr, nullptr, type->BaseType->Resolve());
 				}
 				else
 				{
@@ -794,7 +822,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			}
 			if (head == ECode_Type::ParamBegin || head == ECode_Type::ParameterBegin)
 			{
-				if (mr->Tag == ECode_Method::返回) mr->Params[0]->Type = MethodInfo->Method->ReturnType;
+				if (mr->Tag == krnln_method::返回) mr->Params[0]->Type = MethodInfo->Method->ReturnType;
 				IList<EParamData^>^ params = gcnew List<EParamData^>();
 				do
 				{
@@ -863,7 +891,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
 							if (vardata == nullptr || vardata->VariableType == EVariableType::DoNET) throw  Error(mr->Name, "参数" + params->Count + "类型错误");
 							IList<Instruction^>^ code;
-							if (mr->Tag == ECode_Method::赋值 && params->Count == 0)
+							if (mr->Tag == krnln_method::赋值 && params->Count == 0)
 							{
 								mr->Params[0]->Type = vardata->Type;
 								mr->Params[1]->Type = vardata->Type;
@@ -991,6 +1019,15 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					params->Add(param);
 				} while (Code < End);
 			paramend:
+				if (mr->Tag == krnln_method::重定义数组 && params->Count == 3)
+				{
+					EParamData^ param = gcnew EParamData();
+					param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
+					IList<Instruction^>^ codes = gcnew List<Instruction^>();
+					codes->Add(Instruction::Create(OpCodes::Ldtoken, params[0]->Type));
+					param->DataType = EParamDataType::IL;
+					params->Add(param);
+				}
 				EMethodData^ md;
 				if (mr->Params->Length == 0 && params->Count == 0) md = mr->MethodData;
 				else
@@ -1041,7 +1078,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							if (i < mrparams->Length)
 							{
-								if (mrparams[i]->Type == params[i]->Type)
+								if (mrparams[i]->Type == params[i]->Type || IsAssignableFrom(params[i]->Type, mrparams[i]->Type))
 								{
 									similarity++;
 									satisfy++;
@@ -1085,7 +1122,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									ArrayType^ arrtype = dynamic_cast<ArrayType^>(pi->Type);
 									if (arrtype != nullptr)
 									{
-										if (arrtype->ElementType == params[i]->Type)
+										if (arrtype->ElementType == params[i]->Type || IsAssignableFrom(params[i]->Type, arrtype->ElementType))
 										{
 											similarity++;
 											satisfy++;
@@ -1138,7 +1175,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						if (mr == nullptr) throw Error(tagName, "参数不符");
 					}
 					md = mr->MethodData;
-					if (mr->Tag == ECode_Method::赋值)
+					if (mr->Tag == krnln_method::赋值)
 					{
 						EParamInfo^ item = mr->Params[1];
 						EParamData^ param = params[1];
@@ -1867,11 +1904,11 @@ void ECompile::LoadKrnln()
 	ModuleDefinition^ module = this->_assembly->MainModule;
 	TypeDefinition^ global = module->GetType("<Module>");
 	MethodDefinition^ method = CreateReturn(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::返回), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::返回), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateMod(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::求余数), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::求余数), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIntAdd(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::相加), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相加), gcnew EMethodData(method, EMethodMode::Embed));
 	IList<EMethodData^>^ mlist = gcnew List<EMethodData^>();
 	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateEvenIntAdd(module);
@@ -1897,79 +1934,79 @@ void ECompile::LoadKrnln()
 	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
 	this->_edata->Symbols->Add(method->Name, mlist);
 	method = CreateSub(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::相减), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相减), gcnew EMethodData(method, EMethodMode::Embed));
 	mlist = gcnew List<EMethodData^>();
 	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIntSub(module);
 	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
 	this->_edata->Symbols->Add(method->Name, mlist);
 	method = CreateNeg(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::负), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::负), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateMul(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::相乘), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相乘), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateDiv(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::相除), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相除), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIDiv(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::整除), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::整除), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::等于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::等于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateNotEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::不等于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::不等于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateLess(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::小于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::小于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateMore(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::大于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::大于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateLessOrEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::小于或等于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::小于或等于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateMoreOrEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::大于或等于), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::大于或等于), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateAnd(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::并且), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::并且), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateOr(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::或者), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::或者), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateNot(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::取反), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取反), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateBnot(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::位取反), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位取反), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateBand(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::位与), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位与), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateBor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::位或), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位或), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateBxor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::位异或), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位异或), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateSet(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::赋值), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::赋值), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateToDouble(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到数值), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到数值), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToStr(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到文本), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到文本), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateToByte(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到字节), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到字节), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToShort(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到短整数), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到短整数), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToInt(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到整数), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到整数), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToLong(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到长整数), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到长整数), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToFloat(module);
 	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::到小数), gcnew EMethodData(method, EMethodMode::Call));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到小数), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateShl(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::左移), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::左移), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateShr(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::右移), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::右移), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIfe(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::如果), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::如果), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIf(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::如果真), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::如果真), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateIf(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::判断), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateWhile(module);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::判断循环首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateWend(module);
