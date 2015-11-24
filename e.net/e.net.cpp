@@ -2023,6 +2023,11 @@ void ECompile::LoadKrnln()
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::变量循环首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateNext(module);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::变量循环尾), gcnew EMethodData(method, EMethodMode::Embed));
+	method = CreateEnd(module);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::结束), gcnew EMethodData(method, EMethodMode::Embed));
+	method = CreateReDim(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::重定义数组), gcnew EMethodData(method, EMethodMode::Call));
 }
 
 void ECompile::LoadE_net()

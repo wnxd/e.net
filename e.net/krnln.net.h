@@ -12,6 +12,7 @@ enum krnln_method : UINT
 	如果真 = 0x01,
 	判断 = 0x02,
 	返回 = 0x0D,
+	结束 = 0x0E,
 	求余数 = 0x12,
 	相加 = 0x13,
 	相减 = 0x14,
@@ -33,6 +34,7 @@ enum krnln_method : UINT
 	位或 = 0x32,
 	位异或 = 0x33,
 	赋值 = 0x34,
+	重定义数组 = 0x37,
 	到数值 = 0x59,
 	到文本 = 0x5A,
 	到字节 = 0x0275,
@@ -41,8 +43,7 @@ enum krnln_method : UINT
 	到长整数 = 0x0278,
 	到小数 = 0x0279,
 	左移 = 0x027E,
-	右移 = 0x027F,
-	重定义数组
+	右移 = 0x027F
 };
 
 MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
@@ -98,3 +99,5 @@ MethodDefinition^ CreateCounter(ModuleDefinition^ module);
 MethodDefinition^ CreateCounterLoop(ModuleDefinition^ module);
 MethodDefinition^ CreateFor(ModuleDefinition^ module);
 MethodDefinition^ CreateNext(ModuleDefinition^ module);
+MethodDefinition^ CreateEnd(ModuleDefinition^ module);
+MethodDefinition^ CreateReDim(ModuleDefinition^ module);
