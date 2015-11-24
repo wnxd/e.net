@@ -50,7 +50,8 @@ enum class EVariableType
 	Array,
 	Field,
 	Property,
-	GlobalField
+	GlobalField,
+	DoNET
 };
 
 ref struct EVariableIndex

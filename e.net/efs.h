@@ -137,21 +137,26 @@ enum ETYPE : byte
 
 enum EMethodAttr : UINT
 {
-	Public = 0x08
+	M_None = 0x00,
+	M_Public = 0x08,
+	M_Extern = 0x80
 };
 
 enum EVariableAttr : USHORT
 {
-	Out = 0x02,
-	Optional = 0x04,
-	Array = 0x08
+	V_None = 0x00,
+	V_Out = 0x02,
+	V_Optional = 0x04,
+	V_Array = 0x08,
+	V_Public = 0x0100,
+	V_Extern = 0x0200
 };
 
-enum class ETagStatus : UINT
+enum ETagStatus : UINT
 {
-	None = 0x00,
-	Public = 0x01,
-	Extern = 0x02
+	C_None = 0x00,
+	C_Public = 0x01,
+	C_Extern = 0x02
 };
 
 struct ETAG
@@ -255,7 +260,7 @@ struct ESection_Variable
 struct ESection_Program_Assembly
 {
 	ETAG Tag;
-	bool Public;
+	ETagStatus Status;
 	ETAG Base;
 	string Name;
 	string Remark;
@@ -292,7 +297,7 @@ struct ESection_Program_Method
 struct ESection_Program_Dll
 {
 	ETAG tag;
-	bool Public;
+	ETagStatus Status;
 	DataType ReturnType;
 	string ShowName;
 	string Remark;
@@ -309,6 +314,7 @@ struct ESection_Program
 	vector<ESection_Program_Method> Methods;
 	vector<ESection_Program_Method> ReferMethods;
 	vector<ESection_Variable> GlobalVariables;
+	vector<ESection_Variable> ReferGlobalVariables;
 	vector<ESection_Program_Assembly> Structs;
 	vector<ESection_Program_Assembly> ReferStructs;
 	vector<ESection_Program_Dll> Dlls;
@@ -340,4 +346,4 @@ const byte KEY[4] = { 25, 115, 0, 7 };
 
 void Decode_Str(byte data[], const byte key[]);
 ESection_UserInfo GetUserInfo(byte* pointer);
-ESection_Program GetLibraries(byte* pointer);
+ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatus);

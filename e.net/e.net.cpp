@@ -164,7 +164,7 @@ MethodDefinition^ CreateConstructor(ModuleDefinition^ module, MethodAttributes a
 ETagStatus GetTagStatus(vector<ESection_TagStatus> tags, ETAG tag)
 {
 	for each (ESection_TagStatus tagstatus in tags) if (tagstatus.Tag == tag) return tagstatus.Status;
-	return ETagStatus::None;
+	return ETagStatus::C_None;
 }
 
 TypeDefinition^ FindType(IList<TypeDefinition^>^ alltype, String^ fullname)
@@ -416,7 +416,7 @@ bool ECompile::CompileClass()
 			if (!isstatic)
 			{
 				typelist->Add(type, assembly.Base);
-				if (assembly.Public || GetTagStatus(this->_einfo->TagStatus.Tags, assembly.Tag) == ETagStatus::Public) type->Attributes = type->Attributes | TypeAttributes::Public;
+				if (assembly.Status == ETagStatus::C_Public || GetTagStatus(this->_einfo->TagStatus.Tags, assembly.Tag) == ETagStatus::C_Public) type->Attributes = type->Attributes | TypeAttributes::Public;
 			}
 			this->_edata->Types->Add(assembly.Tag, type);
 		}
@@ -426,7 +426,7 @@ bool ECompile::CompileClass()
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Structs)
 		{
 			TypeAttributes attr = STRUCT;
-			if (assembly.Public) attr = attr | TypeAttributes::Public;
+			if (assembly.Status == ETagStatus::C_Public) attr = attr | TypeAttributes::Public;
 			String^ _namespace = String::Empty;
 			String^ classname = CStr2String(assembly.Name);
 			classname = DotDecode(classname);
@@ -499,7 +499,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 				String^ name = CStr2String(pm.Name);
 				MethodDefinition^ method;
 				bool ctor = false;
-				MethodAttributes attr = ((pm.Attributes & EMethodAttr::Public) == EMethodAttr::Public) ? MethodAttributes::Public : MethodAttributes::Private;
+				MethodAttributes attr = ((pm.Attributes & EMethodAttr::M_Public) == EMethodAttr::M_Public) ? MethodAttributes::Public : MethodAttributes::Private;
 				if (isstatic) attr = attr | MethodAttributes::Static;
 				if (name == type->Name && pm.ReturnType == DataType::EDT_VOID)
 				{
@@ -516,9 +516,9 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 				{
 					TypeReference^ t = this->EDT2Type(param.DataType);
 					ParameterAttributes attr = ParameterAttributes::None;
-					if ((param.Attributes & EVariableAttr::Array) == EVariableAttr::Array) t = gcnew ArrayType(t);
-					if ((param.Attributes & EVariableAttr::Optional) == EVariableAttr::Optional) attr = attr | ParameterAttributes::Optional;
-					if ((param.Attributes & EVariableAttr::Out) == EVariableAttr::Out)
+					if ((param.Attributes & EVariableAttr::V_Array) == EVariableAttr::V_Array) t = gcnew ArrayType(t);
+					if ((param.Attributes & EVariableAttr::V_Optional) == EVariableAttr::V_Optional) attr = attr | ParameterAttributes::Optional;
+					if ((param.Attributes & EVariableAttr::V_Out) == EVariableAttr::V_Out)
 					{
 						attr = attr | ParameterAttributes::Out;
 						t = gcnew ByReferenceType(t);
@@ -611,11 +611,18 @@ bool ECompile::CompileCode()
 		global->Attributes = global->Attributes | STATICCLASS;
 		for each (ESection_Variable var in this->_einfo->Program.GlobalVariables)
 		{
-			TypeReference^ t = this->EDT2Type(var.DataType);
-			if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
-			FieldDefinition^ f = gcnew FieldDefinition(CStr2String(var.Name), FieldAttributes::Static, t);
-			global->Fields->Add(f);
-			this->_edata->GlobalVariables->Add(var.Tag, f);
+			if ((var.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
+			{
+
+			}
+			else
+			{
+				TypeReference^ t = this->EDT2Type(var.DataType);
+				if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
+				FieldDefinition^ f = gcnew FieldDefinition(CStr2String(var.Name), FieldAttributes::Static, t);
+				global->Fields->Add(f);
+				this->_edata->GlobalVariables->Add(var.Tag, f);
+			}
 		}
 		for each (ESection_Program_Dll dll in this->_einfo->Program.Dlls)
 		{
@@ -626,8 +633,8 @@ bool ECompile::CompileCode()
 			{
 				TypeReference^ t = this->EDT2Type(param.DataType);
 				ParameterAttributes attr = ParameterAttributes::None;
-				if ((param.Attributes & EVariableAttr::Array) == EVariableAttr::Array) t = gcnew ArrayType(t);
-				if ((param.Attributes & EVariableAttr::Out) == EVariableAttr::Out)
+				if ((param.Attributes & EVariableAttr::V_Array) == EVariableAttr::V_Array) t = gcnew ArrayType(t);
+				if ((param.Attributes & EVariableAttr::V_Out) == EVariableAttr::V_Out)
 				{
 					attr = attr | ParameterAttributes::Out;
 					t = gcnew ByReferenceType(t);
@@ -854,7 +861,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 							EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
-							if (vardata == nullptr) throw  Error(mr->Name, "参数" + params->Count + "类型错误");
+							if (vardata == nullptr || vardata->VariableType == EVariableType::DoNET) throw  Error(mr->Name, "参数" + params->Count + "类型错误");
 							IList<Instruction^>^ code;
 							if (mr->Tag == ECode_Method::赋值 && params->Count == 0)
 							{
@@ -1459,7 +1466,7 @@ EVariableData^ ECompile::CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ I
 				tvi->IndexType = EIndexType::Var;
 				MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 				EVariableData^ tvd = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
-				if (tvd == nullptr || (tvd->Type != module->TypeSystem->Byte && tvd->Type != module->TypeSystem->Int16 && tvd->Type != module->TypeSystem->Int32 && tvd->Type != module->TypeSystem->Int64)) return nullptr;
+				if (tvd == nullptr || tvd->VariableType == EVariableType::DoNET || (tvd->Type != module->TypeSystem->Byte && tvd->Type != module->TypeSystem->Int16 && tvd->Type != module->TypeSystem->Int32 && tvd->Type != module->TypeSystem->Int64)) return nullptr;
 				tvi->IndexData = t->Body->Instructions;
 				break;
 			}
@@ -1493,6 +1500,7 @@ varend:
 	FieldDefinition^ f;
 	FieldDefinition^ g;
 	PropertyDefinition^ pp;
+	bool donetnp = false;
 	switch (tag.Type2)
 	{
 	case Variable:
@@ -1504,6 +1512,24 @@ varend:
 		break;
 	case GlobalField:
 		if (this->_edata->GlobalVariables->ContainsKey(tag)) g = this->_edata->GlobalVariables[tag];
+		else
+		{
+			ESection_Variable gv = FindVariableByTag(this->_einfo->Program.GlobalVariables, tag);
+			if (gv != NULL && (gv.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
+			{
+				vector<string> arr = split(gv.Remark, SP);
+				if (arr[0] == DONET_CLASS || arr[0] == DONET_NAMESPACE) donetnp = true;
+				else
+				{
+					TypeReference^ t = this->EDT2Type(gv.DataType);
+					if (gv.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, gv.ArrayInfo.Dimension);
+					g = gcnew FieldDefinition(CStr2String(gv.Name), FieldAttributes::Static, t);
+					TypeDefinition^ global = module->GetType("<Module>");
+					global->Fields->Add(g);
+					this->_edata->GlobalVariables->Add(gv.Tag, g);
+				}
+			}
+		}
 		break;
 	}
 	if (v != nullptr)
@@ -1551,7 +1577,15 @@ varend:
 			vardata->Data = g;
 		}
 	}
-	else return nullptr;
+	else
+	{
+		if (donetnp)
+		{
+			vardata->VariableType = EVariableType::DoNET;
+			return vardata;
+		}
+		else return nullptr;
+	}
 	if (varindex->Count > 0)
 	{
 		for (size_t i = 0; i < varindex->Count; i++)
@@ -2078,7 +2112,10 @@ TypeDefinition^ ECompile::FindReferType(UINT tag)
 		for each (assembly in this->_einfo->Program.ReferStructs) if (assembly.Tag == tag) goto add;
 		return nullptr;
 	add:
-		TypeDefinition^ type = FindTypeByAssembly(this->_alltype, assembly);
+		vector<string> arr = split(assembly.Remark, SP);
+		TypeDefinition^ type;
+		if (arr[0] == DONET_CLASS) type = FindType(this->_alltype, CStr2String(arr[1]));
+		else  type = FindTypeByAssembly(this->_alltype, assembly);
 		this->_edata->Types->Add(assembly.Tag, type);
 		return type;
 	}
@@ -2100,23 +2137,16 @@ EMethodData^ ECompile::FindReferMethod(ELib_Method^ tag)
 					MethodDefinition^ m;
 					if (type.Name == "__HIDDEN_TEMP_MOD__")
 					{
-						String^ name = CStr2String(method.Name);
-						name = DotDecode(name);
-						int index = name->LastIndexOf(".");
-						if (index != -1)
-						{
-							String^ classname = name->Substring(0, index);
-							t = FindType(this->_alltype, classname);
-							goto add;
-						}
+
+						return nullptr;
 					}
 					else
 					{
-						if (this->_edata->Types->ContainsKey(type.Tag))
+						t = this->FindReferType(type.Tag);
+						if (t != nullptr)
 						{
-							t = this->_edata->Types[type.Tag];
-						add:
-							m = FindMethod(t, UINT::Parse(CStr2String(method.Remark)));
+							vector<string> arr = split(method.Remark, SP);
+							m = FindMethod(t, UINT::Parse(CStr2String(arr[1])));
 							if (m != nullptr)
 							{
 								EMethodData^ md = gcnew EMethodData(m, m->IsConstructor ? EMethodMode::Newobj : EMethodMode::Call);
@@ -2130,18 +2160,6 @@ EMethodData^ ECompile::FindReferMethod(ELib_Method^ tag)
 									this->_edata->Symbols->Add(tagName, mdlist);
 								}
 								mdlist->Add(md);
-								if (m->IsStatic)
-								{
-									for each (ESection_Program_Method mm in this->_einfo->Program.ReferMethods)
-									{
-										if (mm.Tag != method.Tag && mm.Class == method.Class && mm.Name == method.Name)
-										{
-											m = FindMethod(t, UINT::Parse(CStr2String(mm.Remark)));
-											md = gcnew EMethodData(m, m->IsConstructor ? EMethodMode::Newobj : EMethodMode::Call);
-											mdlist->Add(md);
-										}
-									}
-								}
 								return md;
 							}
 						}

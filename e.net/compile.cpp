@@ -11,6 +11,8 @@ EInfo* ParseEcode(byte* code)
 		memcpy(&header, code, sizeof(EFile_Header));
 		if (!arrcmp(header.Magic1, Magic1, 4) || !arrcmp(header.Magic2, Magic2, 4)) return false;
 		long long offset = sizeof(EFile_Header);
+		byte* ptr = NULL;
+		bool isai = false;
 		while (true)
 		{
 			ESection_Header sh = GetData<ESection_Header>(code, offset);
@@ -37,8 +39,12 @@ EInfo* ParseEcode(byte* code)
 			}
 			else if (strcmp(Block_Name, "≥Ã–Ú∂Œ") == 0)
 			{
-				ESection_Program sp = GetLibraries(code + offset);
-				einfo->Program = sp;
+				if (isai)
+				{
+					ESection_Program sp = GetLibraries(code + offset, einfo->TagStatus.Tags);
+					einfo->Program = sp;
+				}
+				else ptr = code + offset;
 			}
 			else if (strcmp(Block_Name, "∏®÷˙–≈œ¢∂Œ2") == 0)
 			{
@@ -48,6 +54,12 @@ EInfo* ParseEcode(byte* code)
 				long long t = offset;
 				for (size_t i = 0; i < count; i++) sai.Tags.push_back(GetData<ESection_TagStatus>(code, t));
 				einfo->TagStatus = sai;
+				isai = true;
+				if (ptr != NULL)
+				{
+					ESection_Program sp = GetLibraries(ptr, sai.Tags);
+					einfo->Program = sp;
+				}
 			}
 			offset += si.DataLength;
 		}

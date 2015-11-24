@@ -156,6 +156,8 @@ template<typename T> T GetData(byte*& pointer)
 	return data;
 }
 
+extern ETagStatus GetTagStatus(vector<ESection_TagStatus> tags, ETAG tag);
+
 string GetString(byte*& pointer, bool jump = false)
 {
 	string str;
@@ -226,7 +228,7 @@ vector<ESection_Variable> GetVariables(byte*& pointer, bool jump = false)
 	return arr;
 }
 
-vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_Program_Assembly>* refer = NULL, bool isclass = true)
+vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_TagStatus> tagstatus, vector<ESection_Program_Assembly>* refer = NULL, bool isclass = true)
 {
 	vector<ESection_Program_Assembly> arr;
 	UINT length = GetData<UINT>(pointer) / 2;
@@ -238,7 +240,7 @@ vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_
 	{
 		ESection_Program_Assembly spa;
 		spa.Tag = tags[i];
-		spa.Public = GetData<int>(pointer);
+		spa.Status = GetData<ETagStatus>(pointer);
 		if (isclass) spa.Base = GetData<ETAG>(pointer);
 		spa.Name = GetString(pointer);
 		spa.Remark = GetString(pointer);
@@ -249,16 +251,8 @@ vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_
 			for (size_t n = 0; n < size; n++) spa.Methods.push_back(GetData<ETAG>(pointer));
 		}
 		spa.Variables = GetVariables(pointer);
-		if (spa.Remark == "@donet")
-		{
-		donet:
-			if (refer != NULL) refer->push_back(spa);
-		}
-		else
-		{
-			if (spa.Name == "__HIDDEN_TEMP_MOD__") goto donet;
-			else arr.push_back(spa);
-		}
+		if (refer != NULL && ((spa.Status & ETagStatus::C_Extern) == ETagStatus::C_Extern || GetTagStatus(tagstatus, spa.Tag) == ETagStatus::C_Extern)) refer->push_back(spa);
+		else arr.push_back(spa);
 	}
 	delete tags;
 	return arr;
@@ -289,11 +283,7 @@ vector<ESection_Program_Method> GetMethods(byte*& pointer, vector<ESection_Progr
 		spm.ParameterOffset = GetBytes(pointer);
 		spm.VariableOffset = GetBytes(pointer);
 		spm.Code = GetBytes(pointer);
-		if (spm.Remark.size() > 6 && spm.Remark.substr(0, 6) == "@donet")
-		{
-			spm.Remark = spm.Remark.substr(6);
-			if (refer != NULL) refer->push_back(spm);
-		}
+		if (refer != NULL && (spm.Attributes & EMethodAttr::M_Extern) == EMethodAttr::M_Extern) refer->push_back(spm);
 		else arr.push_back(spm);
 	}
 	delete tags;
@@ -312,7 +302,7 @@ vector<ESection_Program_Dll> GetDlls(byte*& pointer)
 	{
 		ESection_Program_Dll spd;
 		spd.tag = tags[i];
-		spd.Public = GetData<int>(pointer);
+		spd.Status = GetData<ETagStatus>(pointer);
 		spd.ReturnType = GetData<DataType>(pointer);
 		spd.ShowName = GetString(pointer);
 		spd.Remark = GetString(pointer);
@@ -347,7 +337,7 @@ ESection_UserInfo GetUserInfo(byte* pointer)
 	return sui;
 }
 
-ESection_Program GetLibraries(byte* pointer)
+ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatus)
 {
 	ESection_Program sp;
 	pointer += sizeof(UINT);
@@ -362,10 +352,10 @@ ESection_Program GetLibraries(byte* pointer)
 	if ((flag & 1) != 0) pointer += 16;
 	GetBytes(pointer, true);
 	GetString(pointer, true);
-	sp.Assemblies = GetAssemblies(pointer, &sp.ReferAssemblies);
+	sp.Assemblies = GetAssemblies(pointer, tagstatus, &sp.ReferAssemblies);
 	sp.Methods = GetMethods(pointer, &sp.ReferMethods);
 	sp.GlobalVariables = GetVariables(pointer);
-	sp.Structs = GetAssemblies(pointer, &sp.ReferStructs, false);
+	sp.Structs = GetAssemblies(pointer, tagstatus, &sp.ReferStructs, false);
 	sp.Dlls = GetDlls(pointer);
 	return sp;
 }
