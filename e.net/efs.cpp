@@ -27,16 +27,6 @@ bool ETAG::operator!=(ETAG tag)
 	return *this != ETAG2UINT(tag);
 }
 
-bool ETAG::operator==(ECode_Method code)
-{
-	return *this == (UINT)code;
-}
-
-bool ETAG::operator!=(ECode_Method code)
-{
-	return *this != (UINT)code;
-}
-
 bool ETAG::operator==(UINT uint)
 {
 	return ETAG2UINT((*this)) == uint;
@@ -57,10 +47,10 @@ bool ETAG::operator!=(int uint)
 	return ETAG2UINT((*this)) != uint;
 }
 
-ETAG::operator ECode_Method()
+ETAG::operator UINT()
 {
-	ECode_Method type;
-	memcpy(&type, this, sizeof(ECode_Method));
+	UINT type;
+	memcpy(&type, this, sizeof(UINT));
 	return type;
 }
 

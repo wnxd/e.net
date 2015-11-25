@@ -11,6 +11,14 @@ enum krnln_method : UINT
 	如果 = 0x00,
 	如果真 = 0x01,
 	判断 = 0x02,
+	判断循环首 = 0x03,
+	判断循环尾 = 0x04,
+	循环判断首 = 0x05,
+	循环判断尾 = 0x06,
+	计次循环首 = 0x07,
+	计次循环尾 = 0x08,
+	变量循环首 = 0x09,
+	变量循环尾 = 0x0A,
 	返回 = 0x0D,
 	结束 = 0x0E,
 	求余数 = 0x12,
@@ -35,6 +43,11 @@ enum krnln_method : UINT
 	位异或 = 0x33,
 	赋值 = 0x34,
 	重定义数组 = 0x37,
+	取数组成员数 = 0x38,
+	取数组下标 = 0x39,
+	复制数组 = 0x3A,
+	加入成员 = 0x3B,
+	插入成员 = 0x3C,
 	到数值 = 0x59,
 	到文本 = 0x5A,
 	到字节 = 0x0275,
@@ -101,3 +114,8 @@ MethodDefinition^ CreateFor(ModuleDefinition^ module);
 MethodDefinition^ CreateNext(ModuleDefinition^ module);
 MethodDefinition^ CreateEnd(ModuleDefinition^ module);
 MethodDefinition^ CreateReDim(ModuleDefinition^ module);
+MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module);
+MethodDefinition^ CreateUBound(ModuleDefinition^ module);
+MethodDefinition^ CreateCopyAry(ModuleDefinition^ module);
+MethodDefinition^ CreateAddElement(ModuleDefinition^ module);
+MethodDefinition^ CreateInsElement(ModuleDefinition^ module);

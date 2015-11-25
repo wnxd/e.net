@@ -51,7 +51,9 @@ bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
 	else if (type1 == type2) return true;
 	else
 	{
-		type1 = type1->Resolve()->BaseType;
+		if (type1->IsArray) type1 = type1->Module->ImportReference(typeof(Array));
+		else if (type1->IsByReference) type1 = dynamic_cast<ByReferenceType^>(type1)->ElementType;
+		else type1 = type1->Resolve()->BaseType;
 		if (type1 == nullptr) return false;
 		return IsAssignableFrom(type1, type2);
 	}

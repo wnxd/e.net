@@ -45,18 +45,6 @@ enum class EProcess_Tag : byte
 	SwitchEnd = 0x54
 };
 
-enum ECode_Method : UINT
-{
-	判断循环首 = 0x03,
-	判断循环尾 = 0x04,
-	循环判断首 = 0x05,
-	循环判断尾 = 0x06,
-	计次循环首 = 0x07,
-	计次循环尾 = 0x08,
-	变量循环首 = 0x09,
-	变量循环尾 = 0x0A
-};
-
 enum FileType : UINT
 {
 	E = 0x01,
@@ -135,13 +123,11 @@ struct ETAG
 	ETAG* operator=(UINT uint);
 	bool operator==(ETAG tag);
 	bool operator!=(ETAG tag);
-	bool operator==(ECode_Method code);
-	bool operator!=(ECode_Method code);
 	bool operator==(UINT uint);
 	bool operator!=(UINT uint);
 	bool operator==(int uint);
 	bool operator!=(int uint);
-	operator ECode_Method();
+	operator UINT();
 };
 
 struct EFieldInfo

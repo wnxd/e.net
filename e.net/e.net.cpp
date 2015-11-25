@@ -1019,14 +1019,15 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					params->Add(param);
 				} while (Code < End);
 			paramend:
-				if (mr->Tag == krnln_method::重定义数组 && params->Count == 3)
+				if (mr->Tag == krnln_method::重定义数组 && params->Count >= 3)
 				{
 					EParamData^ param = gcnew EParamData();
 					param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
 					IList<Instruction^>^ codes = gcnew List<Instruction^>();
 					codes->Add(Instruction::Create(OpCodes::Ldtoken, params[0]->Type));
+					param->Data = codes;
 					param->DataType = EParamDataType::IL;
-					params->Add(param);
+					params->Insert(0, param);
 				}
 				EMethodData^ md;
 				if (mr->Params->Length == 0 && params->Count == 0) md = mr->MethodData;
@@ -1657,6 +1658,13 @@ varend:
 					if (ii > 0)
 					{
 						AddILCode(ILProcessor, OpCodes::Mul);
+						goto next;
+						
+					}
+					else if (dynamic_cast<ArrayType^>(vardata->Type)) break;
+					else
+					{
+					next:
 						if (varindex->Count > i + 1)
 						{
 							item = varindex[i + 1];
@@ -1665,7 +1673,6 @@ varend:
 						}
 						else break;
 					}
-					else if (dynamic_cast<ArrayType^>(vardata->Type)) break;
 					ii++;
 				} while (true);
 				AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
@@ -1759,7 +1766,7 @@ void ECompile::CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcesso
 		current -= sizeof(ETAG);
 		this->CompileCode_Call(MethodInfo, ILProcessor, current, current + size);
 		Index++;
-		switch (etag)
+		switch ((UINT)etag)
 		{
 		case 判断循环首:
 			end = ILProcessor->Create(OpCodes::Nop);
@@ -1980,7 +1987,6 @@ void ECompile::LoadKrnln()
 	global->Methods->Add(method);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到数值), gcnew EMethodData(method, EMethodMode::Call));
 	method = CreateToStr(module);
-	global->Methods->Add(method);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到文本), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateToByte(module);
 	global->Methods->Add(method);
@@ -2008,26 +2014,41 @@ void ECompile::LoadKrnln()
 	method = CreateIf(module);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateWhile(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::判断循环首), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断循环首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateWend(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::判断循环尾), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断循环尾), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateDoWhile(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::循环判断首), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::循环判断首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateLoop(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::循环判断尾), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::循环判断尾), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateCounter(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::计次循环首), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::计次循环首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateCounterLoop(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::计次循环尾), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::计次循环尾), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateFor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::变量循环首), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::变量循环首), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateNext(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, ECode_Method::变量循环尾), gcnew EMethodData(method, EMethodMode::Embed));
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::变量循环尾), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateEnd(module);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::结束), gcnew EMethodData(method, EMethodMode::Embed));
 	method = CreateReDim(module);
 	global->Methods->Add(method);
 	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::重定义数组), gcnew EMethodData(method, EMethodMode::Call));
+	method = CreateGetAryElementCount(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取数组成员数), gcnew EMethodData(method, EMethodMode::Call));
+	method = CreateUBound(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取数组下标), gcnew EMethodData(method, EMethodMode::Call));
+	method = CreateCopyAry(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::复制数组), gcnew EMethodData(method, EMethodMode::Call));
+	method = CreateAddElement(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::加入成员), gcnew EMethodData(method, EMethodMode::Call));
+	method = CreateInsElement(module);
+	global->Methods->Add(method);
+	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::插入成员), gcnew EMethodData(method, EMethodMode::Call));
 }
 
 void ECompile::LoadE_net()

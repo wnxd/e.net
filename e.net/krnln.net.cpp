@@ -706,33 +706,54 @@ MethodDefinition^ CreateEnd(ModuleDefinition^ module)
 
 MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 {
-	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", module->TypeSystem->Int32), CreateParameter("数组成员类型", module->ImportReference(typeof(RuntimeTypeHandle))));
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
+	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	params[3]->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("重定义数组", module->TypeSystem->Void, params, STATICMETHOD);
 	method->Body->InitLocals = true;
 	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Object));
+	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+	MethodReference^ get_Length = module->ImportReference(GetInstanceMethod(Array, "get_Length"));
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
-	Instruction^ ins = ILProcessor->Create(OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_2);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Ldarg_1);
 	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
 	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
 	AddILCode(ILProcessor, OpCodes::Ldnull);
 	AddILCode(ILProcessor, OpCodes::Ceq);
 	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Starg_S, params[1]);
+	AddILCode(ILProcessor, OpCodes::Starg_S, params[2]);
 	ILProcessor->Append(ins);
-	AddILCode(ILProcessor, OpCodes::Ldarg_3);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
 	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod_D(Type, "GetTypeFromHandle")));
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
 	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Object);
 	AddILCode(ILProcessor, OpCodes::Dup);
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Ldarg_2);
-	AddILCode(ILProcessor, OpCodes::Box, module->TypeSystem->Int32);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Stloc_1);
+	ins = ILProcessor->Create(OpCodes::Ldarg_3);
+	Instruction^ ins2 = ILProcessor->Create(OpCodes::Box, module->TypeSystem->Int32);
+	ILProcessor->Append(ins);
+	AddILCode(ILProcessor, OpCodes::Callvirt, get_Length);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ble_S, ins2);
+	AddILCode(ILProcessor, OpCodes::Ldarg_3);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldelem_I4);
+	AddILCode(ILProcessor, OpCodes::Mul);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	AddILCode(ILProcessor, OpCodes::Stloc_1);
+	AddILCode(ILProcessor, OpCodes::Br_S, ins);
+	ILProcessor->Append(ins2);
 	AddILCode(ILProcessor, OpCodes::Stelem_Ref);
 	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Activator, "CreateInstance", typeof(Type), typeof(array<Object^>))));
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldarg_2);
 	ins = ILProcessor->Create(OpCodes::Stind_Ref);
 	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
 	AddILCode(ILProcessor, OpCodes::Stloc_0);
@@ -740,21 +761,187 @@ MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 	AddILCode(ILProcessor, OpCodes::Ldloc_0);
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
 	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
+	AddILCode(ILProcessor, OpCodes::Callvirt, get_Length);
 	AddILCode(ILProcessor, OpCodes::Dup);
 	AddILCode(ILProcessor, OpCodes::Ldloc_0);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	Instruction^ ins2 = ILProcessor->Create(OpCodes::Call, module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int))));
+	AddILCode(ILProcessor, OpCodes::Callvirt, get_Length);
+	ins2 = ILProcessor->Create(OpCodes::Call, module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int))));
 	AddILCode(ILProcessor, OpCodes::Blt_S, ins2);
 	AddILCode(ILProcessor, OpCodes::Pop);
 	AddILCode(ILProcessor, OpCodes::Ldloc_0);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
+	AddILCode(ILProcessor, OpCodes::Callvirt, get_Length);
 	ILProcessor->Append(ins2);
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
 	AddILCode(ILProcessor, OpCodes::Ldloc_0);
 	ILProcessor->Append(ins);
 	AddILCode(ILProcessor, OpCodes::Ret);
+	return method;
+}
+
+MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取数组成员数", module->TypeSystem->Int32, ToList(CreateParameter("欲检查的数组变量", module->ImportReference(typeof(Array)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_M1);
+	AddILCode(ILProcessor, OpCodes::Ret);
+	ILProcessor->Append(ins);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "get_Length")));
+	AddILCode(ILProcessor, OpCodes::Ret);
+	return method;
+}
+
+MethodDefinition^ CreateUBound(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取数组下标", module->TypeSystem->Int32, ToList(CreateParameter("欲取某维最大下标的数组变量", module->ImportReference(typeof(Array))), CreateParameter("欲取其最大下标的维", module->TypeSystem->Int32, ParameterAttributes::Optional)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ret);
+	ILProcessor->Append(ins);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "get_Length")));
+	AddILCode(ILProcessor, OpCodes::Ret);
+	return method;
+}
+
+MethodDefinition^ CreateCopyAry(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("复制数组", module->TypeSystem->Void, ToList(CreateParameter("复制到的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("待复制的数组数据", module->ImportReference(typeof(Array)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Ret);
+	AddILCode(ILProcessor, OpCodes::Beq_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "Clone")));
+	AddILCode(ILProcessor, OpCodes::Stind_Ref);
+	ILProcessor->Append(ins);
+	return method;
+}
+
+MethodDefinition^ CreateAddElement(ModuleDefinition^ module)
+{
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲加入成员的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("欲加入的成员数据", module->TypeSystem->Object));
+	MethodDefinition^ method = CreateMethod("加入成员", module->TypeSystem->Void, params, STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	method->Body->InitLocals = true;
+	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Object));
+	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetInstanceMethod(Object, "GetType")));
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Object);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "get_Length")));
+	AddILCode(ILProcessor, OpCodes::Stloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	AddILCode(ILProcessor, OpCodes::Box, module->TypeSystem->Int32);
+	AddILCode(ILProcessor, OpCodes::Stelem_Ref);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Activator, "CreateInstance", typeof(Type), typeof(array<Object^>))));
+	AddILCode(ILProcessor, OpCodes::Stloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int))));
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "SetValue", typeof(Object), typeof(int))));
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Stind_Ref);
+	AddILCode(ILProcessor, OpCodes::Ret);
+	return method;
+}
+
+MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
+{
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲插入成员的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("欲插入的位置", module->TypeSystem->Int32), CreateParameter("欲插入的成员数据", module->TypeSystem->Object));
+	MethodDefinition^ method = CreateMethod("插入成员", module->TypeSystem->Void, params, STATICMETHOD);
+	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	method->Body->InitLocals = true;
+	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Object));
+	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	Instruction^ ins = ILProcessor->Create(OpCodes::Ret);
+	AddILCode(ILProcessor, OpCodes::Blt_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "get_Length")));
+	AddILCode(ILProcessor, OpCodes::Stloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Blt_S, ins);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Sub);
+	AddILCode(ILProcessor, OpCodes::Starg_S, params[1]);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetInstanceMethod(Object, "GetType")));
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Object);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	AddILCode(ILProcessor, OpCodes::Box, module->TypeSystem->Int32);
+	AddILCode(ILProcessor, OpCodes::Stelem_Ref);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Activator, "CreateInstance", typeof(Type), typeof(array<Object^>))));
+	AddILCode(ILProcessor, OpCodes::Stloc_0);
+	Instruction^ ins2 = ILProcessor->Create(OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Brfalse_S, ins2);
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Call, Copy);
+	ILProcessor->Append(ins2);
+	AddILCode(ILProcessor, OpCodes::Ldind_Ref);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Sub);
+	AddILCode(ILProcessor, OpCodes::Call, Copy);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Ldarg_2);
+	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Array, "SetValue", typeof(Object), typeof(int))));
+	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+	AddILCode(ILProcessor, OpCodes::Stind_Ref);
+	ILProcessor->Append(ins);
 	return method;
 }
