@@ -2,6 +2,8 @@
 
 using namespace std;
 
+#define NOT -1
+
 template<typename T> bool arrcmp(const T arr1[], const T arr2[], size_t len)
 {
 	for (size_t i = 0; i < len; i++) if (arr1[i] != arr2[i]) return false;

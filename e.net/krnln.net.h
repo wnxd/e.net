@@ -1,10 +1,14 @@
 #pragma once
 #include "efs.h"
+#include "Plugins.h"
 
 using namespace System;
 using namespace System::Collections::Generic;
 using namespace Mono::Cecil;
 using namespace Mono::Cecil::Cil;
+using namespace wnxd::E_NET;
+
+#define KRNLN "d09f2340818511d396f6aaf844c7e325"
 
 enum krnln_method : UINT
 {
@@ -59,63 +63,13 @@ enum krnln_method : UINT
 	”““∆ = 0x027F
 };
 
-MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
-ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
-MethodDefinition^ CreateReturn(ModuleDefinition^ module);
-MethodDefinition^ CreateMod(ModuleDefinition^ module);
-MethodDefinition^ CreateAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateIntAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateLongAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module);
-MethodDefinition^ CreateSub(ModuleDefinition^ module);
-MethodDefinition^ CreateIntSub(ModuleDefinition^ module);
-MethodDefinition^ CreateNeg(ModuleDefinition^ module);
-MethodDefinition^ CreateMul(ModuleDefinition^ module);
-MethodDefinition^ CreateDiv(ModuleDefinition^ module);
-MethodDefinition^ CreateIDiv(ModuleDefinition^ module);
-MethodDefinition^ CreateEqual(ModuleDefinition^ module);
-MethodDefinition^ CreateNotEqual(ModuleDefinition^ module);
-MethodDefinition^ CreateLess(ModuleDefinition^ module);
-MethodDefinition^ CreateMore(ModuleDefinition^ module);
-MethodDefinition^ CreateLessOrEqual(ModuleDefinition^ module);
-MethodDefinition^ CreateMoreOrEqual(ModuleDefinition^ module);
-MethodDefinition^ CreateAnd(ModuleDefinition^ module);
-MethodDefinition^ CreateOr(ModuleDefinition^ module);
-MethodDefinition^ CreateNot(ModuleDefinition^ module);
-MethodDefinition^ CreateBnot(ModuleDefinition^ module);
-MethodDefinition^ CreateBand(ModuleDefinition^ module);
-MethodDefinition^ CreateBor(ModuleDefinition^ module);
-MethodDefinition^ CreateBxor(ModuleDefinition^ module);
-MethodDefinition^ CreateSet(ModuleDefinition^ module);
-MethodDefinition^ CreateToDouble(ModuleDefinition^ module);
-MethodDefinition^ CreateToStr(ModuleDefinition^ module);
-MethodDefinition^ CreateToByte(ModuleDefinition^ module);
-MethodDefinition^ CreateToShort(ModuleDefinition^ module);
-MethodDefinition^ CreateToInt(ModuleDefinition^ module);
-MethodDefinition^ CreateToLong(ModuleDefinition^ module);
-MethodDefinition^ CreateToFloat(ModuleDefinition^ module);
-MethodDefinition^ CreateShl(ModuleDefinition^ module);
-MethodDefinition^ CreateShr(ModuleDefinition^ module);
-MethodDefinition^ CreateIfe(ModuleDefinition^ module);
-MethodDefinition^ CreateIf(ModuleDefinition^ module);
-MethodDefinition^ CreateSwitch(ModuleDefinition^ module);
-MethodDefinition^ CreateWhile(ModuleDefinition^ module);
-MethodDefinition^ CreateWend(ModuleDefinition^ module);
-MethodDefinition^ CreateDoWhile(ModuleDefinition^ module);
-MethodDefinition^ CreateLoop(ModuleDefinition^ module);
-MethodDefinition^ CreateCounter(ModuleDefinition^ module);
-MethodDefinition^ CreateCounterLoop(ModuleDefinition^ module);
-MethodDefinition^ CreateFor(ModuleDefinition^ module);
-MethodDefinition^ CreateNext(ModuleDefinition^ module);
-MethodDefinition^ CreateEnd(ModuleDefinition^ module);
-MethodDefinition^ CreateReDim(ModuleDefinition^ module);
-MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module);
-MethodDefinition^ CreateUBound(ModuleDefinition^ module);
-MethodDefinition^ CreateCopyAry(ModuleDefinition^ module);
-MethodDefinition^ CreateAddElement(ModuleDefinition^ module);
-MethodDefinition^ CreateInsElement(ModuleDefinition^ module);
+[LibGuidAttribute(KRNLN)]
+ref class Krnln : Plugin, MonoPlugin
+{
+public:
+	property PluginType Type
+	{
+		virtual PluginType get() override;
+	}
+	virtual IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module) override;
+};

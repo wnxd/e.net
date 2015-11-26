@@ -1,19 +1,8 @@
 #include "stdafx.h"
+#include "common.h"
 #include "common.net.h"
+#include "e.net.h"
 #include "krnln.net.h"
-
-MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params, MethodAttributes attr)
-{
-	MethodDefinition^ method = gcnew MethodDefinition(name, attr, returntype);
-	if (params != nullptr && params->Count > 0) for each (ParameterDefinition^ item in params) method->Parameters->Add(item);
-	return method;
-}
-
-ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr)
-{
-	ParameterDefinition^ param = gcnew ParameterDefinition(name, attr, type);
-	return param;
-}
 
 MethodDefinition^ CreateReturn(ModuleDefinition^ module)
 {
@@ -944,4 +933,73 @@ MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
 	AddILCode(ILProcessor, OpCodes::Stind_Ref);
 	ILProcessor->Append(ins);
 	return method;
+}
+
+PluginType Krnln::Type::get()
+{
+	return PluginType::Mono;
+}
+
+IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
+{
+	IList<MonoInfo^>^ list = gcnew List<MonoInfo^>();
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::返回, CreateReturn(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::求余数, CreateMod(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相加, CreateIntAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, NOT, CreateEvenIntAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateLongAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, NOT, CreateEvenLongAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateDoubleAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, NOT, CreateEvenDoubleAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, NOT, CreateEvenBinAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, NOT, CreateEvenAdd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相减, CreateSub(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateIntSub(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::负, CreateNeg(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相乘, CreateMul(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相除, CreateDiv(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::整除, CreateIDiv(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于, CreateLess(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::大于, CreateMore(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于或等于, CreateLessOrEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::大于或等于, CreateMoreOrEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::并且, CreateAnd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::或者, CreateOr(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取反, CreateNot(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位取反, CreateBnot(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位与, CreateBand(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位或, CreateBor(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位异或, CreateBxor(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::赋值, CreateSet(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到数值, CreateToDouble(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到文本, CreateToStr(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到字节, CreateToByte(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到短整数, CreateToShort(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到整数, CreateToInt(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到长整数, CreateToLong(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到小数, CreateToFloat(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::左移, CreateShl(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::右移, CreateShr(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::如果, CreateIfe(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::如果真, CreateIf(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断, CreateSwitch(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断循环首, CreateWhile(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断循环尾, CreateWend(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::循环判断首, CreateDoWhile(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::循环判断尾, CreateLoop(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::计次循环首, CreateCounter(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::计次循环尾, CreateCounterLoop(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::变量循环首, CreateFor(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::变量循环尾, CreateNext(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::结束, CreateEnd(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::重定义数组, CreateReDim(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::取数组成员数, CreateGetAryElementCount(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::取数组下标, CreateUBound(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::复制数组, CreateCopyAry(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::加入成员, CreateAddElement(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::插入成员, CreateInsElement(module)));
+	return list;
 }

@@ -7,9 +7,10 @@
 using namespace std;
 using namespace System::IO;
 using namespace System::Windows::Forms;
-using namespace System::Collections::Generic;
 using namespace System::Runtime::CompilerServices;
 using namespace System::Text::RegularExpressions;
+
+#define E_NET LI_LIB_GUID_STR
 
 EDataInfo::EDataInfo()
 {
@@ -271,9 +272,22 @@ String^ FindLibrary(vector<string> libraries, string name, short& i)
 	for (i = 0; i < len; i++)
 	{
 		vector<string> arr = split(libraries[i], "\r");
-		if (arr[0] == name) return CStr2String(libraries[i]);
+		if (arr[1] == name) return CStr2String(libraries[i]);
 	}
 	return nullptr;
+}
+
+MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params, MethodAttributes attr)
+{
+	MethodDefinition^ method = gcnew MethodDefinition(name, attr, returntype);
+	if (params != nullptr && params->Count > 0) for each (ParameterDefinition^ item in params) method->Parameters->Add(item);
+	return method;
+}
+
+ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr)
+{
+	ParameterDefinition^ param = gcnew ParameterDefinition(name, attr, type);
+	return param;
 }
 
 Exception^ Error(String^ methodname, String^ paramname, String^ error)
@@ -363,8 +377,6 @@ bool ECompile::CompileHead()
 		}
 		this->_assembly = AssemblyDefinition::CreateAssembly(name, str, mp);
 		short id;
-		FindLibrary(this->_einfo->Program.Libraries, KRNLN, id);
-		this->krnln_id = id;
 		FindLibrary(this->_einfo->Program.Libraries, E_NET, id);
 		this->e_net_id = id;
 		return true;
@@ -1659,7 +1671,7 @@ varend:
 					{
 						AddILCode(ILProcessor, OpCodes::Mul);
 						goto next;
-						
+
 					}
 					else if (dynamic_cast<ArrayType^>(vardata->Type)) break;
 					else
@@ -1910,145 +1922,26 @@ void ECompile::LoadKrnln()
 {
 	ModuleDefinition^ module = this->_assembly->MainModule;
 	TypeDefinition^ global = module->GetType("<Module>");
-	MethodDefinition^ method = CreateReturn(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::返回), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateMod(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::求余数), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIntAdd(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相加), gcnew EMethodData(method, EMethodMode::Embed));
-	IList<EMethodData^>^ mlist = gcnew List<EMethodData^>();
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEvenIntAdd(module);
-	global->Methods->Add(method);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateLongAdd(module);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEvenLongAdd(module);
-	global->Methods->Add(method);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateDoubleAdd(module);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEvenDoubleAdd(module);
-	global->Methods->Add(method);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateEvenBinAdd(module);
-	global->Methods->Add(method);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateAdd(module);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEvenAdd(module);
-	global->Methods->Add(method);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Call));
-	this->_edata->Symbols->Add(method->Name, mlist);
-	method = CreateSub(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相减), gcnew EMethodData(method, EMethodMode::Embed));
-	mlist = gcnew List<EMethodData^>();
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIntSub(module);
-	mlist->Add(gcnew EMethodData(method, EMethodMode::Embed));
-	this->_edata->Symbols->Add(method->Name, mlist);
-	method = CreateNeg(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::负), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateMul(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相乘), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateDiv(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::相除), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIDiv(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::整除), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::等于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateNotEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::不等于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateLess(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::小于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateMore(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::大于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateLessOrEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::小于或等于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateMoreOrEqual(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::大于或等于), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateAnd(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::并且), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateOr(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::或者), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateNot(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取反), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateBnot(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位取反), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateBand(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位与), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateBor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位或), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateBxor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::位异或), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateSet(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::赋值), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateToDouble(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到数值), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateToStr(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到文本), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateToByte(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到字节), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateToShort(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到短整数), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateToInt(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到整数), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateToLong(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到长整数), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateToFloat(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::到小数), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateShl(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::左移), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateShr(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::右移), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIfe(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::如果), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIf(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::如果真), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateIf(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateWhile(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断循环首), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateWend(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::判断循环尾), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateDoWhile(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::循环判断首), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateLoop(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::循环判断尾), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateCounter(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::计次循环首), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateCounterLoop(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::计次循环尾), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateFor(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::变量循环首), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateNext(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::变量循环尾), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateEnd(module);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::结束), gcnew EMethodData(method, EMethodMode::Embed));
-	method = CreateReDim(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::重定义数组), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateGetAryElementCount(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取数组成员数), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateUBound(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::取数组下标), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateCopyAry(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::复制数组), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateAddElement(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::加入成员), gcnew EMethodData(method, EMethodMode::Call));
-	method = CreateInsElement(module);
-	global->Methods->Add(method);
-	this->_edata->Methods->Add(gcnew ELib_Method(this->krnln_id, krnln_method::插入成员), gcnew EMethodData(method, EMethodMode::Call));
+	PluginInfo^ info = Plugins::Load(module, typeof(Krnln));
+	short krnln_id;
+	FindLibrary(this->_einfo->Program.Libraries, String2LPSTR(info->Lib), krnln_id);
+	for each (MonoInfo^ mi in info->Methods)
+	{
+		if (mi->Mode != EMethodMode::Embed) global->Methods->Add(mi->Method);
+		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
+		if (mi->Tag != NOT) this->_edata->Methods->Add(gcnew ELib_Method(krnln_id, mi->Tag), md);
+		if (mi->Tag != krnln_method::返回 && mi->Tag != krnln_method::赋值)
+		{
+			IList<EMethodData^>^ mlist;
+			if (this->_edata->Symbols->ContainsKey(mi->Method->Name)) mlist = this->_edata->Symbols[mi->Method->Name];
+			else
+			{
+				mlist = gcnew List<EMethodData^>();
+				this->_edata->Symbols->Add(mi->Method->Name, mlist);
+			}
+			mlist->Add(md);
+		}
+	}
 }
 
 void ECompile::LoadE_net()

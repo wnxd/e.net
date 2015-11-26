@@ -288,8 +288,6 @@ const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
 const byte KEY[4] = { 25, 115, 0, 7 };
 
-#define KRNLN "krnln"
-#define E_NET "e_net"
 #define SP "\r"
 #define DONET "@donet"
 #define DONET_NAMESPACE "@namespace"

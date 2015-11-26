@@ -2,10 +2,13 @@
 
 #include "efs.h"
 #include "compile.h"
+#include "Plugins.h"
 
 using namespace System;
+using namespace System::Collections::Generic;
 using namespace Mono::Cecil;
 using namespace Mono::Cecil::Cil;
+using namespace wnxd::E_NET;
 
 bool Compile(byte* pointer, Int64 len, String^ path, array<String^>^ refer);
 
@@ -24,13 +27,6 @@ enum class EParamDataType
 	GlobalField,
 	Array,
 	IL
-};
-
-enum class EMethodMode
-{
-	Call,
-	Newobj,
-	Embed
 };
 
 enum class EIndexType
@@ -149,7 +145,6 @@ private:
 	EDataInfo^ _edata;
 	EInfo* _einfo;
 	List<TypeDefinition^>^ _alltype;
-	short krnln_id;
 	short e_net_id;
 	bool ParseCode();
 	bool CompileHead();
@@ -173,3 +168,6 @@ public:
 	bool Compile();
 	void Write(String^ path);
 };
+
+MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
+ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);

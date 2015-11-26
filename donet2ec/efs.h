@@ -318,5 +318,3 @@ const byte KEY[4] = { 0x19, 0x73, 0x00, 0x07 };
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);
-ESection_UserInfo GetUserInfo(byte* pointer);
-ESection_Program GetLibraries(byte* pointer);

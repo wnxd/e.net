@@ -18,6 +18,7 @@ const System::Reflection::BindingFlags BINDING_ALLINSTANCE = System::Reflection:
 #define EXTERNMETHOD STATICMETHOD | MethodAttributes::PInvokeImpl
 
 #define typeof(type) type::typeid
+#define String2LPSTR(str) (char*)(void*)Marshal::StringToHGlobalAnsi(str)
 #define LPSTR2String(lpstr) Marshal::PtrToStringAnsi((IntPtr)(void*)lpstr)
 #define CStr2String(cstr) Marshal::PtrToStringAnsi((IntPtr)(void*)cstr.c_str())
 #define Ptr2LPBYTE(ptr) (LPBYTE)(void*)ptr
