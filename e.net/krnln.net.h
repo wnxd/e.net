@@ -65,8 +65,20 @@ enum krnln_method : UINT
 	倒找文本 = 0x53,
 	到大写 = 0x54,
 	到小写 = 0x55,
+	到全角 = 0x56,
+	到半角 = 0x57,
 	到数值 = 0x59,
 	到文本 = 0x5A,
+	删首空 = 0x5B,
+	删尾空 = 0x5C,
+	删首尾空 = 0x5D,
+	删全部空 = 0x5E,
+	文本替换 = 0x5F,
+	子文本替换 = 0x60,
+	取空白文本 = 0x61,
+	取重复文本 = 0x62,
+	文本比较 = 0x63,
+	分割文本 = 0x64,
 	数组清零 = 0x0231,
 	到字节 = 0x0275,
 	到短整数 = 0x0276,
@@ -74,7 +86,7 @@ enum krnln_method : UINT
 	到长整数 = 0x0278,
 	到小数 = 0x0279,
 	左移 = 0x027E,
-	右移 = 0x027F
+	右移 = 0x027F,
 };
 
 [LibGuid(KRNLN)]
@@ -109,4 +121,18 @@ private:
 	static int 寻找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, [Optional][DefaultValue(1)]int 起始搜寻位置, bool 是否不区分大小写);
 	[LibMethod(krnln_method::倒找文本)]
 	static int 倒找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, [Optional][DefaultValue(1)]int 起始搜寻位置, bool 是否不区分大小写);
+	[LibMethod(krnln_method::到全角)]
+	static String^ 到全角(String^ 欲变换的文本);
+	[LibMethod(krnln_method::到半角)]
+	static String^ 到半角(String^ 欲变换的文本);
+	[LibMethod(krnln_method::文本替换)]
+	static String^ 文本替换(String^ 欲被替换的文本, int 起始替换位置, int 替换长度, [Optional]String^ 用作替换的文本);
+	[LibMethod(krnln_method::子文本替换)]
+	static String^ 子文本替换(String^ 欲被替换的文本, String^ 欲被替换的子文本, [Optional]String^ 用作替换的子文本, [Optional][DefaultValue(1)]int 进行替换的起始位置, [Optional]int 替换进行的次数, bool 是否区分大小写);
+	[LibMethod(krnln_method::取空白文本)]
+	static String^ 取空白文本(int 重复次数);
+	[LibMethod(krnln_method::取重复文本)]
+	static String^ 取重复文本(int 重复次数, String^ 待重复文本);
+	[LibMethod(krnln_method::分割文本)]
+	static array<String^>^ 分割文本(String^ 待分割文本, [Optional][DefaultValue(",")]String^ 用作分割的文本, [Optional]int 要返回的子文本数目);
 };

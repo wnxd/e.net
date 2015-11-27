@@ -33,7 +33,7 @@ DefaultValueAttribute::DefaultValueAttribute(Object^ val)
 
 extern CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type);
 
-MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method)
+MethodDefinition^ MethodClone(ModuleDefinition^ module, TypeDefinition^ type, MethodDefinition^ method)
 {
 	MethodDefinition^ m = gcnew MethodDefinition(method->Name, STATICMETHOD, module->ImportReference(method->ReturnType));
 	Dictionary<ParameterDefinition^, ParameterDefinition^>^ params = gcnew Dictionary<ParameterDefinition^, ParameterDefinition^>();
@@ -61,11 +61,26 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method
 	}
 	for each (Instruction^ ins in method->Body->Instructions)
 	{
-		if (ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt) ins->Operand = module->ImportReference(dynamic_cast<MethodReference^>(ins->Operand));
+		if (ins->OpCode == OpCodes::Newobj || ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt)
+		{
+			MethodReference^ mr = dynamic_cast<MethodReference^>(ins->Operand);
+			if (type == mr->DeclaringType)
+			{
+				IList<Instruction^>^ list;
+				if (Plugins::_refer->ContainsKey(mr)) list = Plugins::_refer[mr];
+				else
+				{
+					list = gcnew List<Instruction^>();
+					Plugins::_refer->Add(mr, list);
+				}
+				list->Add(ins);
+			}
+			else ins->Operand = module->ImportReference(mr);
+		}
 		else if (ins->OpCode == OpCodes::Ldarga_S || ins->OpCode == OpCodes::Ldarg_S || ins->OpCode == OpCodes::Starg_S) ins->Operand = params[dynamic_cast<ParameterDefinition^>(ins->Operand)];
 		else if (ins->OpCode == OpCodes::Ldloca_S || ins->OpCode == OpCodes::Ldloc_S || ins->OpCode == OpCodes::Stloc_S) ins->Operand = vars[dynamic_cast<VariableDefinition^>(ins->Operand)];
 		else if (ins->OpCode == OpCodes::Ldflda || ins->OpCode == OpCodes::Ldfld || ins->OpCode == OpCodes::Stfld || ins->OpCode == OpCodes::Ldsflda || ins->OpCode == OpCodes::Ldsfld || ins->OpCode == OpCodes::Stsfld) ins->Operand = module->ImportReference(dynamic_cast<FieldReference^>(ins->Operand));
-		else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr) ins->Operand = module->ImportReference(dynamic_cast<TypeReference^>(ins->Operand));
+		else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema) ins->Operand = module->ImportReference(dynamic_cast<TypeReference^>(ins->Operand));
 		m->Body->Instructions->Add(ins);
 	}
 	return m;
@@ -121,6 +136,8 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 		List<MonoInfo^>^ methods = gcnew List<MonoInfo^>();
 		ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
 		TypeDefinition^ T = M->GetType(type->FullName);
+		Plugins::_refer = gcnew Dictionary<MethodReference^, IList<Instruction^>^>();
+		IDictionary<MethodReference^, MethodReference^>^ dic = gcnew Dictionary<MethodReference^, MethodReference^>();
 		for each (MethodDefinition^ method in T->Methods)
 		{
 			if (method->IsStatic)
@@ -132,13 +149,20 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 						MonoInfo^ mi = gcnew MonoInfo();
 						mi->Mode = EMethodMode::Call;
 						mi->Tag = (UINT)ca->ConstructorArguments[0].Value;
-						mi->Method = MethodClone(module, method);
+						mi->Method = MethodClone(module, T, method);
+						dic->Add(method, mi->Method);
 						methods->Add(mi);
 						break;
 					}
 				}
 			}
 		}
+		for each (KeyValuePair<MethodReference^, IList<Instruction^>^>^ item in Plugins::_refer)
+		{
+			MethodReference^ method = dic[item->Key];
+			for each (Instruction^ ins in item->Value) ins->Operand = method;
+		}
+		Plugins::_refer = nullptr;
 		if (plugin->Type == PluginType::Mono)
 		{
 			MonoPlugin^ monoplugin = dynamic_cast<MonoPlugin^>(plugin);

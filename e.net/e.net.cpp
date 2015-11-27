@@ -1333,6 +1333,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
 										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
 										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
+										else if (item->Type == module->TypeSystem->String) AddILCode(ILProcessor, OpCodes::Ldstr, (String^)item->Defualt);
 										else AddILCode(ILProcessor, OpCodes::Ldnull);
 									}
 									break;

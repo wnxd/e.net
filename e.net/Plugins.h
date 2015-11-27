@@ -3,6 +3,7 @@
 using namespace System;
 using namespace System::Collections::Generic;
 using namespace Mono::Cecil;
+using namespace Mono::Cecil::Cil;
 
 namespace wnxd
 {
@@ -87,4 +88,6 @@ public:
 	static IList<PluginInfo^>^ Load(ModuleDefinition^ module, System::Reflection::Assembly^ assembly);
 	static PluginInfo^ Load(ModuleDefinition^ module, Type^ type);
 	static PluginInfo^ Load(ModuleDefinition^ module, Plugin^ plugin);
+internal:
+	static IDictionary<MethodReference^, IList<Instruction^>^>^ _refer;
 };

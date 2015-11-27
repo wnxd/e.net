@@ -939,7 +939,7 @@ MethodDefinition^ CreateChr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("字符", module->TypeSystem->String, ToList(CreateParameter("欲取其字符的字符代码", module->TypeSystem->Byte)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(char, "ToString")));
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(Char, "ToString")));
 	return method;
 }
 
@@ -956,6 +956,84 @@ MethodDefinition^ CreateLCase(ModuleDefinition^ module)
 	MethodDefinition^ method = CreateMethod("到小写", module->TypeSystem->String, ToList(CreateParameter("欲变换的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "ToLower")));
+	return method;
+}
+
+MethodDefinition^ CreateLTrim(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("删首空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_2);
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Char);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 32);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 12288);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "TrimStart", typeof(array<Char>))));
+	return method;
+}
+
+MethodDefinition^ CreateRTrim(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("删尾空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_2);
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Char);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 32);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 12288);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "TrimEnd", typeof(array<Char>))));
+	return method;
+}
+
+MethodDefinition^ CreateTrim(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("删首尾空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_2);
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Char);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 32);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Dup);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 12288);
+	AddILCode(ILProcessor, OpCodes::Stelem_I2);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "Trim", typeof(array<Char>))));
+	return method;
+}
+
+MethodDefinition^ CreateTrimAll(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("删全部空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	MethodReference^ Replace = module->ImportReference(GetInstanceMethod(String, "Replace", typeof(String), typeof(String)));
+	AddILCode(ILProcessor, OpCodes::Ldstr, " ");
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	AddILCode(ILProcessor, OpCodes::Callvirt, Replace);
+	AddILCode(ILProcessor, OpCodes::Ldstr, ((Char)12288).ToString());
+	AddILCode(ILProcessor, OpCodes::Ldnull);
+	AddILCode(ILProcessor, OpCodes::Callvirt, Replace);
+	return method;
+}
+
+MethodDefinition^ CreateStrComp(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("文本比较", module->TypeSystem->Int32, ToList(CreateParameter("待比较文本一", module->TypeSystem->String), CreateParameter("待比较文本二", module->TypeSystem->String), CreateParameter("是否区分大小写", module->TypeSystem->Boolean)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetStaticMethod(String, "Compare", typeof(String), typeof(String), typeof(bool))));
 	return method;
 }
 
@@ -1028,6 +1106,11 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::字符, CreateChr(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到大写, CreateUCase(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到小写, CreateLCase(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删首空, CreateLTrim(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删尾空, CreateRTrim(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删首尾空, CreateTrim(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删全部空, CreateTrimAll(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::文本比较, CreateStrComp(module)));
 	return list;
 }
 
@@ -1124,4 +1207,95 @@ int Krnln::倒找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, int 起始搜寻位置
 	int index = 被搜寻的文本->LastIndexOf(欲寻找的文本, 起始搜寻位置 - 1, 是否不区分大小写 ? StringComparison::CurrentCultureIgnoreCase : StringComparison::CurrentCulture);
 	if (index != -1) index++;
 	return index;
+}
+
+String^ Krnln::到全角(String^ 欲变换的文本)
+{
+	array<Char>^ c = 欲变换的文本->ToCharArray();
+	for (int i = 0; i < c->Length; i++)
+	{
+		if (c[i] == 32) c[i] = (Char)12288;
+		else if (c[i] < 127) c[i] = (Char)(c[i] + 65248);
+	}
+	return gcnew String(c);
+}
+
+String^ Krnln::到半角(String^ 欲变换的文本)
+{
+	array<Char>^ c = 欲变换的文本->ToCharArray();
+	for (int i = 0; i < c->Length; i++)
+	{
+		if (c[i] == 12288) c[i] = (Char)32;
+		else if (c[i] > 65280 && c[i] < 65375) c[i] = (Char)(c[i] - 65248);
+	}
+	return gcnew String(c);
+}
+
+String^ Krnln::文本替换(String^ 欲被替换的文本, int 起始替换位置, int 替换长度, String^ 用作替换的文本)
+{
+	if (欲被替换的文本 != nullptr)
+	{
+		int len = 欲被替换的文本->Length;
+		起始替换位置--;
+		if (起始替换位置 >= 0 && 起始替换位置 < len)
+		{
+			len -= 替换长度 + 起始替换位置;
+			if (len <= 0)
+			{
+				替换长度 += len;
+				if (起始替换位置 == 0) return 用作替换的文本;
+			}
+			String^ str;
+			if (起始替换位置 > 0) str += 欲被替换的文本->Substring(0, 起始替换位置);
+			str += 用作替换的文本;
+			if (len > 0) str += 欲被替换的文本->Substring(起始替换位置 + 替换长度, len);
+			return str;
+		}
+	}
+	return 欲被替换的文本;
+}
+
+String^ Krnln::子文本替换(String^ 欲被替换的文本, String^ 欲被替换的子文本, String^ 用作替换的子文本, int 进行替换的起始位置, int 替换进行的次数, bool 是否区分大小写)
+{
+	if (欲被替换的文本 != nullptr && !String::IsNullOrEmpty(欲被替换的子文本))
+	{
+		进行替换的起始位置--;
+		if (进行替换的起始位置 >= 0 && 进行替换的起始位置 < 欲被替换的文本->Length)
+		{
+			int len = 欲被替换的子文本->Length;
+			StringComparison sc = 是否区分大小写 ? StringComparison::CurrentCulture : StringComparison::CurrentCultureIgnoreCase;
+			do
+			{
+				进行替换的起始位置 = 欲被替换的文本->IndexOf(欲被替换的子文本, 进行替换的起始位置, sc);
+				if (进行替换的起始位置 == -1) break;
+				欲被替换的文本 = Krnln::文本替换(欲被替换的文本, 进行替换的起始位置 + 1, len, 用作替换的子文本);
+				替换进行的次数--;
+			} while (替换进行的次数 > 0);
+		}
+	}
+	return 欲被替换的文本;
+}
+
+String^ Krnln::取空白文本(int 重复次数)
+{
+	String^ str = "";
+	return str->PadLeft(重复次数);
+}
+
+String^ Krnln::取重复文本(int 重复次数, String^ 待重复文本)
+{
+	String^ str;
+	while (重复次数 > 0)
+	{
+		str += 待重复文本;
+		重复次数--;
+	}
+	return str;
+}
+
+array<String^>^ Krnln::分割文本(String^ 待分割文本, String^ 用作分割的文本, int 要返回的子文本数目)
+{
+	if (待分割文本 == nullptr) return nullptr;
+	array<String^>^ arr = 待分割文本->Split(用作分割的文本->ToCharArray());
+	if (要返回的子文本数目 > 0)  Array::Resize(arr, 要返回的子文本数目);
 }
