@@ -60,6 +60,15 @@ namespace wnxd
 		internal:
 			UINT _tag;
 		};
+
+		[AttributeUsage(AttributeTargets::Parameter, AllowMultiple = false)]
+		public ref class DefaultValueAttribute :Attribute
+		{
+		public:
+			DefaultValueAttribute(Object^ val);
+		internal:
+			Object^ _val;
+		};
 	}
 }
 

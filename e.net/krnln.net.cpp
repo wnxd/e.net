@@ -935,6 +935,30 @@ MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ CreateChr(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("字符", module->TypeSystem->String, ToList(CreateParameter("欲取其字符的字符代码", module->TypeSystem->Byte)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(char, "ToString")));
+	return method;
+}
+
+MethodDefinition^ CreateUCase(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("到大写", module->TypeSystem->String, ToList(CreateParameter("欲变换的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "ToUpper")));
+	return method;
+}
+
+MethodDefinition^ CreateLCase(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("到小写", module->TypeSystem->String, ToList(CreateParameter("欲变换的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(String, "ToLower")));
+	return method;
+}
+
 PluginType Krnln::Type::get()
 {
 	return PluginType::Mono;
@@ -1001,15 +1025,18 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::复制数组, CreateCopyAry(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::加入成员, CreateAddElement(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::插入成员, CreateInsElement(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::字符, CreateChr(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到大写, CreateUCase(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到小写, CreateLCase(module)));
 	return list;
 }
 
 int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的成员数目)
 {
+	if (欲删除成员的数组变量 == nullptr) return 0;
 	int len = 欲删除成员的数组变量->Length;
 	if (欲删除的位置 < 1 || 欲删除的位置> len + 1) return 0;
 	欲删除的位置--;
-	if (欲删除的成员数目 == NULL) 欲删除的成员数目 = 1;
 	System::Type^ type = 欲删除成员的数组变量->GetType();
 	len -= 欲删除的成员数目 + 欲删除的位置;
 	if (len <= 0)
@@ -1017,7 +1044,7 @@ int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的
 		欲删除的成员数目 += len;
 		if (欲删除的位置 == 0)
 		{
-			欲删除成员的数组变量 = (Array^)Activator::CreateInstance(type);
+			欲删除成员的数组变量 = (Array^)Activator::CreateInstance(type, (Object^)0);
 			return 欲删除的成员数目;
 		}
 	}
@@ -1026,4 +1053,75 @@ int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的
 	if (len > 0) Array::Copy(欲删除成员的数组变量, 欲删除的位置 + 欲删除的成员数目, arr, 欲删除的位置, len);
 	欲删除成员的数组变量 = arr;
 	return 欲删除的成员数目;
+}
+
+void Krnln::清除数组(Array^% 欲删除成员的数组变量)
+{
+	if (欲删除成员的数组变量 != nullptr) 欲删除成员的数组变量 = (Array^)Activator::CreateInstance(欲删除成员的数组变量->GetType(), (Object^)0);
+}
+
+void Krnln::数组排序(Array^% 数值数组变量, bool 排序方向是否为从小到大)
+{
+	if (数值数组变量 != nullptr)
+	{
+		Array::Sort(数值数组变量);
+		if (!排序方向是否为从小到大) Array::Reverse(数值数组变量);
+	}
+}
+
+void Krnln::数组清零(Array^% 数值数组变量)
+{
+	if (数值数组变量 != nullptr)
+	{
+		System::Type^ type = 数值数组变量->GetType();
+		Object^ null;
+		if (type->GetElementType()->IsValueType) null = 0;
+		for (int i = 0; i < 数值数组变量->Length; i++) 数值数组变量->SetValue(null, i);
+	}
+}
+
+int Krnln::取文本长度(String^ 文本数据)
+{
+	if (文本数据 == nullptr) return 0;
+	return 文本数据->Length;
+}
+
+String^ Krnln::取文本左边(String^ 欲取其部分的文本, int 欲取出字符的数目)
+{
+	if (欲取其部分的文本 == nullptr) return nullptr;
+	return 欲取其部分的文本->Substring(0, 欲取出字符的数目);
+}
+
+String^ Krnln::取文本右边(String^ 欲取其部分的文本, int 欲取出字符的数目)
+{
+	if (欲取其部分的文本 == nullptr) return nullptr;
+	return 欲取其部分的文本->Substring(欲取其部分的文本->Length - 欲取出字符的数目);
+}
+
+String^ Krnln::取文本中间(String^ 欲取其部分的文本, int 起始取出位置, int 欲取出字符的数目)
+{
+	if (欲取其部分的文本 == nullptr) return nullptr;
+	return 欲取其部分的文本->Substring(起始取出位置 - 1, 欲取出字符的数目);
+}
+
+int Krnln::取代码(String^ 欲取字符代码的文本, [Optional][DefaultValue(1)]int 欲取其代码的字符位置)
+{
+	if (欲取字符代码的文本 == nullptr) return 0;
+	return (int)欲取字符代码的文本[欲取其代码的字符位置];
+}
+
+int Krnln::寻找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, int 起始搜寻位置, bool 是否不区分大小写)
+{
+	if (被搜寻的文本 == nullptr) return -1;
+	int index = 被搜寻的文本->IndexOf(欲寻找的文本, 起始搜寻位置 - 1, 是否不区分大小写 ? StringComparison::CurrentCultureIgnoreCase : StringComparison::CurrentCulture);
+	if (index != -1) index++;
+	return index;
+}
+
+int Krnln::倒找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, int 起始搜寻位置, bool 是否不区分大小写)
+{
+	if (被搜寻的文本 == nullptr) return -1;
+	int index = 被搜寻的文本->LastIndexOf(欲寻找的文本, 起始搜寻位置 - 1, 是否不区分大小写 ? StringComparison::CurrentCultureIgnoreCase : StringComparison::CurrentCulture);
+	if (index != -1) index++;
+	return index;
 }

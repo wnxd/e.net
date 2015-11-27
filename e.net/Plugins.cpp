@@ -26,6 +26,13 @@ LibMethodAttribute::LibMethodAttribute(UINT Tag)
 	this->_tag = Tag;
 }
 
+DefaultValueAttribute::DefaultValueAttribute(Object^ val)
+{
+	this->_val = val;
+}
+
+extern CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type);
+
 MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method)
 {
 	MethodDefinition^ m = gcnew MethodDefinition(method->Name, STATICMETHOD, module->ImportReference(method->ReturnType));
@@ -33,6 +40,14 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method
 	for each (ParameterDefinition^ param in method->Parameters)
 	{
 		ParameterDefinition^ p = gcnew ParameterDefinition(param->Name, param->Attributes, module->ImportReference(param->ParameterType));
+		if (param->HasConstant) p->Constant = param->Constant;
+		CustomAttribute^ custom = FindCustom(param->CustomAttributes, module->ImportReference(typeof(DefaultValueAttribute)));
+		if (custom != nullptr)
+		{
+			CustomAttributeArgument^ caa = dynamic_cast<CustomAttributeArgument^>(custom->ConstructorArguments[0].Value);
+			if (caa == nullptr) p->Constant = custom->ConstructorArguments[0].Value;
+			else p->Constant = caa->Value;
+		}
 		params->Add(param, p);
 		m->Parameters->Add(p);
 	}
@@ -49,6 +64,7 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method
 		if (ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt) ins->Operand = module->ImportReference(dynamic_cast<MethodReference^>(ins->Operand));
 		else if (ins->OpCode == OpCodes::Ldarga_S || ins->OpCode == OpCodes::Ldarg_S || ins->OpCode == OpCodes::Starg_S) ins->Operand = params[dynamic_cast<ParameterDefinition^>(ins->Operand)];
 		else if (ins->OpCode == OpCodes::Ldloca_S || ins->OpCode == OpCodes::Ldloc_S || ins->OpCode == OpCodes::Stloc_S) ins->Operand = vars[dynamic_cast<VariableDefinition^>(ins->Operand)];
+		else if (ins->OpCode == OpCodes::Ldflda || ins->OpCode == OpCodes::Ldfld || ins->OpCode == OpCodes::Stfld || ins->OpCode == OpCodes::Ldsflda || ins->OpCode == OpCodes::Ldsfld || ins->OpCode == OpCodes::Stsfld) ins->Operand = module->ImportReference(dynamic_cast<FieldReference^>(ins->Operand));
 		else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr) ins->Operand = module->ImportReference(dynamic_cast<TypeReference^>(ins->Operand));
 		m->Body->Instructions->Add(ins);
 	}
@@ -107,16 +123,19 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 		TypeDefinition^ T = M->GetType(type->FullName);
 		for each (MethodDefinition^ method in T->Methods)
 		{
-			for each (CustomAttribute^ ca in method->CustomAttributes)
+			if (method->IsStatic)
 			{
-				if (ca->AttributeType == M->ImportReference(typeof(LibMethodAttribute)))
+				for each (CustomAttribute^ ca in method->CustomAttributes)
 				{
-					MonoInfo^ mi = gcnew MonoInfo();
-					mi->Mode = EMethodMode::Call;
-					mi->Tag = (UINT)ca->ConstructorArguments[0].Value;
-					mi->Method = MethodClone(module, method);
-					methods->Add(mi);
-					break;
+					if (ca->AttributeType == M->ImportReference(typeof(LibMethodAttribute)))
+					{
+						MonoInfo^ mi = gcnew MonoInfo();
+						mi->Mode = EMethodMode::Call;
+						mi->Tag = (UINT)ca->ConstructorArguments[0].Value;
+						mi->Method = MethodClone(module, method);
+						methods->Add(mi);
+						break;
+					}
 				}
 			}
 		}

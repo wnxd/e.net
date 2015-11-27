@@ -53,8 +53,21 @@ enum krnln_method : UINT
 	加入成员 = 0x3B,
 	插入成员 = 0x3C,
 	删除成员 = 0x3D,
+	清除数组 = 0x3E,
+	数组排序 = 0x3F,
+	取文本长度 = 0x4C,
+	取文本左边 = 0x4D,
+	取文本右边 = 0x4E,
+	取文本中间 = 0x4F,
+	字符 = 0x50,
+	取代码 = 0x51,
+	寻找文本 = 0x52,
+	倒找文本 = 0x53,
+	到大写 = 0x54,
+	到小写 = 0x55,
 	到数值 = 0x59,
 	到文本 = 0x5A,
+	数组清零 = 0x0231,
 	到字节 = 0x0275,
 	到短整数 = 0x0276,
 	到整数 = 0x0277,
@@ -73,6 +86,27 @@ public:
 		virtual PluginType get() override;
 	}
 	virtual IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module) override;
+private:
 	[LibMethod(krnln_method::删除成员)]
-	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional]int 欲删除的成员数目);
+	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional][DefaultValue(1)]int 欲删除的成员数目);
+	[LibMethod(krnln_method::清除数组)]
+	static void 清除数组([Out]Array^% 欲删除成员的数组变量);
+	[LibMethod(krnln_method::数组排序)]
+	static void 数组排序([Out]Array^% 数值数组变量, [Optional][DefaultValue(true)]bool 排序方向是否为从小到大);
+	[LibMethod(krnln_method::数组清零)]
+	static void 数组清零([Out]Array^% 数值数组变量);
+	[LibMethod(krnln_method::取文本长度)]
+	static int 取文本长度(String^ 文本数据);
+	[LibMethod(krnln_method::取文本左边)]
+	static String^ 取文本左边(String^ 欲取其部分的文本, int 欲取出字符的数目);
+	[LibMethod(krnln_method::取文本右边)]
+	static String^ 取文本右边(String^ 欲取其部分的文本, int 欲取出字符的数目);
+	[LibMethod(krnln_method::取文本中间)]
+	static String^ 取文本中间(String^ 欲取其部分的文本, int 起始取出位置, int 欲取出字符的数目);
+	[LibMethod(krnln_method::取代码)]
+	static int 取代码(String^ 欲取字符代码的文本, [Optional][DefaultValue(1)]int 欲取其代码的字符位置);
+	[LibMethod(krnln_method::寻找文本)]
+	static int 寻找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, [Optional][DefaultValue(1)]int 起始搜寻位置, bool 是否不区分大小写);
+	[LibMethod(krnln_method::倒找文本)]
+	static int 倒找文本(String^ 被搜寻的文本, String^ 欲寻找的文本, [Optional][DefaultValue(1)]int 起始搜寻位置, bool 是否不区分大小写);
 };

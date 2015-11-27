@@ -76,6 +76,7 @@ ref struct EParamInfo
 	TypeReference^ Type;
 	bool IsArray;
 	bool IsOptional;
+	Object^ Defualt;
 	bool IsAddress;
 	bool IsVariable;
 };

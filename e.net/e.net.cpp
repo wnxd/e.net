@@ -1194,15 +1194,6 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						EParamData^ param = params[1];
 						switch (param->DataType)
 						{
-						case EParamDataType::Null:
-							if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-							else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-							else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-							else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-							else if (item->Type == this->Type_DateTime) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(DateTime, "MinValue")));
-							else if (item->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(IntPtr, "Zero")));
-							else AddILCode(ILProcessor, OpCodes::Ldnull);
-							break;
 						case EParamDataType::Number:
 						{
 							if (param->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
@@ -1326,13 +1317,24 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								switch (param->DataType)
 								{
 								case EParamDataType::Null:
-									if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-									else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-									else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-									else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-									else if (item->Type == this->Type_DateTime) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(DateTime, "MinValue")));
-									else if (item->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(IntPtr, "Zero")));
-									else AddILCode(ILProcessor, OpCodes::Ldnull);
+									if (item->Defualt == nullptr)
+									{
+										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
+										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
+										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
+										else if (item->Type == this->Type_DateTime) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(DateTime, "MinValue")));
+										else if (item->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(IntPtr, "Zero")));
+										else AddILCode(ILProcessor, OpCodes::Ldnull);
+									}
+									else
+									{
+										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
+										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
+										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
+										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
+										else AddILCode(ILProcessor, OpCodes::Ldnull);
+									}
 									break;
 								case EParamDataType::Number:
 								{
@@ -1994,6 +1996,7 @@ EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, ELib_Met
 		}
 		pi->IsArray = pi->Type->IsArray;
 		pi->IsOptional = param->IsOptional;
+		if (param->HasConstant) pi->Defualt = param->Constant;
 		pi->IsVariable = FindCustom(param->CustomAttributes, module->ImportReference(typeof(ParamArrayAttribute))) != nullptr;
 		params->Add(pi);
 	}
