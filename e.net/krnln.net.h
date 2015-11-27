@@ -150,6 +150,3 @@ private:
 	[LibMethod(krnln_method::置现行时间)]
 	static bool 置现行时间(DateTime 欲设置的时间);
 };
-
-[DllImport("Kernel32.dll")]
-extern bool SetLocalTime(SYSTEMTIME% sysTime);

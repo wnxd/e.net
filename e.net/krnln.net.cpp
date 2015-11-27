@@ -4,6 +4,9 @@
 #include "e.net.h"
 #include "krnln.net.h"
 
+[DllImport("Kernel32.dll")]
+extern bool SetLocalTime(SYSTEMTIME% sysTime);
+
 MethodDefinition^ CreateReturn(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("返回", module->TypeSystem->Void, ToList(CreateParameter("返回到调用方的值", module->TypeSystem->Void)), STATICMETHOD);
