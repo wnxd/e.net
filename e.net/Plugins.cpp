@@ -3,7 +3,6 @@
 #include "common.net.h"
 
 using namespace System::IO;
-using namespace System::Reflection;
 
 MonoInfo::MonoInfo()
 {
@@ -27,6 +26,35 @@ LibMethodAttribute::LibMethodAttribute(UINT Tag)
 	this->_tag = Tag;
 }
 
+MethodDefinition^ MethodClone(ModuleDefinition^ module, MethodDefinition^ method)
+{
+	MethodDefinition^ m = gcnew MethodDefinition(method->Name, STATICMETHOD, module->ImportReference(method->ReturnType));
+	Dictionary<ParameterDefinition^, ParameterDefinition^>^ params = gcnew Dictionary<ParameterDefinition^, ParameterDefinition^>();
+	for each (ParameterDefinition^ param in method->Parameters)
+	{
+		ParameterDefinition^ p = gcnew ParameterDefinition(param->Name, param->Attributes, module->ImportReference(param->ParameterType));
+		params->Add(param, p);
+		m->Parameters->Add(p);
+	}
+	m->Body->InitLocals = method->Body->Variables->Count > 0;
+	Dictionary<VariableDefinition^, VariableDefinition^>^ vars = gcnew Dictionary<VariableDefinition^, VariableDefinition^>();
+	for each (VariableDefinition^ var in method->Body->Variables)
+	{
+		VariableDefinition^ v = gcnew VariableDefinition(var->Name, module->ImportReference(var->VariableType));
+		vars->Add(var, v);
+		m->Body->Variables->Add(v);
+	}
+	for each (Instruction^ ins in method->Body->Instructions)
+	{
+		if (ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt) ins->Operand = module->ImportReference(dynamic_cast<MethodReference^>(ins->Operand));
+		else if (ins->OpCode == OpCodes::Ldarga_S || ins->OpCode == OpCodes::Ldarg_S || ins->OpCode == OpCodes::Starg_S) ins->Operand = params[dynamic_cast<ParameterDefinition^>(ins->Operand)];
+		else if (ins->OpCode == OpCodes::Ldloca_S || ins->OpCode == OpCodes::Ldloc_S || ins->OpCode == OpCodes::Stloc_S) ins->Operand = vars[dynamic_cast<VariableDefinition^>(ins->Operand)];
+		else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr) ins->Operand = module->ImportReference(dynamic_cast<TypeReference^>(ins->Operand));
+		m->Body->Instructions->Add(ins);
+	}
+	return m;
+}
+
 IList<PluginInfo^>^ Plugins::Load(ModuleDefinition^ module, String^ path)
 {
 	List<PluginInfo^>^ list = gcnew List<PluginInfo^>();
@@ -34,7 +62,7 @@ IList<PluginInfo^>^ Plugins::Load(ModuleDefinition^ module, String^ path)
 	{
 		try
 		{
-			Assembly^ assembly = Assembly::LoadFrom(file);
+			System::Reflection::Assembly^ assembly = System::Reflection::Assembly::LoadFrom(file);
 			list->AddRange(Plugins::Load(module, assembly));
 		}
 		catch (...)
@@ -45,7 +73,7 @@ IList<PluginInfo^>^ Plugins::Load(ModuleDefinition^ module, String^ path)
 	return list;
 }
 
-IList<PluginInfo^>^ Plugins::Load(ModuleDefinition^ module, Assembly^ assembly)
+IList<PluginInfo^>^ Plugins::Load(ModuleDefinition^ module, System::Reflection::Assembly^ assembly)
 {
 	List<PluginInfo^>^ list = gcnew List<PluginInfo^>();
 	for each (Type^ type in assembly->GetTypes())
@@ -75,16 +103,21 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 		PluginInfo^ info = gcnew PluginInfo();
 		info->Lib = dynamic_cast<LibGuidAttribute^>(arr[0])->_libguid;
 		List<MonoInfo^>^ methods = gcnew List<MonoInfo^>();
-		for each (MethodInfo^ method in type->GetMethods(BINDING_ALLINSTANCE))
+		ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
+		TypeDefinition^ T = M->GetType(type->FullName);
+		for each (MethodDefinition^ method in T->Methods)
 		{
-			arr = method->GetCustomAttributes(typeof(LibMethodAttribute), false);
-			if (arr != nullptr && arr->Length == 1)
+			for each (CustomAttribute^ ca in method->CustomAttributes)
 			{
-				MonoInfo^ mi = gcnew MonoInfo();
-				mi->Mode = EMethodMode::Call;
-				mi->Tag = dynamic_cast<LibMethodAttribute^>(arr[0])->_tag;
-				mi->Method = module->ImportReference(method)->Resolve();
-				methods->Add(mi);
+				if (ca->AttributeType == M->ImportReference(typeof(LibMethodAttribute)))
+				{
+					MonoInfo^ mi = gcnew MonoInfo();
+					mi->Mode = EMethodMode::Call;
+					mi->Tag = (UINT)ca->ConstructorArguments[0].Value;
+					mi->Method = MethodClone(module, method);
+					methods->Add(mi);
+					break;
+				}
 			}
 		}
 		if (plugin->Type == PluginType::Mono)

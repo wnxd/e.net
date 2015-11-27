@@ -43,7 +43,7 @@ namespace wnxd
 			IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module);
 		};
 
-		[AttributeUsageAttribute(AttributeTargets::Class, AllowMultiple = false)]
+		[AttributeUsage(AttributeTargets::Class, AllowMultiple = false)]
 		public ref class LibGuidAttribute :Attribute
 		{
 		public:
@@ -52,7 +52,7 @@ namespace wnxd
 			String^ _libguid;
 		};
 
-		[AttributeUsageAttribute(AttributeTargets::Method, AllowMultiple = false)]
+		[AttributeUsage(AttributeTargets::Method, AllowMultiple = false)]
 		public ref class LibMethodAttribute :Attribute
 		{
 		public:

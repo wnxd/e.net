@@ -52,6 +52,7 @@ enum krnln_method : UINT
 	复制数组 = 0x3A,
 	加入成员 = 0x3B,
 	插入成员 = 0x3C,
+	删除成员 = 0x3D,
 	到数值 = 0x59,
 	到文本 = 0x5A,
 	到字节 = 0x0275,
@@ -63,7 +64,7 @@ enum krnln_method : UINT
 	右移 = 0x027F
 };
 
-[LibGuidAttribute(KRNLN)]
+[LibGuid(KRNLN)]
 ref class Krnln : Plugin, MonoPlugin
 {
 public:
@@ -72,4 +73,6 @@ public:
 		virtual PluginType get() override;
 	}
 	virtual IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module) override;
+	[LibMethod(krnln_method::删除成员)]
+	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional]int 欲删除的成员数目);
 };

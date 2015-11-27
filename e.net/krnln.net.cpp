@@ -459,7 +459,7 @@ MethodDefinition^ CreateBxor(ModuleDefinition^ module)
 
 MethodDefinition^ CreateSet(ModuleDefinition^ module)
 {
-	MethodDefinition^ method = CreateMethod("赋值", module->TypeSystem->Void, ToList(CreateParameter("被赋值的变量或变量数组", module->TypeSystem->Object, ParameterAttributes::Out), CreateParameter("用作赋于的值或资源", module->TypeSystem->Object)), STATICMETHOD);
+	MethodDefinition^ method = CreateMethod("赋值", module->TypeSystem->Void, ToList(CreateParameter("被赋值的变量或变量数组", gcnew ByReferenceType(module->TypeSystem->Object), ParameterAttributes::Out), CreateParameter("用作赋于的值或资源", module->TypeSystem->Object)), STATICMETHOD);
 	return method;
 }
 
@@ -663,7 +663,7 @@ MethodDefinition^ CreateLoop(ModuleDefinition^ module)
 
 MethodDefinition^ CreateCounter(ModuleDefinition^ module)
 {
-	MethodDefinition^ method = CreateMethod("计次循环首", module->TypeSystem->Void, ToList(CreateParameter("循环次数", module->TypeSystem->Int32), CreateParameter("已循环次数记录变量", module->TypeSystem->Int32, ParameterAttributes::Out)), STATICMETHOD);
+	MethodDefinition^ method = CreateMethod("计次循环首", module->TypeSystem->Void, ToList(CreateParameter("循环次数", module->TypeSystem->Int32), CreateParameter("已循环次数记录变量", gcnew ByReferenceType(module->TypeSystem->Int32), ParameterAttributes::Out)), STATICMETHOD);
 	return method;
 }
 
@@ -675,7 +675,7 @@ MethodDefinition^ CreateCounterLoop(ModuleDefinition^ module)
 
 MethodDefinition^ CreateFor(ModuleDefinition^ module)
 {
-	MethodDefinition^ method = CreateMethod("变量循环首", module->TypeSystem->Void, ToList(CreateParameter("变量起始值", module->TypeSystem->Int32), CreateParameter("变量目标值", module->TypeSystem->Int32), CreateParameter("变量递增值", module->TypeSystem->Int32), CreateParameter("循环变量", module->TypeSystem->Int32, ParameterAttributes::Out | ParameterAttributes::Optional)), STATICMETHOD);
+	MethodDefinition^ method = CreateMethod("变量循环首", module->TypeSystem->Void, ToList(CreateParameter("变量起始值", module->TypeSystem->Int32), CreateParameter("变量目标值", module->TypeSystem->Int32), CreateParameter("变量递增值", module->TypeSystem->Int32), CreateParameter("循环变量", gcnew ByReferenceType(module->TypeSystem->Int32), ParameterAttributes::Out | ParameterAttributes::Optional)), STATICMETHOD);
 	return method;
 }
 
@@ -695,7 +695,7 @@ MethodDefinition^ CreateEnd(ModuleDefinition^ module)
 
 MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 {
-	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
 	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
 	params[3]->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("重定义数组", module->TypeSystem->Void, params, STATICMETHOD);
@@ -805,7 +805,7 @@ MethodDefinition^ CreateUBound(ModuleDefinition^ module)
 
 MethodDefinition^ CreateCopyAry(ModuleDefinition^ module)
 {
-	MethodDefinition^ method = CreateMethod("复制数组", module->TypeSystem->Void, ToList(CreateParameter("复制到的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("待复制的数组数据", module->ImportReference(typeof(Array)))), STATICMETHOD);
+	MethodDefinition^ method = CreateMethod("复制数组", module->TypeSystem->Void, ToList(CreateParameter("复制到的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("待复制的数组数据", module->ImportReference(typeof(Array)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Ldarg_1);
 	AddILCode(ILProcessor, OpCodes::Ldnull);
@@ -821,7 +821,7 @@ MethodDefinition^ CreateCopyAry(ModuleDefinition^ module)
 
 MethodDefinition^ CreateAddElement(ModuleDefinition^ module)
 {
-	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲加入成员的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("欲加入的成员数据", module->TypeSystem->Object));
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲加入成员的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("欲加入的成员数据", module->TypeSystem->Object));
 	MethodDefinition^ method = CreateMethod("加入成员", module->TypeSystem->Void, params, STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	method->Body->InitLocals = true;
@@ -865,7 +865,7 @@ MethodDefinition^ CreateAddElement(ModuleDefinition^ module)
 
 MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
 {
-	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲插入成员的数组变量", module->ImportReference(typeof(Array)), ParameterAttributes::Out), CreateParameter("欲插入的位置", module->TypeSystem->Int32), CreateParameter("欲插入的成员数据", module->TypeSystem->Object));
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲插入成员的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("欲插入的位置", module->TypeSystem->Int32), CreateParameter("欲插入的成员数据", module->TypeSystem->Object));
 	MethodDefinition^ method = CreateMethod("插入成员", module->TypeSystem->Void, params, STATICMETHOD);
 	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1002,4 +1002,28 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::加入成员, CreateAddElement(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::插入成员, CreateInsElement(module)));
 	return list;
+}
+
+int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的成员数目)
+{
+	int len = 欲删除成员的数组变量->Length;
+	if (欲删除的位置 < 1 || 欲删除的位置> len + 1) return 0;
+	欲删除的位置--;
+	if (欲删除的成员数目 == NULL) 欲删除的成员数目 = 1;
+	System::Type^ type = 欲删除成员的数组变量->GetType();
+	len -= 欲删除的成员数目 + 欲删除的位置;
+	if (len <= 0)
+	{
+		欲删除的成员数目 += len;
+		if (欲删除的位置 == 0)
+		{
+			欲删除成员的数组变量 = (Array^)Activator::CreateInstance(type);
+			return 欲删除的成员数目;
+		}
+	}
+	Array^ arr = (Array^)Activator::CreateInstance(type, (Object^)(欲删除成员的数组变量->Length - 欲删除的成员数目));
+	if (欲删除的位置 > 0) Array::Copy(欲删除成员的数组变量, 0, arr, 0, 欲删除的位置);
+	if (len > 0) Array::Copy(欲删除成员的数组变量, 欲删除的位置 + 欲删除的成员数目, arr, 欲删除的位置, len);
+	欲删除成员的数组变量 = arr;
+	return 欲删除的成员数目;
 }
