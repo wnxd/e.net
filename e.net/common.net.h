@@ -30,7 +30,8 @@ const System::Reflection::BindingFlags BINDING_ALLINSTANCE = System::Reflection:
 #define GetStaticMethod_D(type, name) typeof(type)->GetMethod(name, BINDING_ALLSTATIC)
 #define GetStaticMethod(type, name, ...) typeof(type)->GetMethod(name, BINDING_ALLSTATIC, nullptr, (gcnew array<Type^>{__VA_ARGS__}), nullptr)
 #define GetInstanceMethod_D(type, name) typeof(type)->GetMethod(name, BINDING_ALLINSTANCE)
-#define GetInstanceMethod(type, name, ...) typeof(type)->GetMethod(name, BINDING_ALLINSTANCE, nullptr, ##(gcnew array<Type^>{__VA_ARGS__}), nullptr)
+#define GetInstanceMethod(type, name, ...) typeof(type)->GetMethod(name, BINDING_ALLINSTANCE, nullptr, (gcnew array<Type^>{__VA_ARGS__}), nullptr)
+#define GetConstructor(type, ...) typeof(type)->GetConstructor(BINDING_ALLINSTANCE, nullptr, (gcnew array<Type^>{__VA_ARGS__}), nullptr)
 #define GetStaticField(type, name) typeof(type)->GetField(name, BINDING_ALLSTATIC)
 #define GetInstanceField(type, name) typeof(type)->GetField(name, BINDING_ALLINSTANCE)
 

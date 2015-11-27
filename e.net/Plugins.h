@@ -79,6 +79,7 @@ ref struct PluginInfo
 {
 	String^ Lib;
 	IList<MonoInfo^>^ Methods;
+	IList<TypeDefinition^>^ Types;
 };
 
 ref class Plugins
@@ -90,4 +91,5 @@ public:
 	static PluginInfo^ Load(ModuleDefinition^ module, Plugin^ plugin);
 internal:
 	static IDictionary<MethodReference^, IList<Instruction^>^>^ _refer;
+	static IList<TypeDefinition^>^ _refertype;
 };

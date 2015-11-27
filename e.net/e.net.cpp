@@ -290,6 +290,12 @@ ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, Paramete
 	return param;
 }
 
+void AddModule(IList<ModuleReference^>^ modules, ModuleReference^ module)
+{
+	for each (ModuleReference^ m in modules) if (m->Name == module->Name) return;
+	modules->Add(module);
+}
+
 Exception^ Error(String^ methodname, String^ paramname, String^ error)
 {
 	return gcnew Exception("函数: " + methodname + " - 参数: " + paramname + " " + error);
@@ -451,7 +457,7 @@ bool ECompile::CompileClass()
 			}
 			this->_edata->Types->Add(assembly.Tag, type);
 		}
-		MethodReference^ StructLayout = module->ImportReference(typeof(StructLayoutAttribute)->GetConstructor(gcnew array < Type^ > { typeof(LayoutKind) }));
+		MethodReference^ StructLayout = module->ImportReference(GetConstructor(StructLayoutAttribute, typeof(LayoutKind)));
 		CustomAttribute^ custom = gcnew CustomAttribute(StructLayout);
 		custom->ConstructorArguments->Add(CustomAttributeArgument(module->ImportReference(typeof(LayoutKind)), LayoutKind::Sequential));
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Structs)
@@ -690,7 +696,7 @@ bool ECompile::CompileCode()
 			}
 			else if (String::IsNullOrEmpty(Path::GetExtension(dllpath))) dllpath += ".dll";
 			ModuleReference^ dllmodule = gcnew ModuleReference(dllpath);
-			module->ModuleReferences->Add(dllmodule);
+			AddModule(module->ModuleReferences, dllmodule);
 			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CallConvWinapi, CStr2String(dll.Name), dllmodule);
 			global->Methods->Add(method);
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
@@ -1238,7 +1244,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						case EParamDataType::Time:
 						{
 							AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-							AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(typeof(DateTime)->GetConstructor(gcnew array < Type^ > { typeof(Int64) })));
+							AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(Int64))));
 							break;
 						}
 						case EParamDataType::String:
@@ -1368,20 +1374,18 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											}
 										}
 									}
-									else if (item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
 									break;
 								}
 								case EParamDataType::Bool:
 								{
 									if ((USHORT)param->Data == 0) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 									else AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-									if (item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->TypeSystem->Boolean);
 									break;
 								}
 								case EParamDataType::Time:
 								{
 									AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-									AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(typeof(DateTime)->GetConstructor(gcnew array < Type^ > { typeof(Int64) })));
+									AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(Int64))));
 									break;
 								}
 								case EParamDataType::String:
@@ -1437,7 +1441,6 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											break;
 										}
 									}
-									else if (item->Type == module->TypeSystem->Object && param->Type->IsValueType) code->Add(ILProcessor->Create(OpCodes::Box, param->Type));
 									for each (Instruction^ item in code) ILProcessor->Append(item);
 									break;
 								}
@@ -1448,6 +1451,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									break;
 								}
 								}
+								if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
 								i++;
 								ii++;
 								if (item->IsVariable)
@@ -1800,12 +1804,12 @@ void ECompile::CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcesso
 			MethodInfo->Method->Body->Variables->Add(var2);
 			AddILCode(ILProcessor, OpCodes::Stloc_S, bl);
 			AddILCode(ILProcessor, OpCodes::Stloc_S, var2);
-			AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+			AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
 			AddILCode(ILProcessor, OpCodes::Stloc_S, var);
 			tag = ILProcessor->Create(OpCodes::Ldloc_S, var);
 			ILProcessor->Append(tag);
 			AddILCode(ILProcessor, OpCodes::Ldloc_S, var2);
-			AddILCode(ILProcessor, OpCodes::Bge_S, end);
+			AddILCode(ILProcessor, OpCodes::Bgt_S, end);
 			AddILCode(ILProcessor, OpCodes::Ldloc_S, bl);
 			AddILCode(ILProcessor, OpCodes::Ldloc_S, var);
 			AddILCode(ILProcessor, OpCodes::Stind_I4);
@@ -1930,7 +1934,15 @@ void ECompile::LoadKrnln()
 	FindLibrary(this->_einfo->Program.Libraries, String2LPSTR(info->Lib), krnln_id);
 	for each (MonoInfo^ mi in info->Methods)
 	{
-		if (mi->Mode != EMethodMode::Embed) global->Methods->Add(mi->Method);
+		if (mi->Mode != EMethodMode::Embed)
+		{
+			if (mi->Method->HasPInvokeInfo)
+			{
+				if (mi->Method->PInvokeInfo->Module->Name == "") AddModule(module->ModuleReferences, gcnew ModuleReference("kernel32.dll"));
+				AddModule(module->ModuleReferences, mi->Method->PInvokeInfo->Module);
+			}
+			global->Methods->Add(mi->Method);
+		}
 		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
 		if (mi->Tag != NOT) this->_edata->Methods->Add(gcnew ELib_Method(krnln_id, mi->Tag), md);
 		if (mi->Tag != krnln_method::返回 && mi->Tag != krnln_method::赋值)
@@ -1945,6 +1957,7 @@ void ECompile::LoadKrnln()
 			mlist->Add(md);
 		}
 	}
+	for each (TypeDefinition^ type in info->Types) module->Types->Add(type);
 }
 
 void ECompile::LoadE_net()

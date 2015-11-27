@@ -67,6 +67,7 @@ enum krnln_method : UINT
 	到小写 = 0x55,
 	到全角 = 0x56,
 	到半角 = 0x57,
+	到时间 = 0x58,
 	到数值 = 0x59,
 	到文本 = 0x5A,
 	删首空 = 0x5B,
@@ -79,6 +80,17 @@ enum krnln_method : UINT
 	取重复文本 = 0x62,
 	文本比较 = 0x63,
 	分割文本 = 0x64,
+	取某月天数 = 0x79,
+	取年份 = 0x7C,
+	取月份 = 0x7D,
+	取日 = 0x7E,
+	取星期几 = 0x7F,
+	取小时 = 0x80,
+	取分钟 = 0x81,
+	取秒 = 0x82,
+	指定时间 = 0x83,
+	取现行时间 = 0x84,
+	置现行时间 = 0x85,
 	数组清零 = 0x0231,
 	到字节 = 0x0275,
 	到短整数 = 0x0276,
@@ -135,4 +147,9 @@ private:
 	static String^ 取重复文本(int 重复次数, String^ 待重复文本);
 	[LibMethod(krnln_method::分割文本)]
 	static array<String^>^ 分割文本(String^ 待分割文本, [Optional][DefaultValue(",")]String^ 用作分割的文本, [Optional]int 要返回的子文本数目);
+	[LibMethod(krnln_method::置现行时间)]
+	static bool 置现行时间(DateTime 欲设置的时间);
 };
+
+[DllImport("Kernel32.dll")]
+extern bool SetLocalTime(SYSTEMTIME% sysTime);

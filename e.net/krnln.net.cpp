@@ -32,7 +32,7 @@ MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module)
 {
 	TypeReference^ objarr = gcnew ArrayType(module->TypeSystem->Object);
 	ParameterDefinition^ params = CreateParameter("加文本", objarr);
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->String, ToList(CreateParameter("被加文本", module->TypeSystem->Object), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -74,7 +74,7 @@ MethodDefinition^ CreateIntAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int32));
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int32, ToList(CreateParameter("被加数", module->TypeSystem->Int32), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -118,7 +118,7 @@ MethodDefinition^ CreateLongAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int64));
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int64, ToList(CreateParameter("被加数", module->TypeSystem->Int64), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -162,7 +162,7 @@ MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Double));
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Double, ToList(CreateParameter("被加数", module->TypeSystem->Double), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -200,7 +200,7 @@ MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module)
 	TypeReference^ Bin = gcnew ArrayType(module->TypeSystem->Byte);
 	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
 	ParameterDefinition^ params = CreateParameter("加字节集", gcnew ArrayType(Bin));
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", Bin, ToList(CreateParameter("被加字节集", Bin), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -696,7 +696,7 @@ MethodDefinition^ CreateEnd(ModuleDefinition^ module)
 MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
-	MethodReference^ ctor = module->ImportReference(typeof(ParamArrayAttribute)->GetConstructor(Type::EmptyTypes));
+	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
 	params[3]->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("重定义数组", module->TypeSystem->Void, params, STATICMETHOD);
 	method->Body->InitLocals = true;
@@ -1033,7 +1033,108 @@ MethodDefinition^ CreateStrComp(ModuleDefinition^ module)
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 	AddILCode(ILProcessor, OpCodes::Ceq);
-	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetStaticMethod(String, "Compare", typeof(String), typeof(String), typeof(bool))));
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(String, "Compare", typeof(String), typeof(String), typeof(bool))));
+	return method;
+}
+
+MethodDefinition^ CreateToTime(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("到时间", module->ImportReference(typeof(DateTime)), ToList(CreateParameter("欲转换的文本", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(DateTime, "Parse", typeof(String))));
+	return method;
+}
+
+MethodDefinition^ CreateGetDaysOfSpecMonth(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取某月天数", module->TypeSystem->Int32, ToList(CreateParameter("年份", module->TypeSystem->Int32), CreateParameter("月份", module->TypeSystem->Int32)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(DateTime, "DaysInMonth", typeof(int), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ CreateYear(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取年份", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Year")));
+	return method;
+}
+
+MethodDefinition^ CreateMonth(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取月份", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Month")));
+	return method;
+}
+
+MethodDefinition^ CreateDay(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取日", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Day")));
+	return method;
+}
+
+MethodDefinition^ CreateWeekDay(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取星期几", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_DayOfWeek")));
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+	AddILCode(ILProcessor, OpCodes::Add);
+	return method;
+}
+
+MethodDefinition^ CreateHour(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取小时", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Hour")));
+	return method;
+}
+
+MethodDefinition^ CreateMinute(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取分钟", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Minute")));
+	return method;
+}
+
+MethodDefinition^ CreateSecond(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取秒", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Second")));
+	return method;
+}
+
+MethodDefinition^ CreateGetSpecTime(ModuleDefinition^ module)
+{
+	IList<ParameterDefinition^>^ params = ToList(CreateParameter("年", module->TypeSystem->Int32), CreateParameter("月", module->TypeSystem->Int32), CreateParameter("日", module->TypeSystem->Int32), CreateParameter("小时", module->TypeSystem->Int32), CreateParameter("分钟", module->TypeSystem->Int32), CreateParameter("秒", module->TypeSystem->Int32));
+	params[1]->IsOptional = true;
+	params[1]->Constant = 1;
+	params[2]->IsOptional = true;
+	params[2]->Constant = 1;
+	params[3]->IsOptional = true;
+	params[3]->Constant = 0;
+	params[4]->IsOptional = true;
+	params[4]->Constant = 0;
+	params[5]->IsOptional = true;
+	params[5]->Constant = 0;
+	MethodDefinition^ method = CreateMethod("指定时间", module->ImportReference(typeof(DateTime)), params, STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ CreateNow(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取现行时间", module->ImportReference(typeof(DateTime)), nullptr, STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(DateTime, "get_Now")));
 	return method;
 }
 
@@ -1111,6 +1212,18 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删首尾空, CreateTrim(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删全部空, CreateTrimAll(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::文本比较, CreateStrComp(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到时间, CreateToTime(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取某月天数, CreateGetDaysOfSpecMonth(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取年份, CreateYear(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取月份, CreateMonth(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取日, CreateDay(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取星期几, CreateWeekDay(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取小时, CreateHour(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取分钟, CreateMinute(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取秒, CreateSecond(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::指定时间, CreateGetSpecTime(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取现行时间, CreateNow(module)));
+
 	return list;
 }
 
@@ -1298,4 +1411,19 @@ array<String^>^ Krnln::分割文本(String^ 待分割文本, String^ 用作分割的文本, int 
 	if (待分割文本 == nullptr) return nullptr;
 	array<String^>^ arr = 待分割文本->Split(用作分割的文本->ToCharArray());
 	if (要返回的子文本数目 > 0)  Array::Resize(arr, 要返回的子文本数目);
+	return arr;
+}
+
+bool Krnln::置现行时间(DateTime 欲设置的时间)
+{
+	SYSTEMTIME st;
+	st.wYear = 欲设置的时间.Year;
+	st.wMonth = 欲设置的时间.Month;
+	st.wDay = 欲设置的时间.Day;
+	st.wDayOfWeek = (WORD)欲设置的时间.DayOfWeek;
+	st.wHour = 欲设置的时间.Hour;
+	st.wMinute = 欲设置的时间.Minute;
+	st.wSecond = 欲设置的时间.Second;
+	st.wMilliseconds = 欲设置的时间.Millisecond;
+	return SetLocalTime(st);
 }
