@@ -80,6 +80,9 @@ enum krnln_method : UINT
 	取重复文本 = 0x62,
 	文本比较 = 0x63,
 	分割文本 = 0x64,
+	数值到大写 = 0x72,
+	数值到金额 = 0x73,
+	数值到格式文本 = 0x74,
 	增减时间 = 0x77,
 	取时间间隔 = 0x78,
 	取某月天数 = 0x79,
@@ -105,10 +108,6 @@ enum krnln_method : UINT
 	到小数 = 0x0279,
 	左移 = 0x027E,
 	右移 = 0x027F,
-
-	数值到大写,
-	数值到金额,
-	数值到格式文本,
 };
 
 [LibGuid(KRNLN)]
@@ -171,6 +170,6 @@ private:
 	static String^ 数值到大写(double 欲转换形式的数值, bool 是否转换为简体);
 	[LibMethod(krnln_method::数值到金额)]
 	static String^ 数值到金额(double 欲转换形式的数值, bool 是否转换为简体);
-	//[LibMethod(krnln_method::数值到格式文本)]
-	//static String^ 数值到格式文本(double 欲转换为文本的数值, [Optional]int 小数保留位数, bool 是否进行千分位分隔);
+	[LibMethod(krnln_method::数值到格式文本)]
+	static String^ 数值到格式文本(double 欲转换为文本的数值, [Optional]Nullable<int> 小数保留位数, bool 是否进行千分位分隔);
 };

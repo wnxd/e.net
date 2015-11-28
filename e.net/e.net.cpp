@@ -1407,7 +1407,29 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								switch (param->DataType)
 								{
 								case EParamDataType::Null:
-									if (item->Defualt == nullptr) AddILCode(ILProcessor, OpCodes::Ldnull);
+									if (item->Defualt == nullptr)
+									{
+										if (item->Type->IsValueType)
+										{
+											if (item->OriginalType->Name == "Nullable`1")
+											{
+												mr->MethodData->Method->Body->InitLocals = true;
+												VariableDefinition^ var = gcnew VariableDefinition(module->ImportReference(item->OriginalType));
+												mr->MethodData->Method->Body->Variables->Add(var);
+												AddILCode(ILProcessor, OpCodes::Ldloca_S, var);
+												AddILCode(ILProcessor, OpCodes::Initobj, item->OriginalType);
+												AddILCode(ILProcessor, OpCodes::Ldloc_S, var);
+											}
+											else
+											{
+												if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
+												else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
+												else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
+												else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+											}
+										}
+										else AddILCode(ILProcessor, OpCodes::Ldnull);
+									}
 									else
 									{
 										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);

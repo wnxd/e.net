@@ -1617,17 +1617,17 @@ bool Krnln::置现行时间(DateTime 欲设置的时间)
 String^ getunit(int i, bool jt)
 {
 
-	int a;
-	int b = Math::DivRem(i, 9, a);
-	int c;
-	int d = Math::DivRem(b, 5, c);
+	int a = i / 9;
+	int b = i % 9;
+	int c = b / 5;
+	int d = b % 5;
 	String^ str = "";
 	if (a != 0 || c != 0) d++;
 	switch (d)
 	{
 	case 1:
-		str = str->PadRight(c, '万');
-		str = str->PadRight(a, '亿');
+		str = str->PadRight(c, (Char)19975);
+		str = str->PadRight(a, (Char)20159);
 		break;
 	case 2:
 		str = jt ? "十" : "拾";
@@ -1702,14 +1702,14 @@ String^ Krnln::数值到大写(double 欲转换形式的数值, bool 是否转换为简体)
 		prev = s;
 		ret = s + ui + ret;
 	}
-	ret = ret->TrimEnd('零');
+	ret = ret->TrimEnd((Char)38646);
 	if (ret == "") ret = "零";
 	if (arr->Length == 2)
 	{
 		str = arr[1];
 		prev = "点";
 		for (int i = 0; i < str->Length; i++) prev += getint(str[i], 是否转换为简体);
-		prev = prev->TrimEnd('零');
+		prev = prev->TrimEnd((Char)38646);
 		if (prev != "点") ret += prev;
 	}
 	return ret;
@@ -1724,7 +1724,7 @@ String^ Krnln::数值到金额(double 欲转换形式的数值, bool 是否转换为简体)
 	欲转换形式的数值 = 欲转换形式的数值 - num;
 	if (欲转换形式的数值 > 0)
 	{
-		String^ d = 欲转换形式的数值.ToString();
+		String^ d = 欲转换形式的数值.ToString("F2");
 		String^ j = getint(d[2], 是否转换为简体);
 		String^ f = getint(d[3], 是否转换为简体);
 		bool b1 = !String::IsNullOrEmpty(j);
@@ -1736,4 +1736,27 @@ String^ Krnln::数值到金额(double 欲转换形式的数值, bool 是否转换为简体)
 		}
 	}
 	return str;
+}
+
+String^ Krnln::数值到格式文本(double 欲转换为文本的数值, [Optional]Nullable<int> 小数保留位数, bool 是否进行千分位分隔)
+{
+	String^ str;
+	if (是否进行千分位分隔)
+	{
+		str = "N";
+		if (小数保留位数.HasValue) str += 小数保留位数.Value;
+		else
+		{
+			array<String^>^ arr = 欲转换为文本的数值.ToString()->Split('.');
+			int len;
+			if (arr->Length == 2) len = arr[1]->Length;
+			else len = 0;
+			str += len;
+		}
+	}
+	else
+	{
+		if (小数保留位数.HasValue) str = "F" + 小数保留位数.Value;
+	}
+	return 欲转换为文本的数值.ToString(str);
 }
