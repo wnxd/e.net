@@ -59,9 +59,15 @@ EInfo* ParseEcode(byte* code)
 				{
 					ESection_Program sp = GetLibraries(ptr, sai.Tags);
 					einfo->Program = sp;
+					ptr = NULL;
 				}
 			}
 			offset += si.DataLength;
+		}
+		if (ptr != NULL)
+		{
+			ESection_Program sp = GetLibraries(ptr, einfo->TagStatus.Tags);
+			einfo->Program = sp;
 		}
 		return einfo;
 	}

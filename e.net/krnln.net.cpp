@@ -4,9 +4,6 @@
 #include "e.net.h"
 #include "krnln.net.h"
 
-[DllImport("Kernel32.dll")]
-extern bool SetLocalTime(SYSTEMTIME% sysTime);
-
 MethodDefinition^ CreateReturn(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("返回", module->TypeSystem->Void, ToList(CreateParameter("返回到调用方的值", module->TypeSystem->Void)), STATICMETHOD);
@@ -35,7 +32,7 @@ MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module)
 {
 	TypeReference^ objarr = gcnew ArrayType(module->TypeSystem->Object);
 	ParameterDefinition^ params = CreateParameter("加文本", objarr);
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->String, ToList(CreateParameter("被加文本", module->TypeSystem->Object), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -77,7 +74,7 @@ MethodDefinition^ CreateIntAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int32));
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int32, ToList(CreateParameter("被加数", module->TypeSystem->Int32), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -121,7 +118,7 @@ MethodDefinition^ CreateLongAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int64));
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int64, ToList(CreateParameter("被加数", module->TypeSystem->Int64), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -165,7 +162,7 @@ MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module)
 MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Double));
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Double, ToList(CreateParameter("被加数", module->TypeSystem->Double), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -203,7 +200,7 @@ MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module)
 	TypeReference^ Bin = gcnew ArrayType(module->TypeSystem->Byte);
 	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
 	ParameterDefinition^ params = CreateParameter("加字节集", gcnew ArrayType(Bin));
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("相加", Bin, ToList(CreateParameter("被加字节集", Bin), params), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -735,7 +732,7 @@ MethodDefinition^ CreateEnd(ModuleDefinition^ module)
 MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
-	MethodReference^ ctor = module->ImportReference(GetConstructor(ParamArrayAttribute));
+	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
 	params[3]->CustomAttributes->Add(gcnew CustomAttribute(ctor));
 	MethodDefinition^ method = CreateMethod("重定义数组", module->TypeSystem->Void, params, STATICMETHOD);
 	method->Body->InitLocals = true;
@@ -1165,7 +1162,7 @@ MethodDefinition^ CreateGetSpecTime(ModuleDefinition^ module)
 	params[5]->Constant = 0;
 	MethodDefinition^ method = CreateMethod("指定时间", module->ImportReference(typeof(DateTime)), params, STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-	AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int))));
+	AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(int))));
 	return method;
 }
 
@@ -1600,6 +1597,9 @@ int Krnln::取时间部分(DateTime 欲取其部分的时间, int 转换部分)
 	return num;
 }
 
+[DllImport("Kernel32.dll")]
+extern bool SetLocalTime(SYSTEMTIME% sysTime);
+
 bool Krnln::置现行时间(DateTime 欲设置的时间)
 {
 	SYSTEMTIME st;
@@ -1612,4 +1612,128 @@ bool Krnln::置现行时间(DateTime 欲设置的时间)
 	st.wSecond = 欲设置的时间.Second;
 	st.wMilliseconds = 欲设置的时间.Millisecond;
 	return SetLocalTime(st);
+}
+
+String^ getunit(int i, bool jt)
+{
+
+	int a;
+	int b = Math::DivRem(i, 9, a);
+	int c;
+	int d = Math::DivRem(b, 5, c);
+	String^ str = "";
+	if (a != 0 || c != 0) d++;
+	switch (d)
+	{
+	case 1:
+		str = str->PadRight(c, '万');
+		str = str->PadRight(a, '亿');
+		break;
+	case 2:
+		str = jt ? "十" : "拾";
+		break;
+	case 3:
+		str = jt ? "百" : "佰";
+		break;
+	case 4:
+		str = jt ? "千" : "仟";
+		break;
+	}
+	return str;
+}
+
+String^ getint(Char c, bool jt)
+{
+	String^ str;
+	switch (c)
+	{
+	case '0':
+		str = "零";
+		break;
+	case '1':
+		str = jt ? "一" : "壹";
+		break;
+	case '2':
+		str = jt ? "二" : "贰";
+		break;
+	case '3':
+		str = jt ? "三" : "叁";
+		break;
+	case '4':
+		str = jt ? "四" : "肆";
+		break;
+	case '5':
+		str = jt ? "五" : "伍";
+		break;
+	case '6':
+		str = jt ? "六" : "陆";
+		break;
+	case '7':
+		str = jt ? "七" : "柒";
+		break;
+	case '8':
+		str = jt ? "八" : "捌";
+		break;
+	case '9':
+		str = "玖";
+		break;
+	}
+	return str;
+}
+
+String^ Krnln::数值到大写(double 欲转换形式的数值, bool 是否转换为简体)
+{
+	String^ str = 欲转换形式的数值.ToString();
+	array<String^>^ arr = str->Split('.');
+	str = arr[0];
+	int len = str->Length;
+	String^ prev;
+	String^ ret = "";
+	for (int i = str->Length - 1, n = 1; i >= 0; i--, n++)
+	{
+		String^ s = getint(str[i], 是否转换为简体);
+		String^ ui;
+		if (s == "零")
+		{
+			ui = "";
+			if (prev == "零") s = "";
+		}
+		else ui = getunit(n, 是否转换为简体);
+		prev = s;
+		ret = s + ui + ret;
+	}
+	ret = ret->TrimEnd('零');
+	if (ret == "") ret = "零";
+	if (arr->Length == 2)
+	{
+		str = arr[1];
+		prev = "点";
+		for (int i = 0; i < str->Length; i++) prev += getint(str[i], 是否转换为简体);
+		prev = prev->TrimEnd('零');
+		if (prev != "点") ret += prev;
+	}
+	return ret;
+}
+
+String^ Krnln::数值到金额(double 欲转换形式的数值, bool 是否转换为简体)
+{
+	欲转换形式的数值 = Math::Round(欲转换形式的数值, 2);
+	double num = Math::Truncate(欲转换形式的数值);
+	String^ str = Krnln::数值到大写(num, 是否转换为简体);
+	str += 是否转换为简体 ? "元" : "圆";
+	欲转换形式的数值 = 欲转换形式的数值 - num;
+	if (欲转换形式的数值 > 0)
+	{
+		String^ d = 欲转换形式的数值.ToString();
+		String^ j = getint(d[2], 是否转换为简体);
+		String^ f = getint(d[3], 是否转换为简体);
+		bool b1 = !String::IsNullOrEmpty(j);
+		bool b2 = !String::IsNullOrEmpty(f);
+		if (b1 || b2)
+		{
+			if (b1) str += j + "角";
+			if (b2) str += f + "分";
+		}
+	}
+	return str;
 }

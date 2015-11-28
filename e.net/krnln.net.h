@@ -105,6 +105,10 @@ enum krnln_method : UINT
 	到小数 = 0x0279,
 	左移 = 0x027E,
 	右移 = 0x027F,
+
+	数值到大写,
+	数值到金额,
+	数值到格式文本,
 };
 
 [LibGuid(KRNLN)]
@@ -163,4 +167,10 @@ private:
 	static int 取时间部分(DateTime 欲取其部分的时间, int 转换部分);
 	[LibMethod(krnln_method::置现行时间)]
 	static bool 置现行时间(DateTime 欲设置的时间);
+	[LibMethod(krnln_method::数值到大写)]
+	static String^ 数值到大写(double 欲转换形式的数值, bool 是否转换为简体);
+	[LibMethod(krnln_method::数值到金额)]
+	static String^ 数值到金额(double 欲转换形式的数值, bool 是否转换为简体);
+	//[LibMethod(krnln_method::数值到格式文本)]
+	//static String^ 数值到格式文本(double 欲转换为文本的数值, [Optional]int 小数保留位数, bool 是否进行千分位分隔);
 };

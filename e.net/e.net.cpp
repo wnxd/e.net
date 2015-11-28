@@ -432,6 +432,9 @@ bool ECompile::CompileClass()
 		this->Type_Decimal = module->ImportReference(typeof(Decimal));
 		this->Type_ValueType = module->ImportReference(typeof(ValueType));
 		this->Type_StrArr = module->ImportReference(typeof(array<String^>));
+		Type^ type = Type::GetType("System.Nullable`1");
+		this->Type_Nullable = module->ImportReference(type);
+		this->Nullable_Ctor = module->ImportReference(type->GetConstructors()[0]);
 		IDictionary<TypeDefinition^, UINT>^ typelist = gcnew Dictionary<TypeDefinition^, UINT>();
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Assemblies)
 		{
@@ -459,7 +462,7 @@ bool ECompile::CompileClass()
 			}
 			this->_edata->Types->Add(assembly.Tag, type);
 		}
-		MethodReference^ StructLayout = module->ImportReference(GetConstructor(StructLayoutAttribute, typeof(LayoutKind)));
+		MethodReference^ StructLayout = module->ImportReference(GetCtor(StructLayoutAttribute, typeof(LayoutKind)));
 		CustomAttribute^ custom = gcnew CustomAttribute(StructLayout);
 		custom->ConstructorArguments->Add(CustomAttributeArgument(module->ImportReference(typeof(LayoutKind)), LayoutKind::Sequential));
 		for each (ESection_Program_Assembly assembly in this->_einfo->Program.Structs)
@@ -565,7 +568,16 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 					TypeReference^ t = this->EDT2Type(param.DataType);
 					ParameterAttributes attr = ParameterAttributes::None;
 					if ((param.Attributes & EVariableAttr::V_Array) == EVariableAttr::V_Array) t = gcnew ArrayType(t);
-					if ((param.Attributes & EVariableAttr::V_Optional) == EVariableAttr::V_Optional) attr = attr | ParameterAttributes::Optional;
+					if ((param.Attributes & EVariableAttr::V_Optional) == EVariableAttr::V_Optional)
+					{
+						attr = attr | ParameterAttributes::Optional;
+						if (t->IsValueType)
+						{
+							GenericInstanceType^ g = gcnew GenericInstanceType(this->Type_Nullable);
+							g->GenericArguments->Add(t);
+							t = g;
+						}
+					}
 					if ((param.Attributes & EVariableAttr::V_Out) == EVariableAttr::V_Out)
 					{
 						attr = attr | ParameterAttributes::Out;
@@ -1087,6 +1099,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					{
 						mr = nullptr;
 						TypeReference^ paatr = module->ImportReference(typeof(ParamArrayAttribute));
+						TypeReference^ oatr = module->ImportReference(typeof(OptionalAttribute));
 						for each (EMethodData^ item in mdlist)
 						{
 							if (item->Method->Parameters->Count == params->Count)
@@ -1106,6 +1119,20 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										conform->Add(mr);
 									}
 								}
+								else if (params->Count < item->Method->Parameters->Count)
+								{
+									int i;
+									for (i = item->Method->Parameters->Count - params->Count; i > 0; i--)
+									{
+										ParameterDefinition^ pd = item->Method->Parameters[item->Method->Parameters->Count - i];
+										if (!pd->IsOptional && FindCustom(pd->CustomAttributes, oatr) == nullptr) break;
+									}
+									if (i == 0)
+									{
+										mr = this->GetMethodReference(item, nullptr);
+										conform->Add(mr);
+									}
+								}
 							}
 						}
 						if (mr == nullptr) throw Error(tagName, "参数不符");
@@ -1118,16 +1145,32 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						int satisfy = 0;
 						float similarity = 0;
 						array<EParamInfo^>^ mrparams = item->Params;
-						for (size_t i = 0; i < params->Count; i++)
+						IList<EParamData^>^ tparams = gcnew List<EParamData^>(params);
+						if (mrparams->Length > tparams->Count)
+						{
+							for (int i = mrparams->Length - tparams->Count; i > 0; i--)
+							{
+								if (mrparams[mrparams->Length - i]->IsOptional)
+								{
+									EParamData^ param = gcnew EParamData();
+									param->Type = module->TypeSystem->Void;
+									param->Data = nullptr;
+									param->DataType = EParamDataType::Null;
+									tparams->Add(param);
+								}
+								else break;
+							}
+						}
+						for (size_t i = 0; i < tparams->Count; i++)
 						{
 							if (i < mrparams->Length)
 							{
-								if (mrparams[i]->Type == params[i]->Type || IsAssignableFrom(params[i]->Type, mrparams[i]->Type))
+								if (mrparams[i]->Type == tparams[i]->Type || IsAssignableFrom(tparams[i]->Type, mrparams[i]->Type))
 								{
 									similarity++;
 									satisfy++;
 								}
-								else if (params[i]->Type == module->TypeSystem->Void && mrparams[i]->IsOptional)
+								else if (tparams[i]->Type == module->TypeSystem->Void && mrparams[i]->IsOptional)
 								{
 									similarity++;
 									satisfy++;
@@ -1137,19 +1180,19 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									similarity += 0.45;
 									satisfy++;
 								}
-								else if (mrparams[i]->Type->IsValueType && params[i]->Type->IsValueType)
+								else if (mrparams[i]->Type->IsValueType && tparams[i]->Type->IsValueType)
 								{
-									if ((mrparams[i]->Type == module->TypeSystem->Byte || mrparams[i]->Type == module->TypeSystem->Int16 || mrparams[i]->Type == module->TypeSystem->Int32 || mrparams[i]->Type == module->TypeSystem->Int64) && (params[i]->Type == module->TypeSystem->Byte || params[i]->Type == module->TypeSystem->Int16 || params[i]->Type == module->TypeSystem->Int32 || params[i]->Type == module->TypeSystem->Int64))
+									if ((mrparams[i]->Type == module->TypeSystem->Byte || mrparams[i]->Type == module->TypeSystem->Int16 || mrparams[i]->Type == module->TypeSystem->Int32 || mrparams[i]->Type == module->TypeSystem->Int64) && (params[i]->Type == module->TypeSystem->Byte || tparams[i]->Type == module->TypeSystem->Int16 || tparams[i]->Type == module->TypeSystem->Int32 || tparams[i]->Type == module->TypeSystem->Int64))
 									{
 										similarity += 0.5;
 										satisfy++;
 									}
-									else if ((mrparams[i]->Type == module->TypeSystem->Single || mrparams[i]->Type == module->TypeSystem->Double || mrparams[i]->Type == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->Single || params[i]->Type == module->TypeSystem->Double || params[i]->Type == module->TypeSystem->Int32))
+									else if ((mrparams[i]->Type == module->TypeSystem->Single || mrparams[i]->Type == module->TypeSystem->Double || mrparams[i]->Type == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->Single || tparams[i]->Type == module->TypeSystem->Double || tparams[i]->Type == module->TypeSystem->Int32))
 									{
 										similarity += 0.5;
 										satisfy++;
 									}
-									else if ((mrparams[i]->Type == module->TypeSystem->IntPtr || mrparams[i]->Type == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->IntPtr || params[i]->Type == module->TypeSystem->Int32))
+									else if ((mrparams[i]->Type == module->TypeSystem->IntPtr || mrparams[i]->Type == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->IntPtr || tparams[i]->Type == module->TypeSystem->Int32))
 									{
 										similarity += 0.5;
 										satisfy++;
@@ -1166,7 +1209,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									ArrayType^ arrtype = dynamic_cast<ArrayType^>(pi->Type);
 									if (arrtype != nullptr)
 									{
-										if (arrtype->ElementType == params[i]->Type || IsAssignableFrom(params[i]->Type, arrtype->ElementType))
+										if (arrtype->ElementType == tparams[i]->Type || IsAssignableFrom(params[i]->Type, arrtype->ElementType))
 										{
 											similarity++;
 											satisfy++;
@@ -1176,19 +1219,19 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											similarity += 0.5;
 											satisfy++;
 										}
-										else if (arrtype->ElementType->IsValueType && params[i]->Type->IsValueType)
+										else if (arrtype->ElementType->IsValueType && tparams[i]->Type->IsValueType)
 										{
-											if ((arrtype->ElementType == module->TypeSystem->Byte || arrtype->ElementType == module->TypeSystem->Int16 || arrtype->ElementType == module->TypeSystem->Int32 || arrtype->ElementType == module->TypeSystem->Int64) && (params[i]->Type == module->TypeSystem->Byte || params[i]->Type == module->TypeSystem->Int16 || params[i]->Type == module->TypeSystem->Int32 || params[i]->Type == module->TypeSystem->Int64))
+											if ((arrtype->ElementType == module->TypeSystem->Byte || arrtype->ElementType == module->TypeSystem->Int16 || arrtype->ElementType == module->TypeSystem->Int32 || arrtype->ElementType == module->TypeSystem->Int64) && (params[i]->Type == module->TypeSystem->Byte || tparams[i]->Type == module->TypeSystem->Int16 || tparams[i]->Type == module->TypeSystem->Int32 || tparams[i]->Type == module->TypeSystem->Int64))
 											{
 												similarity += 0.5;
 												satisfy++;
 											}
-											else if ((arrtype->ElementType == module->TypeSystem->Single || arrtype->ElementType == module->TypeSystem->Double || arrtype->ElementType == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->Single || params[i]->Type == module->TypeSystem->Double || params[i]->Type == module->TypeSystem->Int32))
+											else if ((arrtype->ElementType == module->TypeSystem->Single || arrtype->ElementType == module->TypeSystem->Double || arrtype->ElementType == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->Single || tparams[i]->Type == module->TypeSystem->Double || tparams[i]->Type == module->TypeSystem->Int32))
 											{
 												similarity += 0.5;
 												satisfy++;
 											}
-											else if ((arrtype->ElementType == module->TypeSystem->IntPtr || arrtype->ElementType == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->IntPtr || params[i]->Type == module->TypeSystem->Int32))
+											else if ((arrtype->ElementType == module->TypeSystem->IntPtr || arrtype->ElementType == module->TypeSystem->Int32) && (params[i]->Type == module->TypeSystem->IntPtr || tparams[i]->Type == module->TypeSystem->Int32))
 											{
 												similarity += 0.5;
 												satisfy++;
@@ -1198,12 +1241,13 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								}
 							}
 						}
-						if (similarity == params->Count)
+						if (similarity == tparams->Count)
 						{
 							mr = item;
+							params = tparams;
 							break;
 						}
-						else if (satisfy == params->Count) similar->Add(item, similarity);
+						else if (satisfy == tparams->Count) similar->Add(item, similarity);
 					}
 					if (mr == nullptr)
 					{
@@ -1217,6 +1261,21 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							}
 						}
 						if (mr == nullptr) throw Error(tagName, "参数不符");
+						if (mr->Params->Length > params->Count)
+						{
+							for (int i = mr->Params->Length - params->Count; i > 0; i--)
+							{
+								if (mr->Params[mr->Params->Length - i]->IsOptional)
+								{
+									EParamData^ param = gcnew EParamData();
+									param->Type = module->TypeSystem->Void;
+									param->Data = nullptr;
+									param->DataType = EParamDataType::Null;
+									params->Add(param);
+								}
+								else break;
+							}
+						}
 					}
 					md = mr->MethodData;
 					if (mr->Tag == krnln_method::赋值)
@@ -1269,7 +1328,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						case EParamDataType::Time:
 						{
 							AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-							AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(Int64))));
+							AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
 							break;
 						}
 						case EParamDataType::String:
@@ -1348,16 +1407,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								switch (param->DataType)
 								{
 								case EParamDataType::Null:
-									if (item->Defualt == nullptr)
-									{
-										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-										else if (item->Type == this->Type_DateTime) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(DateTime, "MinValue")));
-										else if (item->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldsfld, module->ImportReference(GetStaticField(IntPtr, "Zero")));
-										else AddILCode(ILProcessor, OpCodes::Ldnull);
-									}
+									if (item->Defualt == nullptr) AddILCode(ILProcessor, OpCodes::Ldnull);
 									else
 									{
 										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
@@ -1410,7 +1460,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								case EParamDataType::Time:
 								{
 									AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-									AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetConstructor(DateTime, typeof(Int64))));
+									AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
 									break;
 								}
 								case EParamDataType::String:
@@ -1476,7 +1526,19 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									break;
 								}
 								}
-								if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
+								if (param->Type->IsValueType)
+								{
+									if (item->IsOptional && item->OriginalType->Name == "Nullable`1")
+									{
+										GenericInstanceType^ g = gcnew GenericInstanceType(this->Type_Nullable);
+										g->GenericArguments->Add(param->Type);
+										MethodReference^ m = gcnew MethodReference(".ctor", module->TypeSystem->Void, g);
+										m->HasThis = true;
+										m->Parameters->Add(this->Nullable_Ctor->Parameters[0]);
+										AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(m));
+									}
+									else if (!item->IsAddress && param->Type->IsValueType && item->OriginalType == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
+								}
 								i++;
 								ii++;
 								if (item->IsVariable)
@@ -2091,6 +2153,7 @@ EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, ELib_Met
 		EParamInfo^ pi = gcnew EParamInfo();
 		pi->Name = param->Name;
 		pi->Type = param->ParameterType;
+		pi->OriginalType = param->ParameterType;
 		pi->IsAddress = param->IsOut;
 		if (pi->IsAddress)
 		{
@@ -2099,7 +2162,15 @@ EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, ELib_Met
 		}
 		pi->IsArray = pi->Type->IsArray;
 		pi->IsOptional = param->IsOptional;
-		if (param->HasConstant) pi->Defualt = param->Constant;
+		if (pi->IsOptional)
+		{
+			if (param->HasConstant) pi->Defualt = param->Constant;
+			if (pi->Type->Name == "Nullable`1")
+			{
+				GenericInstanceType^ t = dynamic_cast<GenericInstanceType^>(pi->Type);
+				if (t != nullptr) pi->Type = t->GenericArguments[0];
+			}
+		}
 		pi->IsVariable = FindCustom(param->CustomAttributes, module->ImportReference(typeof(ParamArrayAttribute))) != nullptr;
 		params->Add(pi);
 	}

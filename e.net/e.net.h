@@ -89,6 +89,7 @@ ref struct EParamInfo
 {
 	String^ Name;
 	TypeReference^ Type;
+	TypeReference^ OriginalType;
 	bool IsArray;
 	bool IsOptional;
 	Object^ Defualt;
@@ -154,6 +155,8 @@ private:
 	TypeReference^ Type_Decimal;
 	TypeReference^ Type_ValueType;
 	TypeReference^ Type_StrArr;
+	TypeReference^ Type_Nullable;
+	MethodReference^ Nullable_Ctor;
 	byte* _ecode;
 	Int64 _len;
 	array<String^>^ _refer;
