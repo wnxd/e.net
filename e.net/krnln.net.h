@@ -80,7 +80,11 @@ enum krnln_method : UINT
 	取重复文本 = 0x62,
 	文本比较 = 0x63,
 	分割文本 = 0x64,
+	增减时间 = 0x77,
+	取时间间隔 = 0x78,
 	取某月天数 = 0x79,
+	时间到文本 = 0x7A,
+	取时间部分 = 0x7B,
 	取年份 = 0x7C,
 	取月份 = 0x7D,
 	取日 = 0x7E,
@@ -91,6 +95,8 @@ enum krnln_method : UINT
 	指定时间 = 0x83,
 	取现行时间 = 0x84,
 	置现行时间 = 0x85,
+	取日期 = 0x022F,
+	取时间 = 0x0230,
 	数组清零 = 0x0231,
 	到字节 = 0x0275,
 	到短整数 = 0x0276,
@@ -147,6 +153,14 @@ private:
 	static String^ 取重复文本(int 重复次数, String^ 待重复文本);
 	[LibMethod(krnln_method::分割文本)]
 	static array<String^>^ 分割文本(String^ 待分割文本, [Optional][DefaultValue(",")]String^ 用作分割的文本, [Optional]int 要返回的子文本数目);
+	[LibMethod(krnln_method::增减时间)]
+	static DateTime 增减时间(DateTime 时间, int 被增加部分, int 增加值);
+	[LibMethod(krnln_method::取时间间隔)]
+	static double 取时间间隔(DateTime 时间1, DateTime 时间2, int 取间隔部分);
+	[LibMethod(krnln_method::时间到文本)]
+	static String^ 时间到文本(DateTime 欲转换到文本的时间, [Optional][DefaultValue(1)]int 转换部分);
+	[LibMethod(krnln_method::取时间部分)]
+	static int 取时间部分(DateTime 欲取其部分的时间, int 转换部分);
 	[LibMethod(krnln_method::置现行时间)]
 	static bool 置现行时间(DateTime 欲设置的时间);
 };

@@ -1177,6 +1177,25 @@ MethodDefinition^ CreateNow(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ CreateGetDatePart(ModuleDefinition^ module)
+{
+	TypeReference^ dt = module->ImportReference(typeof(DateTime));
+	MethodDefinition^ method = CreateMethod("取日期", dt, ToList(CreateParameter("时间", dt)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "get_Date")));
+	return method;
+}
+
+MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module)
+{
+	TypeReference^ dt = module->ImportReference(typeof(DateTime));
+	MethodDefinition^ method = CreateMethod("取时间", dt, ToList(CreateParameter("时间", dt)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "ToLongTimeString")));
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(DateTime, "Parse", typeof(String))));
+	return method;
+}
+
 PluginType Krnln::Type::get()
 {
 	return PluginType::Mono;
@@ -1266,7 +1285,8 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取秒, CreateSecond(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::指定时间, CreateGetSpecTime(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取现行时间, CreateNow(module)));
-
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取日期, CreateGetDatePart(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取时间, CreateGetTimePart(module)));
 	return list;
 }
 
@@ -1455,6 +1475,129 @@ array<String^>^ Krnln::分割文本(String^ 待分割文本, String^ 用作分割的文本, int 
 	array<String^>^ arr = 待分割文本->Split(用作分割的文本->ToCharArray());
 	if (要返回的子文本数目 > 0)  Array::Resize(arr, 要返回的子文本数目);
 	return arr;
+}
+
+DateTime Krnln::增减时间(DateTime 时间, int 被增加部分, int 增加值)
+{
+	switch (被增加部分)
+	{
+	case 1:
+		时间 = 时间.AddYears(增加值);
+		break;
+	case 2:
+		时间 = 时间.AddMonths(增加值 * 3);
+		break;
+	case 3:
+		时间 = 时间.AddMonths(增加值);
+		break;
+	case 4:
+		时间 = 时间.AddDays(增加值 * 7);
+		break;
+	case 5:
+		时间 = 时间.AddDays(增加值);
+		break;
+	case 6:
+		时间 = 时间.AddHours(增加值);
+		break;
+	case 7:
+		时间 = 时间.AddMinutes(增加值);
+		break;
+	case 8:
+		时间 = 时间.AddSeconds(增加值);
+		break;
+	}
+	return 时间;
+}
+
+double Krnln::取时间间隔(DateTime 时间1, DateTime 时间2, int 取间隔部分)
+{
+	TimeSpan time = 时间1 - 时间2;
+	double span;
+	switch (取间隔部分)
+	{
+	case 1:
+		span = time.TotalDays / 365;
+		break;
+	case 2:
+		span = time.TotalDays / 91.25;
+		break;
+	case 3:
+		span = time.TotalDays / 30.4166;
+		break;
+	case 4:
+		span = time.TotalDays / 7;
+		break;
+	case 5:
+		span = time.TotalDays;
+		break;
+	case 6:
+		span = time.TotalHours;
+		break;
+	case 7:
+		span = time.TotalMinutes;
+		break;
+	case 8:
+		span = time.TotalSeconds;
+		break;
+	}
+	return span;
+}
+
+String^ Krnln::时间到文本(DateTime 欲转换到文本的时间, int 转换部分)
+{
+	String^ str;
+	switch (转换部分)
+	{
+	case 1:
+		str = 欲转换到文本的时间.ToString();
+		break;
+	case 2:
+		str = 欲转换到文本的时间.ToLongDateString();
+		break;
+	case 3:
+		str = 欲转换到文本的时间.ToLongTimeString();
+		break;
+	}
+	return str;
+}
+
+int Krnln::取时间部分(DateTime 欲取其部分的时间, int 转换部分)
+{
+	int num;
+	switch (转换部分)
+	{
+	case 1:
+		num = 欲取其部分的时间.Year;
+		break;
+	case 2:
+		num = Math::Ceiling(欲取其部分的时间.Month / 3);
+		break;
+	case 3:
+		num = 欲取其部分的时间.Month;
+		break;
+	case 4:
+		num = Math::Ceiling(欲取其部分的时间.DayOfYear / 7);
+		break;
+	case 5:
+		num = 欲取其部分的时间.Day;
+		break;
+	case 6:
+		num = 欲取其部分的时间.Hour;
+		break;
+	case 7:
+		num = 欲取其部分的时间.Minute;
+		break;
+	case 8:
+		num = 欲取其部分的时间.Second;
+		break;
+	case 9:
+		num = (int)欲取其部分的时间.DayOfWeek + 1;
+		break;
+	case 10:
+		num = 欲取其部分的时间.DayOfYear;
+		break;
+	}
+	return num;
 }
 
 bool Krnln::置现行时间(DateTime 欲设置的时间)
