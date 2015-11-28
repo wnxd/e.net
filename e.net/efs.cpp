@@ -54,6 +54,29 @@ ETAG::operator UINT()
 	return type;
 }
 
+LIBCONST::LIBCONST()
+{
+
+}
+
+LIBCONST::LIBCONST(UINT uint)
+{
+	memcpy(this, &uint, sizeof(UINT));
+}
+
+LIBCONST* LIBCONST::operator=(UINT uint)
+{
+	memcpy(this, &uint, sizeof(UINT));
+	return this;
+}
+
+LIBCONST::operator UINT()
+{
+	UINT type;
+	memcpy(&type, this, sizeof(UINT));
+	return type;
+}
+
 EFieldInfo::EFieldInfo()
 {
 	this->Class = NULL;

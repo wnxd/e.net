@@ -50,6 +50,14 @@ enum class EVariableType
 	DoNET
 };
 
+enum class ELibConstType : SHORT
+{
+	Null = CT_NULL,
+	Num = CT_NUM,
+	Bool = CT_BOOL,
+	Text = CT_TEXT
+};
+
 ref struct EVariableIndex
 {
 	EIndexType IndexType;
@@ -60,6 +68,13 @@ ref struct EVariableData
 {
 	TypeReference^ Type;
 	EVariableType VariableType;
+	Object^ Data;
+};
+
+ref struct ELibConstData
+{
+	TypeReference^ Type;
+	ELibConstType ConstType;
 	Object^ Data;
 };
 
@@ -156,6 +171,7 @@ private:
 	bool CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset);
 	TypeReference^ CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);
 	EVariableData^ CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);
+	ELibConstData^ CompileCode_LibConst(LIBCONST libconst);
 	void CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset, size_t& Index);
 	void LoadKrnln();
 	void LoadE_net();

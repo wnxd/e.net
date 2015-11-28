@@ -32,7 +32,7 @@ INT WINAPI notify_lib(INT nMsg, DWORD dwParam1, DWORD dwParam2)
 	}
 }
 
-LIB_CONST_INFO s_const_info[] =
+static LIB_CONST_INFO s_const_info[] =
 {
 	{ TEXT("Пе"), TEXT("null"), NULL, LVL_SIMPLE, CT_NULL, NULL, NULL }
 };
@@ -72,7 +72,7 @@ INT WINAPI addin_func(INT nAddInFnIndex)
 	return TRUE;
 }
 
-LIB_INFO s_lib_info =
+static LIB_INFO s_lib_info =
 {
 	LIB_FORMAT_VER,
 	TEXT(LI_LIB_GUID_STR),

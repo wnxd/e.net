@@ -345,11 +345,47 @@ MethodDefinition^ CreateEqual(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ CreateEqualNull1(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
+MethodDefinition^ CreateEqualNull2(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
 MethodDefinition^ CreateNotEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Object, "Equals", typeof(Object), typeof(Object))));
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
+MethodDefinition^ CreateNotEqualNull1(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
+MethodDefinition^ CreateNotEqualNull2(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ceq);
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 	AddILCode(ILProcessor, OpCodes::Ceq);
 	return method;
@@ -1166,8 +1202,12 @@ IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相乘, CreateMul(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相除, CreateDiv(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::整除, CreateIDiv(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqual(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqualNull1(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateEqualNull2(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateEqual(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqualNull1(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateNotEqualNull2(module)));
+	list->Add(gcnew MonoInfo(EMethodMode::Embed, NOT, CreateNotEqual(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于, CreateLess(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::大于, CreateMore(module)));
 	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于或等于, CreateLessOrEqual(module)));

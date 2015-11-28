@@ -130,6 +130,16 @@ struct ETAG
 	operator UINT();
 };
 
+struct LIBCONST
+{
+	USHORT LibID;
+	USHORT ID;
+	LIBCONST();
+	LIBCONST(UINT uint);
+	LIBCONST* operator=(UINT uint);
+	operator UINT();
+};
+
 struct EFieldInfo
 {
 	ETAG Class;

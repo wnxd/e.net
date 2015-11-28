@@ -91,6 +91,8 @@ array<byte>^ ReadFile(String^ path)
 	return bytes;
 }
 
+extern "C" PLIB_INFO WINAPI GetNewInf();
+
 bool CompileIL(byte* data, Int64 size, const char* savePath, array<String^>^ refer)
 {
 	return Compile(data, size, LPSTR2String(savePath), refer);
@@ -1025,7 +1027,6 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					case ECode_Type::ParamEnd:
 						goto paramend;
 					case ECode_Type::Const:
-					case ECode_Type::LibConst:
 					case ECode_Type::n4:
 						//未完成
 						Code += 4;
@@ -1033,6 +1034,30 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						param->Data = nullptr;
 						param->DataType = EParamDataType::Null;
 						break;
+					case ECode_Type::LibConst:
+					{
+						ELibConstData^ constdata = this->CompileCode_LibConst(GetData<LIBCONST>(Code));
+						if (constdata == nullptr) throw Error(mr->Name, "使用了未支持的支持库常量");
+						param->Type = constdata->Type;
+						param->Data = constdata->Data;
+						switch (constdata->ConstType)
+						{
+						case ELibConstType::Null:
+							param->DataType = EParamDataType::Null;
+							if (mr->Tag == krnln_method::返回 && params->Count == 0) param->Type = MethodInfo->Method->ReturnType;
+							break;
+						case ELibConstType::Num:
+							param->DataType = EParamDataType::Number;
+							break;
+						case ELibConstType::Bool:
+							param->DataType = EParamDataType::Bool;
+							break;
+						case ELibConstType::Text:
+							param->DataType = EParamDataType::String;
+							break;
+						}
+						break;
+					}
 					}
 					params->Add(param);
 				} while (Code < End);
@@ -1752,6 +1777,70 @@ varend:
 		}
 	}
 	return vardata;
+}
+
+ELibConstData^ ECompile::CompileCode_LibConst(LIBCONST libconst)
+{
+	libconst.ID--;
+	libconst.LibID--;
+	if (libconst.ID < 0 || libconst.LibID < 0) return nullptr;
+	PLIB_INFO info = NULL;
+	if (libconst.LibID == this->e_net_id) info = GetNewInf();
+	else
+	{
+		string libinfo = this->_einfo->Program.Libraries[libconst.LibID];
+		vector<string> arr = split(libinfo, "\r");
+		string libname = arr[0] + ".fne";
+		HMODULE module = GetModuleHandle(libname.c_str());
+		if (module == NULL) return nullptr;
+		PFN_GET_LIB_INFO GetNewInf = (PFN_GET_LIB_INFO)GetProcAddress(module, FUNCNAME_GET_LIB_INFO);
+		info = GetNewInf();
+	}
+	if (info == NULL) return nullptr;
+	ModuleDefinition^ module = this->_assembly->MainModule;
+	LIB_CONST_INFO constinfo = info->m_pLibConst[libconst.ID];
+	ELibConstData^ data = gcnew ELibConstData();
+	data->ConstType = (ELibConstType)constinfo.m_shtType;
+	switch (data->ConstType)
+	{
+	case ELibConstType::Null:
+		data->Data = nullptr;
+		data->Type = module->TypeSystem->Void;
+		break;
+	case ELibConstType::Num:
+	{
+		double number = constinfo.m_dbValue;
+		int int32;
+		TypeReference^ type = module->TypeSystem->Double;
+		try
+		{
+			Int64 int64 = (Int64)number;
+			if (int64 == number)
+			{
+				int32 = (int)number;
+				if (int32 == int64) type = module->TypeSystem->Int32;
+				else type = module->TypeSystem->Int64;
+			}
+		}
+		catch (...)
+		{
+			int32 = (int)number;
+			if (int32 == number) type = module->TypeSystem->Int32;
+		}
+		data->Data = number;
+		data->Type = type;
+		break;
+	}
+	case ELibConstType::Bool:
+		data->Data = constinfo.m_dbValue;
+		data->Type = module->TypeSystem->Boolean;
+		break;
+	case ELibConstType::Text:
+		data->Data = LPSTR2String(constinfo.m_szText);
+		data->Type = module->TypeSystem->String;
+		break;
+	}
+	return data;
 }
 
 void ECompile::CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset, size_t& Index)
