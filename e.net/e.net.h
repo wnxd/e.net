@@ -174,7 +174,7 @@ private:
 	EMethodReference^ GetMethodReference(ELib_Method^ libmethod);
 	EMethodReference^ GetMethodReference(EMethodData^ methoddata, ELib_Method^ libmethod);
 	TypeReference^ EDT2Type(DataType edt);
-	TypeDefinition^ FindReferType(UINT tag);
+	TypeDefinition^ FindTypeDefinition(UINT tag);
 	EMethodData^ FindReferMethod(ELib_Method^ tag);
 public:
 	ECompile(byte* ecode, Int64 len, array<String^>^ refer);

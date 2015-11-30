@@ -1792,7 +1792,7 @@ varend:
 					if (assembly == NULL) return nullptr;
 					ESection_Variable var = assembly.FindField(fi.Field);
 					if (var == NULL) return nullptr;
-					TypeDefinition^ type = this->FindReferType(fi.Class);
+					TypeDefinition^ type = this->FindTypeDefinition(fi.Class);
 					if (type == nullptr) return nullptr;
 					String^ varname = CStr2String(var.Name);
 					fd = FindField(type, varname);
@@ -2212,7 +2212,7 @@ TypeReference^ ECompile::EDT2Type(DataType edt)
 		type = module->ImportReference(typeof(Delegate));
 		break;
 	default:
-		type = this->FindReferType(edt);
+		type = this->FindTypeDefinition(edt);
 		if (type == nullptr) type = module->TypeSystem->IntPtr;
 		else type = module->ImportReference(type);
 		break;
@@ -2220,7 +2220,7 @@ TypeReference^ ECompile::EDT2Type(DataType edt)
 	return type;
 }
 
-TypeDefinition^ ECompile::FindReferType(UINT tag)
+TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 {
 	if (this->_edata->Types->ContainsKey(tag)) return this->_edata->Types[tag];
 	else
@@ -2261,7 +2261,7 @@ EMethodData^ ECompile::FindReferMethod(ELib_Method^ tag)
 					}
 					else
 					{
-						t = this->FindReferType(type.Tag);
+						t = this->FindTypeDefinition(type.Tag);
 						if (t != nullptr)
 						{
 							vector<string> arr = split(method.Remark, SP);
