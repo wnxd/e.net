@@ -2,8 +2,6 @@
 
 #include "efs.h"
 
-#define NOT -1
-
 using namespace std;
 
 template<typename T> bool arrcmp(const T arr1[], const T arr2[], size_t len)

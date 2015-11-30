@@ -4,6 +4,7 @@
 #include "Plugins.h"
 #include "compile.h"
 #include "krnln.net.h"
+#include "refer.h"
 #include "e.net.h"
 
 using namespace std;
@@ -16,63 +17,11 @@ using namespace System::Text::RegularExpressions;
 
 EDataInfo::EDataInfo()
 {
-	this->Methods = gcnew Dictionary<ELib_Method^, EMethodData^>();
-	this->Symbols = gcnew Dictionary<String^, IList<EMethodData^>^>();
-	this->Types = gcnew Dictionary<UINT, TypeDefinition^>();
 	this->Variables = gcnew Dictionary<UINT, VariableDefinition^>();
 	this->Parameters = gcnew Dictionary<UINT, ParameterDefinition^>();
 	this->Fields = gcnew Dictionary<UINT, FieldDefinition^>();
 	this->GlobalVariables = gcnew Dictionary<UINT, FieldDefinition^>();
 	this->Propertys = gcnew Dictionary<UINT, PropertyDefinition^>();
-}
-
-EMethodData::EMethodData()
-{
-
-}
-
-EMethodData::EMethodData(MethodDefinition^ method)
-{
-	this->Method = method;
-	this->Mode = EMethodMode::Call;
-}
-
-EMethodData::EMethodData(MethodDefinition^ method, EMethodMode mode)
-{
-	this->Method = method;
-	this->Mode = mode;
-}
-
-EMethodData::operator MethodDefinition ^ ()
-{
-	return this->Method;
-}
-
-ELib_Method::ELib_Method()
-{
-
-}
-
-ELib_Method::ELib_Method(short index, UINT tag)
-{
-	this->Index = index;
-	this->Tag = tag;
-}
-
-bool ELib_Method::operator == (ELib_Method^ elm)
-{
-	bool b1 = Object::Equals(this, nullptr);
-	bool b2 = Object::Equals(elm, nullptr);
-	if (b1 == b2)
-	{
-		if (b1) return true;
-		return (this->Index == elm->Index) && (this->Tag == elm->Tag);
-	}
-	else return false;
-}
-bool ELib_Method::operator != (ELib_Method^ elm)
-{
-	return !(this == elm);
 }
 
 String^ DotDecode(String^ str)
@@ -94,6 +43,7 @@ array<byte>^ ReadFile(String^ path)
 }
 
 extern "C" PLIB_INFO WINAPI GetNewInf();
+extern String^ GetMethodName(MethodReference^ method);
 
 bool CompileIL(byte* data, Int64 size, const char* savePath, array<String^>^ refer)
 {
@@ -185,17 +135,11 @@ void AddDefaultConstructor(ModuleDefinition^ module, TypeDefinition^ type)
 	type->Methods->Add(method);
 }
 
-TypeDefinition^ FindType(IList<TypeDefinition^>^ alltype, String^ fullname)
-{
-	for each (TypeDefinition^ type in alltype) if (type->FullName == fullname) return type;
-	return nullptr;
-}
-
-TypeDefinition^ FindTypeByAssembly(IList<TypeDefinition^>^ alltype, ESection_Program_Assembly assembly)
+String^ GetTypeName(ESection_Program_Assembly assembly)
 {
 	String^ classname = CStr2String(assembly.Name);
 	classname = DotDecode(classname);
-	return FindType(alltype, classname);
+	return classname;
 }
 
 PropertyDefinition^ FindProperty(TypeDefinition^ type, String^ name)
@@ -228,6 +172,13 @@ MethodDefinition^ FindMethod(TypeDefinition^ type, UINT token)
 	return nullptr;
 }
 
+List<MethodDefinition^>^ FindAllMethod(TypeDefinition^ type, String^ name, bool isstatic)
+{
+	List<MethodDefinition^>^ list = gcnew List<MethodDefinition^>();
+	for each (MethodDefinition^ method in type->Methods) if (method->IsStatic == isstatic && method->Name == name) list->Add(method);
+	return list;
+}
+
 CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type)
 {
 	for each (CustomAttribute^ custom in list) if (custom->AttributeType == type) return custom;
@@ -237,12 +188,6 @@ CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type)
 FieldDefinition^ FindField(TypeDefinition^ type, String^ name)
 {
 	for each (FieldDefinition^ field in type->Fields) if (field->Name == name) return field;
-	return nullptr;
-}
-
-EMethodData^ GetItemValue(IDictionary<ELib_Method^, EMethodData^>^ dictionary, ELib_Method^ key)
-{
-	for each (KeyValuePair<ELib_Method^, EMethodData^>^ item in dictionary) if (item->Key == key) return item->Value;
 	return nullptr;
 }
 
@@ -371,12 +316,8 @@ bool ECompile::CompileRefer()
 			String^ mscorlib = Environment::GetFolderPath(Environment::SpecialFolder::Windows) + "\\Microsoft.NET\\Framework\\v4.0.30319\\mscorlib.dll";
 			this->_refer = gcnew array < String^ > { mscorlib };
 		}
-		this->_alltype = gcnew List<TypeDefinition^>();
-		for each (String^ path in this->_refer)
-		{
-			ModuleDefinition^ m = ModuleDefinition::ReadModule(path);
-			for each (TypeDefinition^ type in m->GetTypes()) if (type->IsPublic && !(type->IsGenericParameter || type->IsGenericInstance)) this->_alltype->Add(type);
-		}
+		this->_CodeRefer = gcnew CodeRefer(module);
+		this->_CodeRefer->AddReferList(this->_refer);
 		return true;
 	}
 	catch (Exception^ ex)
@@ -403,28 +344,32 @@ bool ECompile::CompileClass()
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
 			bool isstatic = assembly.Tag.Type2 == ETYPE::StaticClass;
-			TypeDefinition^ type = FindTypeByAssembly(this->_alltype, assembly);
+			String^ classname = GetTypeName(assembly);
+			TypeDefinition^ type = this->_CodeRefer->FindType(classname);
 			if (type == nullptr)
 			{
-				String^ _namespace = String::Empty;
-				String^ classname = CStr2String(assembly.Name);
-				classname = DotDecode(classname);
+				String^ _namespace;
+				String^ _typename;
 				int index = classname->LastIndexOf(".");
 				if (index != -1)
 				{
 					_namespace = classname->Substring(0, index);
-					classname = classname->Substring(index + 1);
+					_typename = classname->Substring(index + 1);
 				}
-				type = gcnew TypeDefinition(_namespace, classname, TypeAttributes::Class, module->TypeSystem->Object);
+				else
+				{
+					_namespace = "";
+					_typename = classname;
+				}
+				type = gcnew TypeDefinition(_namespace, _typename, TypeAttributes::Class, module->TypeSystem->Object);
 				module->Types->Add(type);
-				this->_alltype->Add(type);
 			}
 			if (!isstatic)
 			{
 				typelist->Add(type, assembly.Base);
 				if (assembly.Status == ETagStatus::C_Public || this->_CodeProcess->GetTagStatus(assembly.Tag) == ETagStatus::C_Public) type->Attributes = type->Attributes | TypeAttributes::Public;
 			}
-			this->_edata->Types->Add(assembly.Tag, type);
+			this->_CodeRefer->AddType(assembly.Tag, type);
 		}
 		MethodReference^ StructLayout = module->ImportReference(GetCtor(StructLayoutAttribute, typeof(LayoutKind)));
 		CustomAttribute^ custom = gcnew CustomAttribute(StructLayout);
@@ -433,20 +378,24 @@ bool ECompile::CompileClass()
 		{
 			TypeAttributes attr = STRUCT;
 			if (assembly.Status == ETagStatus::C_Public) attr = attr | TypeAttributes::Public;
-			String^ _namespace = String::Empty;
-			String^ classname = CStr2String(assembly.Name);
-			classname = DotDecode(classname);
+			String^ classname = GetTypeName(assembly);
+			String^ _namespace;
+			String^ _typename;
 			int index = classname->LastIndexOf(".");
 			if (index != -1)
 			{
 				_namespace = classname->Substring(0, index);
-				classname = classname->Substring(index + 1);
+				_typename = classname->Substring(index + 1);
 			}
-			TypeDefinition^ type = gcnew TypeDefinition(_namespace, classname, attr, this->Type_ValueType);
+			else
+			{
+				_namespace = "";
+				_typename = classname;
+			}
+			TypeDefinition^ type = gcnew TypeDefinition(_namespace, _typename, attr, this->Type_ValueType);
 			type->CustomAttributes->Add(custom);
 			module->Types->Add(type);
-			this->_alltype->Add(type);
-			this->_edata->Types->Add(assembly.Tag, type);
+			this->_CodeRefer->AddType(assembly.Tag, type);
 		}
 		for each(KeyValuePair<TypeDefinition^, UINT>^ kv in typelist)
 		{
@@ -455,7 +404,7 @@ bool ECompile::CompileClass()
 		}
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetStructs())
 		{
-			TypeDefinition^ type = this->_edata->Types[assembly.Tag];
+			TypeDefinition^ type = this->_CodeRefer->FindType(assembly.Tag);
 			for each (ESection_Variable var in assembly.Variables)
 			{
 				TypeReference^ t = this->EDT2Type(var.DataType);
@@ -469,7 +418,7 @@ bool ECompile::CompileClass()
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
 			bool isstatic = assembly.Tag.Type2 == ETYPE::StaticClass;
-			TypeDefinition^ type = this->_edata->Types[assembly.Tag];
+			TypeDefinition^ type = this->_CodeRefer->FindType(assembly.Tag);
 			for each (ESection_Variable var in assembly.Variables)
 			{
 				FieldAttributes attr;
@@ -487,7 +436,7 @@ bool ECompile::CompileClass()
 		{
 			if (assembly.Tag.Type2 == ETYPE::Class)
 			{
-				TypeDefinition^ type = this->_edata->Types[assembly.Tag];
+				TypeDefinition^ type = this->_CodeRefer->FindType(assembly.Tag);
 				AddDefaultConstructor(module, type);
 			rt:;
 			}
@@ -605,16 +554,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 					else if (module->EntryPoint->Parameters->Count == 1 && module->EntryPoint->Parameters[0]->ParameterType == this->Type_StrArr) module->EntryPoint = method;
 				}
 				EMethodData^ md = gcnew EMethodData(method, ctor ? EMethodMode::Newobj : EMethodMode::Call);
-				this->_edata->Methods->Add(gcnew ELib_Method(-2, tag), md);
-				String^ tagName = type->FullName + (isstatic ? "." : ":") + method->Name;
-				IList<EMethodData^>^ mdlist;
-				if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];
-				else
-				{
-					mdlist = gcnew List<EMethodData^>();
-					this->_edata->Symbols->Add(tagName, mdlist);
-				}
-				mdlist->Add(md);
+				this->_CodeRefer->AddMethodRefer(-2, tag, md);
 			}
 		}
 		return true;
@@ -678,21 +618,12 @@ bool ECompile::CompileCode()
 			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CallConvWinapi, CStr2String(dll.Name), dllmodule);
 			global->Methods->Add(method);
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
-			this->_edata->Methods->Add(gcnew ELib_Method(-3, dll.Tag), md);
-			String^ tagName = method->Name;
-			IList<EMethodData^>^ mdlist;
-			if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];
-			else
-			{
-				mdlist = gcnew List<EMethodData^>();
-				this->_edata->Symbols->Add(tagName, mdlist);
-			}
-			mdlist->Add(md);
+			this->_CodeRefer->AddMethodRefer(-3, dll.Tag, md);
 		}
 		this->LoadKrnln();
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
-			TypeDefinition^ type = FindTypeByAssembly(this->_alltype, assembly);
+			TypeDefinition^ type = this->_CodeRefer->FindType(GetTypeName(assembly));
 			if (type != nullptr)
 			{
 				for each (ETAG tag in assembly.Methods)
@@ -702,7 +633,7 @@ bool ECompile::CompileCode()
 					{
 						EMethodInfo^ MethodInfo = gcnew EMethodInfo();
 						MethodInfo->MethodInfo = &pm;
-						MethodInfo->Method = GetItemValue(this->_edata->Methods, gcnew ELib_Method(-2, pm.Tag));
+						MethodInfo->Method = this->_CodeRefer->FindMethodRefer(-2, pm.Tag);
 						ILProcessor^ ILProcessor = MethodInfo->Method->Body->GetILProcessor();
 						size_t len = pm.Code.size();
 						byte* lpcode = pm.Code.cbegin()._Ptr;
@@ -782,7 +713,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 	}
 	else
 	{
-		EMethodReference^ mr = this->GetMethodReference(gcnew ELib_Method(LibID, etag));
+		EMethodReference^ mr = this->GetMethodReference(LibID, etag);
 		if (mr == nullptr) throw gcnew Exception("使用了未支持函数");
 		USHORT tag = GetData<USHORT>(Code);
 		if ((tag & 32) == 32)
@@ -802,7 +733,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			ECode_Type head = GetData<ECode_Type>(Code);
 			TypeReference^ thistype;
 			IList<Instruction^>^ headcode;
-			bool staticmethod = mr->MethodData->Method->IsStatic;
+			bool staticmethod = !mr->MethodData->Method->HasThis;
 			if (head == ECode_Type::ParameterBegin)
 			{
 				MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
@@ -1052,12 +983,9 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 				if (mr->Params->Length == 0 && params->Count == 0) md = mr->MethodData;
 				else
 				{
-					if (thistype == nullptr) thistype = mr->MethodData->Method->DeclaringType;
-					String^ tagName;
-					if (thistype == nullptr) tagName = mr->Name;
-					else tagName = thistype->FullName + (staticmethod ? "." : ":") + mr->Name;
-					IList<EMethodData^>^ mdlist;
-					if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];
+					String^ tagName = GetMethodName(mr->MethodData);
+					IList<EMethodData^>^ mdlist = nullptr;
+					if (!(LibID == krnln_id && (etag == krnln_method::赋值 || etag == krnln_method::返回))) mdlist = this->_CodeRefer->FindMethodList(tagName);
 					IList<EMethodReference^>^ conform = gcnew List<EMethodReference^>();
 					if (mdlist != nullptr)
 					{
@@ -1068,7 +996,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							if (item->Method->Parameters->Count == params->Count)
 							{
-								mr = this->GetMethodReference(item, nullptr);
+								mr = this->GetMethodReference(item, LibID, etag);
 								conform->Add(mr);
 							}
 							else if (item->Method->Parameters->Count > 0)
@@ -1079,7 +1007,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								{
 									if (params->Count >= ii)
 									{
-										mr = this->GetMethodReference(item, nullptr);
+										mr = this->GetMethodReference(item, LibID, etag);
 										conform->Add(mr);
 									}
 								}
@@ -1093,7 +1021,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									}
 									if (i == 0)
 									{
-										mr = this->GetMethodReference(item, nullptr);
+										mr = this->GetMethodReference(item, LibID, etag);
 										conform->Add(mr);
 									}
 								}
@@ -1377,9 +1305,9 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										{
 											if (item->OriginalType->Name == "Nullable`1")
 											{
-												mr->MethodData->Method->Body->InitLocals = true;
+												MethodInfo->Method->Body->InitLocals = true;
 												VariableDefinition^ var = gcnew VariableDefinition(module->ImportReference(item->OriginalType));
-												mr->MethodData->Method->Body->Variables->Add(var);
+												MethodInfo->Method->Body->Variables->Add(var);
 												AddILCode(ILProcessor, OpCodes::Ldloca_S, var);
 												AddILCode(ILProcessor, OpCodes::Initobj, item->OriginalType);
 												AddILCode(ILProcessor, OpCodes::Ldloc_S, var);
@@ -2067,8 +1995,9 @@ void ECompile::LoadKrnln()
 	ModuleDefinition^ module = this->_assembly->MainModule;
 	TypeDefinition^ global = module->GetType("<Module>");
 	PluginInfo^ info = Plugins::Load(module, typeof(Krnln));
-	short krnln_id;
-	this->_CodeProcess->FindLibrary(String2LPSTR(info->Lib), krnln_id);
+	short id;
+	this->_CodeProcess->FindLibrary(String2LPSTR(info->Lib), id);
+	this->krnln_id = id;
 	for each (MonoInfo^ mi in info->Methods)
 	{
 		if (mi->Mode != EMethodMode::Embed)
@@ -2081,18 +2010,7 @@ void ECompile::LoadKrnln()
 			global->Methods->Add(mi->Method);
 		}
 		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
-		if (mi->Tag != NOT) this->_edata->Methods->Add(gcnew ELib_Method(krnln_id, mi->Tag), md);
-		if (mi->Tag != krnln_method::返回 && mi->Tag != krnln_method::赋值)
-		{
-			IList<EMethodData^>^ mlist;
-			if (this->_edata->Symbols->ContainsKey(mi->Method->Name)) mlist = this->_edata->Symbols[mi->Method->Name];
-			else
-			{
-				mlist = gcnew List<EMethodData^>();
-				this->_edata->Symbols->Add(mi->Method->Name, mlist);
-			}
-			mlist->Add(md);
-		}
+		this->_CodeRefer->AddMethodRefer(id, mi->Tag, md);
 	}
 	for each (TypeDefinition^ type in info->Types) module->Types->Add(type);
 }
@@ -2102,35 +2020,22 @@ void ECompile::LoadE_net()
 
 }
 
-EMethodReference^ ECompile::GetMethodReference(ELib_Method^ libmethod)
+EMethodReference^ ECompile::GetMethodReference(short index, ETAG tag)
 {
 	EMethodReference^ mr;
-	EMethodData^ md = GetItemValue(this->_edata->Methods, libmethod);
-	if (md == nullptr) md = this->FindReferMethod(libmethod);
-	if (md != nullptr) mr = this->GetMethodReference(md, libmethod);
+	EMethodData^ md = this->_CodeRefer->FindMethodRefer(index, tag);
+	if (md == nullptr) md = this->FindReferMethod(index, tag);
+	if (md != nullptr) mr = this->GetMethodReference(md, index, tag);
 	return mr;
 }
 
-EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, ELib_Method^ libmethod)
+EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, short index, ETAG tag)
 {
 	ModuleDefinition^ module = this->_assembly->MainModule;
 	EMethodReference^ mr = gcnew EMethodReference();
 	MethodDefinition^ method = methoddata;
-	if (libmethod == nullptr)
-	{
-		for each (KeyValuePair<ELib_Method^, EMethodData^>^ item in this->_edata->Methods)
-		{
-			if (item->Value == methoddata)
-			{
-				libmethod = item->Key;
-				break;
-			}
-			else if (item->Value->Method->Name == method->Name) libmethod = item->Key;
-		}
-		if (libmethod == nullptr) libmethod = gcnew ELib_Method();
-	}
-	mr->Lib = libmethod->Index;
-	mr->Tag = libmethod->Tag;
+	mr->Lib = index;
+	mr->Tag = tag;
 	mr->Name = method->Name;
 	mr->ReturnType = method->ReturnType;
 	List<EParamInfo^>^ params = gcnew List<EParamInfo^>();
@@ -2222,8 +2127,8 @@ TypeReference^ ECompile::EDT2Type(DataType edt)
 
 TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 {
-	if (this->_edata->Types->ContainsKey(tag)) return this->_edata->Types[tag];
-	else
+	TypeDefinition^ type = this->_CodeRefer->FindTypeDefine(tag);
+	if (type == nullptr)
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
 		ESection_Program_Assembly assembly;
@@ -2232,28 +2137,28 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 		return nullptr;
 	add:
 		vector<string> arr = split(assembly.Remark, SP);
-		TypeDefinition^ type;
-		if (arr[0] == DONET_CLASS) type = FindType(this->_alltype, CStr2String(arr[1]));
-		else  type = FindTypeByAssembly(this->_alltype, assembly);
-		this->_edata->Types->Add(assembly.Tag, type);
-		return type;
+		String^ classname;
+		if (arr[0] == DONET_CLASS) classname = CStr2String(arr[1]);
+		else  classname = GetTypeName(assembly);
+		type = this->_CodeRefer->FindTypeDefine(classname);
+		this->_CodeRefer->AddTypeRefer(assembly.Tag, classname);
 	}
+	return type;
 }
 
-EMethodData^ ECompile::FindReferMethod(ELib_Method^ tag)
+EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 {
-	if (tag->Index == -2)
+	if (index == -2)
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
 		for each (ESection_Program_Method method in this->_CodeProcess->GetReferMethods())
 		{
-			if (method.Tag == tag->Tag)
+			if (method.Tag == tag)
 			{
 				ESection_Program_Assembly type = this->_CodeProcess->FindReferAssembly(method.Class);
 				if (type != NULL)
 				{
 					TypeDefinition^ t;
-					MethodDefinition^ m;
 					if (type.Name == "__HIDDEN_TEMP_MOD__")
 					{
 
@@ -2265,21 +2170,15 @@ EMethodData^ ECompile::FindReferMethod(ELib_Method^ tag)
 						if (t != nullptr)
 						{
 							vector<string> arr = split(method.Remark, SP);
-							m = FindMethod(t, UINT::Parse(CStr2String(arr[1])));
-							if (m != nullptr)
+							bool staticmethod = arr[1] == "1";
+							List<MethodDefinition^>^ list = FindAllMethod(t, CStr2String(method.Name), staticmethod);
+							if (list->Count > 0)
 							{
-								EMethodData^ md = gcnew EMethodData(m, m->IsConstructor ? EMethodMode::Newobj : EMethodMode::Call);
-								this->_edata->Methods->Add(gcnew ELib_Method(-2, method.Tag), md);
-								String^ tagName = t->FullName + (m->IsStatic ? "." : ":") + m->Name;
-								IList<EMethodData^>^ mdlist;
-								if (this->_edata->Symbols->ContainsKey(tagName)) mdlist = this->_edata->Symbols[tagName];
-								else
+								for each (MethodDefinition^ m in list)
 								{
-									mdlist = gcnew List<EMethodData^>();
-									this->_edata->Symbols->Add(tagName, mdlist);
+									EMethodData^ md = gcnew EMethodData(m, m->IsConstructor ? EMethodMode::Newobj : EMethodMode::Call);
+									this->_CodeRefer->AddMethodRefer(index, tag, md);
 								}
-								mdlist->Add(md);
-								return md;
 							}
 						}
 					}

@@ -32,9 +32,14 @@ DefaultValueAttribute::DefaultValueAttribute(Object^ val)
 }
 
 extern CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type);
-extern TypeDefinition^ FindType(IList<TypeDefinition^>^ alltype, String^ fullname);
 extern FieldDefinition^ FindField(TypeDefinition^ type, String^ name);
 TypeDefinition^ TypeClone(ModuleDefinition^ module, ModuleDefinition^ M, TypeDefinition^ type);
+
+TypeDefinition^ FindType(IList<TypeDefinition^>^ alltype, String^ fullname)
+{
+	for each (TypeDefinition^ type in alltype) if (type->FullName == fullname) return type;
+	return nullptr;
+}
 
 TypeReference^ GetTypeReference(ModuleDefinition^ module, ModuleDefinition^ M, TypeReference^ type)
 {

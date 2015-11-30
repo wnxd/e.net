@@ -93,16 +93,6 @@ ref struct EParamInfo
 	bool IsVariable;
 };
 
-ref struct EMethodData
-{
-	MethodDefinition^ Method;
-	EMethodMode Mode;
-	EMethodData();
-	EMethodData(MethodDefinition^ method);
-	EMethodData(MethodDefinition^ method, EMethodMode mode);
-	operator MethodDefinition ^ ();
-};
-
 ref struct EMethodReference
 {
 	short Lib;
@@ -113,21 +103,8 @@ ref struct EMethodReference
 	EMethodData^ MethodData;
 };
 
-ref struct ELib_Method
-{
-	short Index;
-	UINT Tag;
-	ELib_Method();
-	ELib_Method(short index, UINT tag);
-	bool operator==(ELib_Method^ elm);
-	bool operator!=(ELib_Method^ elm);
-};
-
 ref struct EDataInfo
 {
-	IDictionary<ELib_Method^, EMethodData^>^ Methods;
-	IDictionary<String^, IList<EMethodData^>^>^ Symbols;
-	IDictionary<UINT, TypeDefinition^>^ Types;
 	IDictionary<UINT, VariableDefinition^>^ Variables;
 	IDictionary<UINT, ParameterDefinition^>^ Parameters;
 	IDictionary<UINT, FieldDefinition^>^ Fields;
@@ -147,6 +124,7 @@ ref class ECompile
 	~ECompile();
 private:
 	CodeProcess* _CodeProcess;
+	CodeRefer^ _CodeRefer;
 	TypeReference^ Type_DateTime;
 	TypeReference^ Type_Bin;
 	TypeReference^ Type_Decimal;
@@ -157,8 +135,8 @@ private:
 	array<String^>^ _refer;
 	AssemblyDefinition^ _assembly;
 	EDataInfo^ _edata;
-	List<TypeDefinition^>^ _alltype;
 	short e_net_id;
+	short krnln_id;
 	bool CompileHead();
 	bool CompileRefer();
 	bool CompileClass();
@@ -171,11 +149,11 @@ private:
 	void CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset, size_t& Index);
 	void LoadKrnln();
 	void LoadE_net();
-	EMethodReference^ GetMethodReference(ELib_Method^ libmethod);
-	EMethodReference^ GetMethodReference(EMethodData^ methoddata, ELib_Method^ libmethod);
+	EMethodReference^ GetMethodReference(short index, ETAG tag);
+	EMethodReference^ GetMethodReference(EMethodData^ methoddata, short index, ETAG tag);
 	TypeReference^ EDT2Type(DataType edt);
 	TypeDefinition^ FindTypeDefinition(UINT tag);
-	EMethodData^ FindReferMethod(ELib_Method^ tag);
+	EMethodData^ FindReferMethod(short index, ETAG tag);
 public:
 	ECompile(byte* ecode, Int64 len, array<String^>^ refer);
 	bool Compile();

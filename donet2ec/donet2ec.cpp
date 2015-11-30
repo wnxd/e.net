@@ -60,10 +60,10 @@ TreeInfo^ AddTreeInfo(Dictionary<String^, TreeInfo^>^ tree, Type^ type)
 
 String^ Join(String^ sp, ...array<String^>^ arr)
 {
-	String^ r = String::Empty;
+	String^ r = "";
 	for each (String^ item in arr)
 	{
-		if (r != String::Empty) r += sp;
+		if (r != "") r += sp;
 		r += item;
 	}
 	return r;
@@ -372,6 +372,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				len = mlist->Length * 4;
 				typedata.write(C(&len), 4);
 				Dictionary<String^, int>^ mnmap = gcnew Dictionary<String^, int>();
+				int staticmethod = 1;
 				for each (MethodInfo^ mi in mlist)
 				{
 					ETAG mtag = GetTagID();;
@@ -401,7 +402,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
 					methoddata.write(lpstr, len);
-					name = Join(SP, DONET, mi->MetadataToken.ToString());
+					name = Join(SP, DONET, staticmethod.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
@@ -497,6 +498,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				len = (clist->Length + mlist->Length) * 4;
 				typedata.write(C(&len), 4);
 				mnmap = gcnew Dictionary<String^, int>();
+				staticmethod = 0;
 				for each (ConstructorInfo^ ci in clist)
 				{
 					ETAG mtag = GetTagID();
@@ -521,7 +523,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
 					methoddata.write(lpstr, len);
-					name = Join(SP, DONET, ci->MetadataToken.ToString());
+					name = Join(SP, DONET, staticmethod.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
@@ -616,7 +618,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
 					methoddata.write(C(lpstr), len);
-					name = Join(SP, DONET, mi->MetadataToken.ToString());
+					name = Join(SP, DONET, staticmethod.ToString());
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
