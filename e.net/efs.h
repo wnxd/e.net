@@ -204,9 +204,15 @@ struct ESection_ArrayInfo
 	vector<UINT> Subscript;
 };
 
-struct ESection_Variable
+struct EBase
 {
 	ETAG Tag;
+	bool operator==(nullptr_t);
+	bool operator!=(nullptr_t);
+};
+
+struct ESection_Variable : EBase
+{
 	DataType DataType;
 	EVariableAttr Attributes;
 	ESection_ArrayInfo ArrayInfo;
@@ -215,13 +221,10 @@ struct ESection_Variable
 	ESection_Variable();
 	ESection_Variable(nullptr_t);
 	ESection_Variable* operator=(nullptr_t);
-	bool operator==(nullptr_t);
-	bool operator!=(nullptr_t);
 };
 
-struct ESection_Program_Assembly
+struct ESection_Program_Assembly : EBase
 {
-	ETAG Tag;
 	ETagStatus Status;
 	ETAG Base;
 	string Name;
@@ -230,13 +233,11 @@ struct ESection_Program_Assembly
 	vector<ESection_Variable> Variables;
 	ESection_Program_Assembly();
 	ESection_Program_Assembly(nullptr_t);
-	bool operator==(nullptr_t);
-	bool operator!=(nullptr_t);
+	ESection_Variable FindField(ETAG tag);
 };
 
-struct ESection_Program_Method
+struct ESection_Program_Method : EBase
 {
-	ETAG Tag;
 	ETAG Class;
 	EMethodAttr Attributes;
 	DataType ReturnType;
@@ -252,13 +253,10 @@ struct ESection_Program_Method
 	vector<byte> Code;
 	ESection_Program_Method();
 	ESection_Program_Method(nullptr_t);
-	bool operator==(nullptr_t);
-	bool operator!=(nullptr_t);
 };
 
-struct ESection_Program_Dll
+struct ESection_Program_Dll : EBase
 {
-	ETAG tag;
 	ETagStatus Status;
 	DataType ReturnType;
 	string ShowName;
@@ -282,10 +280,11 @@ struct ESection_Program
 	vector<ESection_Program_Dll> Dlls;
 };
 
-struct ESection_TagStatus
+struct ESection_TagStatus : EBase
 {
-	ETAG Tag;
 	ETagStatus Status;
+	ESection_TagStatus();
+	ESection_TagStatus(nullptr_t);
 };
 
 struct ESection_AuxiliaryInfo2

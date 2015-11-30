@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "efs.h"
+#include "common.h"
 
 ETAG::ETAG()
 {
@@ -95,6 +95,16 @@ EFieldInfo::operator UINT64()
 	return uint64;
 }
 
+bool EBase::operator==(nullptr_t)
+{
+	return this->Tag == NULL;
+}
+
+bool EBase::operator!=(nullptr_t)
+{
+	return this->Tag != NULL;
+}
+
 ESection_Variable::ESection_Variable()
 {
 	this->Tag = NULL;
@@ -111,16 +121,6 @@ ESection_Variable* ESection_Variable::operator=(nullptr_t)
 	return this;
 }
 
-bool ESection_Variable::operator==(nullptr_t)
-{
-	return this->Tag == NULL;
-}
-
-bool ESection_Variable::operator!=(nullptr_t)
-{
-	return this->Tag != NULL;
-}
-
 ESection_Program_Method::ESection_Program_Method()
 {
 	this->Tag = NULL;
@@ -129,16 +129,6 @@ ESection_Program_Method::ESection_Program_Method()
 ESection_Program_Method::ESection_Program_Method(nullptr_t) : ESection_Program_Method()
 {
 
-}
-
-bool ESection_Program_Method::operator==(nullptr_t)
-{
-	return this->Tag == NULL;
-}
-
-bool ESection_Program_Method::operator!=(nullptr_t)
-{
-	return this->Tag != NULL;
 }
 
 ESection_Program_Assembly::ESection_Program_Assembly()
@@ -151,27 +141,22 @@ ESection_Program_Assembly::ESection_Program_Assembly(nullptr_t) : ESection_Progr
 
 }
 
-bool ESection_Program_Assembly::operator==(nullptr_t)
+ESection_TagStatus::ESection_TagStatus()
 {
-	return this->Tag == NULL;
+	this->Tag = NULL;
 }
 
-bool ESection_Program_Assembly::operator!=(nullptr_t)
+ESection_TagStatus::ESection_TagStatus(nullptr_t) : ESection_TagStatus()
 {
-	return this->Tag != NULL;
+
 }
 
-template<typename T> T GetData(byte*& pointer)
+ESection_Variable ESection_Program_Assembly::FindField(ETAG tag)
 {
-	T data;
-	memcpy(&data, pointer, sizeof(T));
-	pointer += sizeof(T);
-	return data;
+	return FindInfo(this->Variables, tag);
 }
 
-extern ETagStatus GetTagStatus(vector<ESection_TagStatus> tags, ETAG tag);
-
-string GetString(byte*& pointer, bool jump = false)
+string GetString(byte*& pointer, bool jump)
 {
 	string str;
 	UINT size = GetData<UINT>(pointer);
@@ -264,8 +249,25 @@ vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_
 			for (size_t n = 0; n < size; n++) spa.Methods.push_back(GetData<ETAG>(pointer));
 		}
 		spa.Variables = GetVariables(pointer);
-		if (refer != NULL && ((spa.Status & ETagStatus::C_Extern) == ETagStatus::C_Extern || GetTagStatus(tagstatus, spa.Tag) == ETagStatus::C_Extern)) refer->push_back(spa);
-		else arr.push_back(spa);
+		if (refer != NULL)
+		{
+			if ((spa.Status & ETagStatus::C_Extern) == ETagStatus::C_Extern)
+			{
+			referadd:
+				refer->push_back(spa);
+			}
+			else
+			{
+				ESection_TagStatus status = FindInfo(tagstatus, spa.Tag);
+				if (status != NULL && status.Status == ETagStatus::C_Extern) goto referadd;
+				else goto add;
+			}
+		}
+		else
+		{
+		add:
+			arr.push_back(spa);
+		}
 	}
 	delete tags;
 	return arr;
@@ -314,7 +316,7 @@ vector<ESection_Program_Dll> GetDlls(byte*& pointer)
 	for (size_t i = 0; i < count; i++)
 	{
 		ESection_Program_Dll spd;
-		spd.tag = tags[i];
+		spd.Tag = tags[i];
 		spd.Status = GetData<ETagStatus>(pointer);
 		spd.ReturnType = GetData<DataType>(pointer);
 		spd.ShowName = GetString(pointer);

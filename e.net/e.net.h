@@ -1,9 +1,5 @@
 #pragma once
 
-#include "efs.h"
-#include "compile.h"
-#include "Plugins.h"
-
 using namespace System;
 using namespace System::Collections::Generic;
 using namespace Mono::Cecil;
@@ -150,6 +146,7 @@ ref class ECompile
 {
 	~ECompile();
 private:
+	CodeProcess* _CodeProcess;
 	TypeReference^ Type_DateTime;
 	TypeReference^ Type_Bin;
 	TypeReference^ Type_Decimal;
@@ -157,15 +154,11 @@ private:
 	TypeReference^ Type_StrArr;
 	TypeReference^ Type_Nullable;
 	MethodReference^ Nullable_Ctor;
-	byte* _ecode;
-	Int64 _len;
 	array<String^>^ _refer;
 	AssemblyDefinition^ _assembly;
 	EDataInfo^ _edata;
-	EInfo* _einfo;
 	List<TypeDefinition^>^ _alltype;
 	short e_net_id;
-	bool ParseCode();
 	bool CompileHead();
 	bool CompileRefer();
 	bool CompileClass();
@@ -188,6 +181,3 @@ public:
 	bool Compile();
 	void Write(String^ path);
 };
-
-MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
-ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);

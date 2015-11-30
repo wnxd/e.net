@@ -1,8 +1,10 @@
 #include "stdafx.h"
 #include "common.h"
 #include "common.net.h"
-#include "e.net.h"
 #include "krnln.net.h"
+
+extern MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
+extern ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 
 MethodDefinition^ CreateReturn(ModuleDefinition^ module)
 {

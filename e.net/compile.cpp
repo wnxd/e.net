@@ -77,3 +77,124 @@ EInfo* ParseEcode(byte* code)
 		return NULL;
 	}
 }
+
+template<typename T> extern T FindInfo(vector<T> list, ETAG tag);
+
+CodeProcess::CodeProcess(byte* ecode, long long len)
+{
+	this->_einfo = ParseEcode(ecode);
+}
+
+CodeProcess::~CodeProcess()
+{
+	if (this->_einfo != NULL) delete this->_einfo;
+}
+
+ESection_UserInfo CodeProcess::GetUserInfo()
+{
+	return this->_einfo->UserInfo;
+}
+
+ESection_SystemInfo CodeProcess::GetSystemInfo()
+{
+	return this->_einfo->SystemInfo;
+}
+
+vector<string> CodeProcess::GetLibraries()
+{
+	return this->_einfo->Program.Libraries;
+}
+
+vector<ESection_Program_Assembly> CodeProcess::GetAssemblies()
+{
+	return this->_einfo->Program.Assemblies;
+}
+
+vector<ESection_Program_Assembly> CodeProcess::GetReferAssemblies()
+{
+	return this->_einfo->Program.ReferAssemblies;
+}
+
+vector<ESection_TagStatus> CodeProcess::GetTagStatusList()
+{
+	return this->_einfo->TagStatus.Tags;
+}
+
+vector<ESection_Program_Assembly> CodeProcess::GetStructs()
+{
+	return this->_einfo->Program.Structs;
+}
+
+vector<ESection_Program_Assembly> CodeProcess::GetReferStructs()
+{
+	return this->_einfo->Program.ReferStructs;
+}
+
+vector<ESection_Program_Method> CodeProcess::GetMethods()
+{
+	return this->_einfo->Program.Methods;
+}
+
+vector<ESection_Program_Method> CodeProcess::GetReferMethods()
+{
+	return this->_einfo->Program.ReferMethods;
+}
+
+vector<ESection_Variable> CodeProcess::GetGlobalVariables()
+{
+	return this->_einfo->Program.GlobalVariables;
+}
+
+vector<ESection_Program_Dll> CodeProcess::GetDllList()
+{
+	return this->_einfo->Program.Dlls;
+}
+
+string CodeProcess::FindLibrary(string name, short& i)
+{
+	vector<string> libraries = this->GetLibraries();
+	size_t len = libraries.size();
+	for (i = 0; i < len; i++)
+	{
+		vector<string> arr = split(libraries[i], "\r");
+		if (arr[1] == name) return libraries[i];
+	}
+	return NULL;
+}
+
+ETagStatus CodeProcess::GetTagStatus(ETAG tag)
+{
+	ESection_TagStatus tagstatus = FindInfo(this->GetTagStatusList(), tag);
+	if (tagstatus == NULL) return ETagStatus::C_None;
+	return tagstatus.Status;
+}
+
+ESection_Program_Method CodeProcess::FindMethod(ETAG tag)
+{
+	return FindInfo(this->GetMethods(), tag);
+}
+
+ESection_Variable CodeProcess::FindGlobalVariable(ETAG tag)
+{
+	return FindInfo(this->GetGlobalVariables(), tag);
+}
+
+ESection_Program_Assembly CodeProcess::FindAssembly(ETAG tag)
+{
+	return FindInfo(this->GetAssemblies(), tag);
+}
+
+ESection_Program_Assembly CodeProcess::FindReferAssembly(ETAG tag)
+{
+	return FindInfo(this->GetReferAssemblies(), tag);
+}
+
+ESection_Program_Assembly CodeProcess::FindStruct(ETAG tag)
+{
+	return FindInfo(this->GetStructs(), tag);
+}
+
+ESection_Program_Assembly CodeProcess::FindReferStruct(ETAG tag)
+{
+	return FindInfo(this->GetReferStructs(), tag);
+}
