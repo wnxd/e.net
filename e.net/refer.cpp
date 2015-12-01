@@ -13,9 +13,10 @@ extern array<byte>^ ReadFile(String^ path);
 
 String^ GetMethodName(MethodReference^ method)
 {
-	String^ fullname = method->Name;
+	String^ fullname;
 	TypeReference^ type = method->DeclaringType;
 	if (type != nullptr) fullname = type->FullName + (method->HasThis ? "." : ":") + method->Name;
+	else fullname = "<Module>:" + method->Name;
 	return fullname;
 }
 

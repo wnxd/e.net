@@ -58,3 +58,37 @@ bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
 		return IsAssignableFrom(type1, type2);
 	}
 }
+
+generic<typename T> void AddList(ICollection<T>^ list1, T item)
+{
+	if (!list1->Contains(item)) list1->Add(item);
+}
+
+generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2)
+{
+	for each (T item in list2) if (!list1->Contains(item)) list1->Add(item);
+}
+
+generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2)
+{
+	for each (T item in list2) list1->Remove(item);
+}
+
+generic<typename T1, typename T2> T2 GetDictionary(IDictionary<T1, T2>^ dictionary, T1 key)
+{
+	if (dictionary->ContainsKey(key)) return dictionary[key];
+	T2 T;
+	return T;
+}
+
+generic<typename T1, typename T2> void AddDictionary(IDictionary<T1, IList<T2>^>^ dictionary, T1 key, T2 item)
+{
+	IList<T2>^ list;
+	if (dictionary->ContainsKey(key)) list = dictionary[key];
+	else
+	{
+		list = gcnew List<T2>();
+		dictionary->Add(key, list);
+	}
+	AddList(list, item);
+}

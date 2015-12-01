@@ -1195,11 +1195,6 @@ MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module)
 	return method;
 }
 
-PluginType Krnln::Type::get()
-{
-	return PluginType::Mono;
-}
-
 IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
 {
 	IList<MonoInfo^>^ list = gcnew List<MonoInfo^>();

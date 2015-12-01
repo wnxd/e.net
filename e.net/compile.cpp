@@ -88,7 +88,7 @@ ESection_SystemInfo CodeProcess::GetSystemInfo()
 	return this->_einfo->SystemInfo;
 }
 
-vector<string> CodeProcess::GetLibraries()
+vector<ESection_Library> CodeProcess::GetLibraries()
 {
 	return this->_einfo->Program.Libraries;
 }
@@ -143,15 +143,12 @@ vector<ESection_ECList_Info> CodeProcess::GetECList()
 	return this->_einfo->ECList.List;
 }
 
-string CodeProcess::FindLibrary(string name, short& i)
+ESection_Library CodeProcess::FindLibrary(string name, short& i)
 {
-	vector<string> libraries = this->GetLibraries();
+	vector<ESection_Library> libraries = this->GetLibraries();
 	size_t len = libraries.size();
-	for (i = 0; i < len; i++)
-	{
-		vector<string> arr = split(libraries[i], "\r");
-		if (arr[1] == name) return libraries[i];
-	}
+	for (i = 0; i < len; i++) if (libraries[i].Guid == name) return libraries[i];
+	i = -1;
 	return NULL;
 }
 

@@ -9,12 +9,6 @@ namespace wnxd
 {
 	namespace E_NET
 	{
-		public enum class PluginType
-		{
-			DoNet,
-			Mono
-		};
-
 		public enum class EMethodMode
 		{
 			Call,
@@ -24,24 +18,7 @@ namespace wnxd
 
 		public interface class Plugin
 		{
-			property PluginType Type
-			{
-				PluginType get();
-			}
-		};
 
-		public ref struct MonoInfo
-		{
-			EMethodMode Mode;
-			UINT Tag;
-			MethodDefinition^ Method;
-			MonoInfo();
-			MonoInfo(EMethodMode mode, UINT tag, MethodDefinition^ method);
-		};
-
-		public interface class MonoPlugin
-		{
-			IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module);
 		};
 
 		[AttributeUsage(AttributeTargets::Class, AllowMultiple = false)]
@@ -58,8 +35,10 @@ namespace wnxd
 		{
 		public:
 			LibMethodAttribute(UINT Tag);
+			LibMethodAttribute(UINT Tag, EMethodMode Mode);
 		internal:
 			UINT _tag;
+			EMethodMode _mode;
 		};
 
 		[AttributeUsage(AttributeTargets::Parameter, AllowMultiple = false)]
@@ -75,11 +54,18 @@ namespace wnxd
 
 using namespace wnxd::E_NET;
 
+ref struct Package
+{
+	EMethodMode Mode;
+	IList<ModuleReference^>^ Refers;
+	IList<MethodDefinition^>^ Methods;
+	IList<TypeDefinition^>^ Types;
+};
+
 ref struct PluginInfo
 {
 	String^ Lib;
-	IList<MonoInfo^>^ Methods;
-	IList<TypeDefinition^>^ Types;
+	IDictionary<UINT, Package^>^ Packages;
 };
 
 ref class Plugins
@@ -92,4 +78,6 @@ public:
 internal:
 	static IDictionary<MethodReference^, IList<Instruction^>^>^ _refer;
 	static IList<TypeDefinition^>^ _refertype;
+	static IDictionary<MethodDefinition^, IList<MethodReference^>^>^ _refermethod;
+	static IDictionary<MethodDefinition^, IList<TypeDefinition^>^>^ _refermethodtype;
 };

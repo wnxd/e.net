@@ -1757,9 +1757,8 @@ ELibConstData^ ECompile::CompileCode_LibConst(LIBCONST libconst)
 	if (libconst.LibID == this->e_net_id) info = GetNewInf();
 	else
 	{
-		string libinfo = this->_CodeProcess->GetLibraries()[libconst.LibID];
-		vector<string> arr = split(libinfo, "\r");
-		string libname = arr[0] + ".fne";
+		ESection_Library libinfo = this->_CodeProcess->GetLibraries()[libconst.LibID];
+		string libname = libinfo.FileName + ".fne";
 		HMODULE module = GetModuleHandle(libname.c_str());
 		if (module == NULL) return nullptr;
 		PFN_GET_LIB_INFO GetNewInf = (PFN_GET_LIB_INFO)GetProcAddress(module, FUNCNAME_GET_LIB_INFO);

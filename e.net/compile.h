@@ -18,7 +18,7 @@ public:
 	~CodeProcess();
 	ESection_UserInfo GetUserInfo();
 	ESection_SystemInfo GetSystemInfo();
-	vector<string> GetLibraries();
+	vector<ESection_Library> GetLibraries();
 	vector<ESection_Program_Assembly> GetAssemblies();
 	vector<ESection_Program_Assembly> GetReferAssemblies();
 	vector<ESection_TagStatus> GetTagStatusList();
@@ -29,7 +29,7 @@ public:
 	vector<ESection_Variable> GetGlobalVariables();
 	vector<ESection_Program_Dll> GetDllList();
 	vector<ESection_ECList_Info> GetECList();
-	string FindLibrary(string name, short& i);
+	ESection_Library FindLibrary(string name, short& i);
 	ETagStatus GetTagStatus(ETAG tag);
 	ESection_Program_Method FindMethod(ETAG tag);
 	ESection_Program_Method FindReferMethod(ETAG tag);

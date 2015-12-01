@@ -95,6 +95,26 @@ EFieldInfo::operator UINT64()
 	return uint64;
 }
 
+ESection_Library::ESection_Library()
+{
+
+}
+
+ESection_Library::ESection_Library(nullptr_t) : ESection_Library()
+{
+
+}
+
+bool ESection_Library::operator==(nullptr_t)
+{
+	return this->Guid.empty();
+}
+
+bool ESection_Library::operator!=(nullptr_t)
+{
+	return !this->Guid.empty();
+}
+
 bool EBase::operator==(nullptr_t)
 {
 	return this->Tag == NULL;
@@ -361,7 +381,18 @@ ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatu
 	GetBytes(pointer, true);
 	GetBytes(pointer, true);
 	USHORT len = GetData<USHORT>(pointer);
-	for (size_t i = 0; i < len; i++) sp.Libraries.push_back(GetString(pointer));
+	for (size_t i = 0; i < len; i++)
+	{
+		string lib = GetString(pointer);
+		vector<string> arr = split(lib, SP);
+		ESection_Library info;
+		info.FileName = arr[0];
+		info.Guid = arr[1];
+		info.Major = atoi(arr[2].c_str());
+		info.Minor = atoi(arr[3].c_str());
+		info.Name = arr[4];
+		sp.Libraries.push_back(info);
+	}
 	int flag = GetData<int>(pointer);
 	pointer += sizeof(UINT);
 	if ((flag & 1) != 0) pointer += 16;

@@ -204,6 +204,19 @@ struct ESection_ArrayInfo
 	vector<UINT> Subscript;
 };
 
+struct ESection_Library
+{
+	string FileName;
+	string Guid;
+	int Major;
+	int Minor;
+	string Name;
+	ESection_Library();
+	ESection_Library(nullptr_t);
+	bool operator==(nullptr_t);
+	bool operator!=(nullptr_t);
+};
+
 struct EBase
 {
 	ETAG Tag;
@@ -268,7 +281,7 @@ struct ESection_Program_Dll : EBase
 
 struct ESection_Program
 {
-	vector<string> Libraries;
+	vector<ESection_Library> Libraries;
 	vector<ESection_Program_Assembly> Assemblies;
 	vector<ESection_Program_Assembly> ReferAssemblies;
 	vector<ESection_Program_Method> Methods;
