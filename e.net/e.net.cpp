@@ -18,15 +18,6 @@ using namespace System::Text::RegularExpressions;
 extern "C" PLIB_INFO WINAPI GetNewInf();
 extern String^ GetMethodName(MethodReference^ method);
 
-EDataInfo::EDataInfo()
-{
-	this->Variables = gcnew Dictionary<UINT, VariableDefinition^>();
-	this->Parameters = gcnew Dictionary<UINT, ParameterDefinition^>();
-	this->Fields = gcnew Dictionary<UINT, FieldDefinition^>();
-	this->GlobalVariables = gcnew Dictionary<UINT, FieldDefinition^>();
-	this->Propertys = gcnew Dictionary<UINT, PropertyDefinition^>();
-}
-
 String^ DotDecode(String^ str)
 {
 	str = str->Replace("__", "!");
@@ -272,7 +263,6 @@ bool ECompile::CompileHead()
 {
 	try
 	{
-		this->_edata = gcnew EDataInfo();
 		ESection_UserInfo userinfo = this->_CodeProcess->GetUserInfo();
 		ESection_SystemInfo systeminfo = this->_CodeProcess->GetSystemInfo();
 		String^ str = CStr2String(userinfo.ProjectName);
@@ -318,6 +308,9 @@ bool ECompile::CompileRefer()
 		}
 		this->_CodeRefer = gcnew CodeRefer(module);
 		this->_CodeRefer->AddReferList(this->_refer);
+		List<String^>^ list = gcnew List<String^>();
+		for each (ESection_ECList_Info info in this->_CodeProcess->GetECList()) list->Add(CStr2String(info.Path));
+		this->_CodeRefer->AddECList(list);
 		return true;
 	}
 	catch (Exception^ ex)
@@ -412,7 +405,7 @@ bool ECompile::CompileClass()
 				String^ name = CStr2String(var.Name);
 				FieldDefinition^ f = gcnew FieldDefinition(name, var.Remark == "private" ? FieldAttributes::Private : FieldAttributes::Public, t);
 				type->Fields->Add(f);
-				this->_edata->Fields->Add(var.Tag, f);
+				this->_CodeRefer->AddField(var.Tag, f);
 			}
 		}
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
@@ -428,7 +421,7 @@ bool ECompile::CompileClass()
 				if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
 				FieldDefinition^ f = gcnew FieldDefinition(CStr2String(var.Name), attr, t);
 				type->Fields->Add(f);
-				this->_edata->Fields->Add(var.Tag, f);
+				this->_CodeRefer->AddField(var.Tag, f);
 			}
 			if (!this->CompileMethod(type, assembly, isstatic)) return false;
 		}
@@ -498,7 +491,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 					}
 					ParameterDefinition^ p = CreateParameter(CStr2String(param.Name), t, attr);
 					method->Parameters->Add(p);
-					this->_edata->Parameters->Add(param.Tag, p);
+					this->_CodeRefer->AddParameter(param.Tag, p);
 				}
 				if (pm.Variables.size() > 0)
 				{
@@ -510,7 +503,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 						if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
 						VariableDefinition^ v = gcnew VariableDefinition(CStr2String(var.Name), t);
 						method->Body->Variables->Add(v);
-						this->_edata->Variables->Add(var.Tag, v);
+						this->_CodeRefer->AddVariable(var.Tag, v);
 					}
 				}
 				if (name->Length > 4)
@@ -585,7 +578,7 @@ bool ECompile::CompileCode()
 				if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
 				FieldDefinition^ f = gcnew FieldDefinition(CStr2String(var.Name), FieldAttributes::Static, t);
 				global->Fields->Add(f);
-				this->_edata->GlobalVariables->Add(var.Tag, f);
+				this->_CodeRefer->AddGlobalVariable(var.Tag, f);
 			}
 		}
 		for each (ESection_Program_Dll dll in this->_CodeProcess->GetDllList())
@@ -1562,15 +1555,15 @@ varend:
 	switch (tag.Type2)
 	{
 	case Variable:
-		if (this->_edata->Variables->ContainsKey(tag)) v = this->_edata->Variables[tag];
-		else if (this->_edata->Parameters->ContainsKey(tag)) p = this->_edata->Parameters[tag];
+		v = this->_CodeRefer->FindVariable(tag);
+		if (v == nullptr) p = this->_CodeRefer->FindParameter(tag);
 		break;
 	case Field:
-		if (this->_edata->Fields->ContainsKey(tag)) f = this->_edata->Fields[tag];
+		f = this->_CodeRefer->FindField(tag);
 		break;
 	case GlobalField:
-		if (this->_edata->GlobalVariables->ContainsKey(tag)) g = this->_edata->GlobalVariables[tag];
-		else
+		g = this->_CodeRefer->FindGlobalVariable(tag);
+		if (g == nullptr)
 		{
 			ESection_Variable gv = this->_CodeProcess->FindGlobalVariable(tag);
 			if (gv != NULL && (gv.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
@@ -1584,7 +1577,7 @@ varend:
 					g = gcnew FieldDefinition(CStr2String(gv.Name), FieldAttributes::Static, t);
 					TypeDefinition^ global = module->GetType("<Module>");
 					global->Fields->Add(g);
-					this->_edata->GlobalVariables->Add(gv.Tag, g);
+					this->_CodeRefer->AddGlobalVariable(gv.Tag, g);
 				}
 			}
 		}
@@ -1712,9 +1705,9 @@ varend:
 				EFieldInfo fi = (UINT64)item->IndexData;
 				FieldDefinition^ fd;
 				PropertyDefinition^ pd;
-				if (this->_edata->Fields->ContainsKey(fi.Field)) fd = this->_edata->Fields[fi.Field];
-				else if (this->_edata->Propertys->ContainsKey(fi.Field)) pd = this->_edata->Propertys[fi.Field];
-				else
+				fd = this->_CodeRefer->FindField(fi.Field);
+				if (fd == nullptr) pd = this->_CodeRefer->FindProperty(fi.Field);
+				if (fd == nullptr && pd == nullptr)
 				{
 					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Class);
 					if (assembly == NULL) return nullptr;
@@ -1728,9 +1721,9 @@ varend:
 					{
 						pd = FindProperty(type, varname);
 						if (pd == nullptr) return nullptr;
-						this->_edata->Propertys->Add(var.Tag, pd);
+						this->_CodeRefer->AddProperty(var.Tag, pd);
 					}
-					else this->_edata->Fields->Add(var.Tag, fd);
+					else this->_CodeRefer->AddField(var.Tag, fd);
 				}
 				if (fd == nullptr)
 				{
@@ -2000,6 +1993,8 @@ void ECompile::LoadKrnln()
 	this->krnln_id = id;
 	for each (MonoInfo^ mi in info->Methods)
 	{
+		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
+		this->_CodeRefer->AddMethodRefer(id, mi->Tag, md);
 		if (mi->Mode != EMethodMode::Embed)
 		{
 			if (mi->Method->HasPInvokeInfo)
@@ -2009,8 +2004,6 @@ void ECompile::LoadKrnln()
 			}
 			global->Methods->Add(mi->Method);
 		}
-		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
-		this->_CodeRefer->AddMethodRefer(id, mi->Tag, md);
 	}
 	for each (TypeDefinition^ type in info->Types) module->Types->Add(type);
 }
@@ -2156,7 +2149,7 @@ EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
 		ESection_Program_Method method = this->_CodeProcess->FindReferMethod(tag);
-		if (method != NULL && method.Attributes == EMethodAttr::M_Extern)
+		if (method != NULL && (method.Attributes & EMethodAttr::M_Extern) == EMethodAttr::M_Extern)
 		{
 			ESection_Program_Assembly type = this->_CodeProcess->FindReferAssembly(method.Class);
 			if (type != NULL)
@@ -2176,7 +2169,9 @@ EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 						if (arr.size() > 1 && arr[0] == DONET)
 						{
 							bool staticmethod = arr[1] == "1";
-							List<MethodDefinition^>^ list = FindAllMethod(t, CStr2String(method.Name), staticmethod);
+							String^ methodname = CStr2String(method.Name);
+							if (methodname == t->Name) methodname = ".ctor";
+							List<MethodDefinition^>^ list = FindAllMethod(t, methodname, staticmethod);
 							if (list->Count > 0)
 							{
 								for each (MethodDefinition^ m in list)

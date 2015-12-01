@@ -38,7 +38,14 @@ EMethodData::EMethodData(MethodReference^ method, EMethodMode mode)
 
 bool EMethodData::operator==(EMethodData^ data)
 {
-	return this->Mode == data->Mode && this->Method == data->Method;
+	bool b1 = Object::Equals(this, nullptr);
+	bool b2 = Object::Equals(data, nullptr);
+	if (b1 == b2)
+	{
+		if (b1) return true;
+		return this->Mode == data->Mode && this->Method == data->Method;
+	}
+	else return false;	
 }
 
 bool EMethodData::operator!=(EMethodData^ data)
@@ -65,6 +72,11 @@ CodeRefer::CodeRefer(ModuleDefinition^ module)
 	this->_typerefername = gcnew Dictionary<UINT, String^>();
 	this->_method = gcnew Dictionary<short, Dictionary<UINT, EMethodData^>^>();
 	this->_methodname = gcnew Dictionary<String^, List<EMethodData^>^>();
+	this->_var = gcnew Dictionary<UINT, VariableDefinition^>();
+	this->_param = gcnew Dictionary<UINT, ParameterDefinition^>();
+	this->_field = gcnew Dictionary<UINT, FieldDefinition^>();
+	this->_globalvar = gcnew Dictionary<UINT, FieldDefinition^>();
+	this->_prop = gcnew Dictionary<UINT, PropertyDefinition^>();
 	this->_eclist = gcnew List<ECListInfo^>();
 }
 
@@ -154,6 +166,31 @@ void CodeRefer::AddMethodList(IEnumerable<EMethodData^>^ list)
 			list->AddRange(list);
 		}
 	}
+}
+
+void CodeRefer::AddVariable(ETAG tag, VariableDefinition^ var)
+{
+	if (!this->_var->ContainsKey(tag)) this->_var->Add(tag, var);
+}
+
+void CodeRefer::AddParameter(ETAG tag, ParameterDefinition^ param)
+{
+	if (!this->_param->ContainsKey(tag)) this->_param->Add(tag, param);
+}
+
+void CodeRefer::AddField(ETAG tag, FieldDefinition^ field)
+{
+	if (!this->_field->ContainsKey(tag)) this->_field->Add(tag, field);
+}
+
+void CodeRefer::AddGlobalVariable(ETAG tag, FieldDefinition^ var)
+{
+	if (!this->_globalvar->ContainsKey(tag)) this->_globalvar->Add(tag, var);
+}
+
+void CodeRefer::AddProperty(ETAG tag, PropertyDefinition^ prop)
+{
+	if (!this->_prop->ContainsKey(tag)) this->_prop->Add(tag, prop);
 }
 
 void CodeRefer::AddECList(IEnumerable<String^>^ list)
@@ -254,5 +291,35 @@ List<EMethodData^>^ CodeRefer::FindMethodList(MethodReference^ method)
 List<EMethodData^>^ CodeRefer::FindMethodList(String^ fullname)
 {
 	if (this->_methodname->ContainsKey(fullname)) return this->_methodname[fullname];
+	return nullptr;
+}
+
+VariableDefinition^ CodeRefer::FindVariable(ETAG tag)
+{
+	if (this->_var->ContainsKey(tag)) return this->_var[tag];
+	return nullptr;
+}
+
+ParameterDefinition^ CodeRefer::FindParameter(ETAG tag)
+{
+	if (this->_param->ContainsKey(tag)) return this->_param[tag];
+	return nullptr;
+}
+
+FieldDefinition^ CodeRefer::FindField(ETAG tag)
+{
+	if (this->_field->ContainsKey(tag)) return this->_field[tag];
+	return nullptr;
+}
+
+FieldDefinition^ CodeRefer::FindGlobalVariable(ETAG tag)
+{
+	if (this->_globalvar->ContainsKey(tag)) return this->_globalvar[tag];
+	return nullptr;
+}
+
+PropertyDefinition^ CodeRefer::FindProperty(ETAG tag)
+{
+	if (this->_prop->ContainsKey(tag)) return this->_prop[tag];
 	return nullptr;
 }

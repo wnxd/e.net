@@ -34,6 +34,11 @@ public:
 	void AddReferList(String^ refer);
 	void AddMethodRefer(short index, ETAG tag, EMethodData^ method);
 	void AddMethodList(IEnumerable<EMethodData^>^ list);
+	void AddVariable(ETAG tag, VariableDefinition^ var);
+	void AddParameter(ETAG tag, ParameterDefinition^ param);
+	void AddField(ETAG tag, FieldDefinition^ field);
+	void AddGlobalVariable(ETAG tag, FieldDefinition^ var);
+	void AddProperty(ETAG tag, PropertyDefinition^ prop);
 	void AddECList(IEnumerable<String^>^ list);
 	TypeDefinition^ FindType(ETAG tag);
 	TypeDefinition^ FindType(String^ fullname);
@@ -44,6 +49,11 @@ public:
 	EMethodData^ FindMethodRefer(short index, ETAG tag);
 	List<EMethodData^>^ FindMethodList(MethodReference^ method);
 	List<EMethodData^>^ FindMethodList(String^ fullname);
+	VariableDefinition^ FindVariable(ETAG tag);
+	ParameterDefinition^ FindParameter(ETAG tag);
+	FieldDefinition^ FindField(ETAG tag);
+	FieldDefinition^ FindGlobalVariable(ETAG tag);
+	PropertyDefinition^ FindProperty(ETAG tag);
 private:
 	ModuleDefinition^ _module;
 	Dictionary<String^, TypeDefinition^>^ _type;
@@ -52,5 +62,10 @@ private:
 	Dictionary<UINT, String^>^ _typerefername;
 	Dictionary<short, Dictionary<UINT, EMethodData^>^>^ _method;
 	Dictionary<String^, List<EMethodData^>^>^ _methodname;
+	Dictionary<UINT, VariableDefinition^>^ _var;
+	Dictionary<UINT, ParameterDefinition^>^ _param;
+	Dictionary<UINT, FieldDefinition^>^ _field;
+	Dictionary<UINT, FieldDefinition^>^ _globalvar;
+	Dictionary<UINT, PropertyDefinition^>^ _prop;
 	List<ECListInfo^>^ _eclist;
 };

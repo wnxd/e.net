@@ -103,16 +103,6 @@ ref struct EMethodReference
 	EMethodData^ MethodData;
 };
 
-ref struct EDataInfo
-{
-	IDictionary<UINT, VariableDefinition^>^ Variables;
-	IDictionary<UINT, ParameterDefinition^>^ Parameters;
-	IDictionary<UINT, FieldDefinition^>^ Fields;
-	IDictionary<UINT, FieldDefinition^>^ GlobalVariables;
-	IDictionary<UINT, PropertyDefinition^>^ Propertys;
-	EDataInfo();
-};
-
 value struct EMethodInfo
 {
 	ESection_Program_Method* MethodInfo;
@@ -134,7 +124,6 @@ private:
 	MethodReference^ Nullable_Ctor;
 	array<String^>^ _refer;
 	AssemblyDefinition^ _assembly;
-	EDataInfo^ _edata;
 	short e_net_id;
 	short krnln_id;
 	bool CompileHead();

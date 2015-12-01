@@ -371,7 +371,6 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				array<MethodInfo^>^ mlist = T->GetMethods(BINDING_STATIC);
 				len = mlist->Length * 4;
 				typedata.write(C(&len), 4);
-				Dictionary<String^, int>^ mnmap = gcnew Dictionary<String^, int>();
 				int staticmethod = 1;
 				for each (MethodInfo^ mi in mlist)
 				{
@@ -391,13 +390,6 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					offsetList->Add(toi);
 					methoddata.write(C(&null), 4);
 					name = mi->Name;
-					if (mnmap->ContainsKey(name))
-					{
-						int i = mnmap[name] + 1;
-						mnmap[name] = i;
-						name += "_" + i;
-					}
-					else mnmap->Add(name, 0);
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
@@ -497,7 +489,6 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				mlist = T->GetMethods(BINDING_INSTANCE);
 				len = (clist->Length + mlist->Length) * 4;
 				typedata.write(C(&len), 4);
-				mnmap = gcnew Dictionary<String^, int>();
 				staticmethod = 0;
 				for each (ConstructorInfo^ ci in clist)
 				{
@@ -512,13 +503,6 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					methoddata.write(C(&len), 4);
 					methoddata.write(C(&null), 4);
 					name = T->Name;
-					if (mnmap->ContainsKey(name))
-					{
-						int i = mnmap[name] + 1;
-						mnmap[name] = i;
-						name += "_" + i;
-					}
-					else mnmap->Add(name, 0);
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
@@ -607,13 +591,6 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					offsetList->Add(toi);
 					methoddata.write(C(&null), 4);
 					name = mi->Name;
-					if (mnmap->ContainsKey(name))
-					{
-						int i = mnmap[name];
-						name += "_" + (i++).ToString();
-						mnmap[name] = i;
-					}
-					else mnmap->Add(name, 1);
 					lpstr = String2LPSTR(name);
 					len = strlen(lpstr);
 					methoddata.write(C(&len), 4);
