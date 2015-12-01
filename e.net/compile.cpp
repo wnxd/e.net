@@ -28,22 +28,14 @@ EInfo* ParseEcode(byte* code)
 				if (ssi.FileType != FileType::E || (ssi.CompileType != CompileType::WindowsForm && ssi.CompileType != CompileType::WindowsConsole && ssi.CompileType != CompileType::WindowsDLL)) throw;
 				einfo->SystemInfo = ssi;
 			}
-			else if (strcmp(Block_Name, "用户信息段") == 0)
-			{
-				ESection_UserInfo sui = GetUserInfo(code + offset);
-				einfo->UserInfo = sui;
-			}
+			else if (strcmp(Block_Name, "用户信息段") == 0) einfo->UserInfo = GetUserInfo(code + offset);
 			else if (strcmp(Block_Name, "程序资源段") == 0)
 			{
 
 			}
 			else if (strcmp(Block_Name, "程序段") == 0)
 			{
-				if (isai)
-				{
-					ESection_Program sp = GetLibraries(code + offset, einfo->TagStatus.Tags);
-					einfo->Program = sp;
-				}
+				if (isai) einfo->Program = GetLibraries(code + offset, einfo->TagStatus.Tags);
 				else ptr = code + offset;
 			}
 			else if (strcmp(Block_Name, "辅助信息段2") == 0)
@@ -57,18 +49,14 @@ EInfo* ParseEcode(byte* code)
 				isai = true;
 				if (ptr != NULL)
 				{
-					ESection_Program sp = GetLibraries(ptr, sai.Tags);
-					einfo->Program = sp;
+					einfo->Program = GetLibraries(ptr, sai.Tags);
 					ptr = NULL;
 				}
 			}
+			else if (strcmp(Block_Name, "易模块记录段") == 0) einfo->ECList = GetECList(code + offset);
 			offset += si.DataLength;
 		}
-		if (ptr != NULL)
-		{
-			ESection_Program sp = GetLibraries(ptr, einfo->TagStatus.Tags);
-			einfo->Program = sp;
-		}
+		if (ptr != NULL) einfo->Program = GetLibraries(ptr, einfo->TagStatus.Tags);
 		return einfo;
 	}
 	catch (...)
@@ -150,6 +138,11 @@ vector<ESection_Program_Dll> CodeProcess::GetDllList()
 	return this->_einfo->Program.Dlls;
 }
 
+vector<ESection_ECList_Info> CodeProcess::GetECList()
+{
+	return this->_einfo->ECList.List;
+}
+
 string CodeProcess::FindLibrary(string name, short& i)
 {
 	vector<string> libraries = this->GetLibraries();
@@ -172,6 +165,11 @@ ETagStatus CodeProcess::GetTagStatus(ETAG tag)
 ESection_Program_Method CodeProcess::FindMethod(ETAG tag)
 {
 	return FindInfo(this->GetMethods(), tag);
+}
+
+ESection_Program_Method CodeProcess::FindReferMethod(ETAG tag)
+{
+	return FindInfo(this->GetReferMethods(), tag);
 }
 
 ESection_Variable CodeProcess::FindGlobalVariable(ETAG tag)

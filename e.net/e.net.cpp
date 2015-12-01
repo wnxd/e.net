@@ -15,6 +15,9 @@ using namespace System::Text::RegularExpressions;
 
 #define E_NET LI_LIB_GUID_STR
 
+extern "C" PLIB_INFO WINAPI GetNewInf();
+extern String^ GetMethodName(MethodReference^ method);
+
 EDataInfo::EDataInfo()
 {
 	this->Variables = gcnew Dictionary<UINT, VariableDefinition^>();
@@ -41,9 +44,6 @@ array<byte>^ ReadFile(String^ path)
 	delete fs;
 	return bytes;
 }
-
-extern "C" PLIB_INFO WINAPI GetNewInf();
-extern String^ GetMethodName(MethodReference^ method);
 
 bool CompileIL(byte* data, Int64 size, const char* savePath, array<String^>^ refer)
 {
@@ -554,7 +554,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 					else if (module->EntryPoint->Parameters->Count == 1 && module->EntryPoint->Parameters[0]->ParameterType == this->Type_StrArr) module->EntryPoint = method;
 				}
 				EMethodData^ md = gcnew EMethodData(method, ctor ? EMethodMode::Newobj : EMethodMode::Call);
-				this->_CodeRefer->AddMethodRefer(-2, tag, md);
+				this->_CodeRefer->AddMethodRefer(CUSTOM, tag, md);
 			}
 		}
 		return true;
@@ -618,7 +618,7 @@ bool ECompile::CompileCode()
 			method->PInvokeInfo = gcnew PInvokeInfo(PInvokeAttributes::CallConvWinapi, CStr2String(dll.Name), dllmodule);
 			global->Methods->Add(method);
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
-			this->_CodeRefer->AddMethodRefer(-3, dll.Tag, md);
+			this->_CodeRefer->AddMethodRefer(DLL, dll.Tag, md);
 		}
 		this->LoadKrnln();
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
@@ -633,7 +633,7 @@ bool ECompile::CompileCode()
 					{
 						EMethodInfo^ MethodInfo = gcnew EMethodInfo();
 						MethodInfo->MethodInfo = &pm;
-						MethodInfo->Method = this->_CodeRefer->FindMethodRefer(-2, pm.Tag);
+						MethodInfo->Method = this->_CodeRefer->FindMethodRefer(CUSTOM, pm.Tag);
 						ILProcessor^ ILProcessor = MethodInfo->Method->Body->GetILProcessor();
 						size_t len = pm.Code.size();
 						byte* lpcode = pm.Code.cbegin()._Ptr;
@@ -2141,6 +2141,10 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 		if (arr[0] == DONET_CLASS) classname = CStr2String(arr[1]);
 		else  classname = GetTypeName(assembly);
 		type = this->_CodeRefer->FindTypeDefine(classname);
+		if (type == nullptr)
+		{
+
+		}
 		this->_CodeRefer->AddTypeRefer(assembly.Tag, classname);
 	}
 	return type;
@@ -2148,28 +2152,29 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 
 EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 {
-	if (index == -2)
+	if (index == CUSTOM)
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
-		for each (ESection_Program_Method method in this->_CodeProcess->GetReferMethods())
+		ESection_Program_Method method = this->_CodeProcess->FindReferMethod(tag);
+		if (method != NULL && method.Attributes == EMethodAttr::M_Extern)
 		{
-			if (method.Tag == tag)
+			ESection_Program_Assembly type = this->_CodeProcess->FindReferAssembly(method.Class);
+			if (type != NULL)
 			{
-				ESection_Program_Assembly type = this->_CodeProcess->FindReferAssembly(method.Class);
-				if (type != NULL)
+				TypeDefinition^ t;
+				if (type.Name == "__HIDDEN_TEMP_MOD__")
 				{
-					TypeDefinition^ t;
-					if (type.Name == "__HIDDEN_TEMP_MOD__")
-					{
 
-						return nullptr;
-					}
-					else
+					return nullptr;
+				}
+				else
+				{
+					t = this->FindTypeDefinition(type.Tag);
+					if (t != nullptr)
 					{
-						t = this->FindTypeDefinition(type.Tag);
-						if (t != nullptr)
+						vector<string> arr = split(method.Remark, SP);
+						if (arr.size() > 1 && arr[0] == DONET)
 						{
-							vector<string> arr = split(method.Remark, SP);
 							bool staticmethod = arr[1] == "1";
 							List<MethodDefinition^>^ list = FindAllMethod(t, CStr2String(method.Name), staticmethod);
 							if (list->Count > 0)
@@ -2179,12 +2184,25 @@ EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 									EMethodData^ md = gcnew EMethodData(m, m->IsConstructor ? EMethodMode::Newobj : EMethodMode::Call);
 									this->_CodeRefer->AddMethodRefer(index, tag, md);
 								}
+								return this->_CodeRefer->FindMethodRefer(index, tag);
 							}
+						}
+						else
+						{
+
 						}
 					}
 				}
 			}
 		}
+	}
+	else if (index == DLL)
+	{
+
+	}
+	else
+	{
+
 	}
 	return nullptr;
 }

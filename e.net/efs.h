@@ -292,17 +292,33 @@ struct ESection_AuxiliaryInfo2
 	vector<ESection_TagStatus> Tags;
 };
 
+struct ESection_ECList_Info
+{
+	string Name;
+	string Path;
+};
+
+struct ESection_ECList
+{
+	vector<ESection_ECList_Info> List;
+};
+
 const byte Magic1[4] = { 'C', 'N', 'W', 'T' };
 const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
 const byte KEY[4] = { 25, 115, 0, 7 };
 
+#define DoNETRefer "@DoNETRefer"
 #define SP "\r"
 #define DONET "@donet"
 #define DONET_NAMESPACE "@namespace"
 #define DONET_CLASS "@class"
+#define REMAKE -1
+#define CUSTOM -2
+#define DLL -3
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);
 ESection_UserInfo GetUserInfo(byte* pointer);
 ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatus);
+ESection_ECList GetECList(byte* pointer);

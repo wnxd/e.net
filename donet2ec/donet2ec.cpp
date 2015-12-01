@@ -967,7 +967,7 @@ void Generate(string path)
 		int index = 1;
 		//WriteSystemInfo(fs, index);
 		//index++;
-		WriteUserInfo(fs, index, "DoNETRefer");
+		WriteUserInfo(fs, index, DoNETRefer);
 		index++;
 		//WriteProgramResources(fs, index);
 		//index++;

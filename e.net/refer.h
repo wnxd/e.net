@@ -17,10 +17,16 @@ ref struct EMethodData
 	operator MethodDefinition ^ ();
 };
 
+ref struct ECListInfo
+{
+	EInfo* Info;
+};
+
 ref class CodeRefer
 {
 public:
 	CodeRefer(ModuleDefinition^ module);
+	~CodeRefer();
 	void AddType(ETAG tag, TypeDefinition^ type);
 	void AddTypeRefer(ETAG tag, TypeReference^ type);
 	void AddTypeRefer(ETAG tag, String^ fullname);
@@ -28,6 +34,7 @@ public:
 	void AddReferList(String^ refer);
 	void AddMethodRefer(short index, ETAG tag, EMethodData^ method);
 	void AddMethodList(IEnumerable<EMethodData^>^ list);
+	void AddECList(IEnumerable<String^>^ list);
 	TypeDefinition^ FindType(ETAG tag);
 	TypeDefinition^ FindType(String^ fullname);
 	TypeReference^ FindTypeRefer(ETAG tag);
@@ -45,4 +52,5 @@ private:
 	Dictionary<UINT, String^>^ _typerefername;
 	Dictionary<short, Dictionary<UINT, EMethodData^>^>^ _method;
 	Dictionary<String^, List<EMethodData^>^>^ _methodname;
+	List<ECListInfo^>^ _eclist;
 };

@@ -8,6 +8,7 @@ struct EInfo
 	ESection_UserInfo UserInfo;
 	ESection_Program Program;
 	ESection_AuxiliaryInfo2 TagStatus;
+	ESection_ECList ECList;
 };
 
 class CodeProcess
@@ -27,9 +28,11 @@ public:
 	vector<ESection_Program_Method> GetReferMethods();
 	vector<ESection_Variable> GetGlobalVariables();
 	vector<ESection_Program_Dll> GetDllList();
+	vector<ESection_ECList_Info> GetECList();
 	string FindLibrary(string name, short& i);
 	ETagStatus GetTagStatus(ETAG tag);
 	ESection_Program_Method FindMethod(ETAG tag);
+	ESection_Program_Method FindReferMethod(ETAG tag);
 	ESection_Variable FindGlobalVariable(ETAG tag);
 	ESection_Program_Assembly FindAssembly(ETAG tag);
 	ESection_Program_Assembly FindReferAssembly(ETAG tag);

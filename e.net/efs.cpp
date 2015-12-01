@@ -374,3 +374,20 @@ ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatu
 	sp.Dlls = GetDlls(pointer);
 	return sp;
 }
+
+ESection_ECList GetECList(byte* pointer)
+{
+	ESection_ECList list;
+	UINT count = GetData<UINT>(pointer);
+	for (size_t i = 0; i < count; i++)
+	{
+		ESection_ECList_Info info;
+		pointer += 20;
+		info.Name = GetString(pointer);
+		info.Path = GetString(pointer);
+		GetBytes(pointer, true);
+		GetBytes(pointer, true);
+		if (info.Name != DoNETRefer) list.List.push_back(info);
+	}
+	return list;
+}

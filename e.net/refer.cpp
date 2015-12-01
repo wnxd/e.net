@@ -1,7 +1,15 @@
 #include "stdafx.h"
 #include "efs.h"
+#include "common.net.h"
 #include "Plugins.h"
+#include "compile.h"
 #include "refer.h"
+
+using namespace System::IO;
+
+extern INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
+extern EInfo* ParseEcode(byte* code);
+extern array<byte>^ ReadFile(String^ path);
 
 String^ GetMethodName(MethodReference^ method)
 {
@@ -57,6 +65,12 @@ CodeRefer::CodeRefer(ModuleDefinition^ module)
 	this->_typerefername = gcnew Dictionary<UINT, String^>();
 	this->_method = gcnew Dictionary<short, Dictionary<UINT, EMethodData^>^>();
 	this->_methodname = gcnew Dictionary<String^, List<EMethodData^>^>();
+	this->_eclist = gcnew List<ECListInfo^>();
+}
+
+CodeRefer::~CodeRefer()
+{
+	for each (ECListInfo^ item in this->_eclist) delete item->Info;
 }
 
 void CodeRefer::AddType(ETAG tag, TypeDefinition^ type)
@@ -138,6 +152,42 @@ void CodeRefer::AddMethodList(IEnumerable<EMethodData^>^ list)
 				this->_methodname->Add(methodname, list);
 			}
 			list->AddRange(list);
+		}
+	}
+}
+
+void CodeRefer::AddECList(IEnumerable<String^>^ list)
+{
+	if (list != nullptr)
+	{
+		char c[MAX_PATH];
+		NotifySys(NAS_GET_PATH, 1004, (DWORD)c);
+		String^ path = LPSTR2String(c);
+		for each (String^ item in list)
+		{
+			if (File::Exists(item))
+			{
+			add:
+				array<byte>^ code = ReadFile(item);
+				if (code != nullptr)
+				{
+					IntPtr ptr = Marshal::AllocHGlobal(code->LongLength);
+					Marshal::Copy(code, 0, ptr, code->LongLength);
+					EInfo* einfo = ParseEcode(Ptr2LPBYTE(ptr));
+					if (einfo != NULL)
+					{
+						ECListInfo^ info = gcnew ECListInfo();
+						info->Info = einfo;
+						this->_eclist->Add(info);
+					}
+					Marshal::FreeHGlobal(ptr);
+				}
+			}
+			else
+			{
+				item = path + "/" + item;
+				if (File::Exists(item)) goto add;
+			}
 		}
 	}
 }

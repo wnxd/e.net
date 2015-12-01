@@ -311,6 +311,7 @@ const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
 const byte KEY[4] = { 0x19, 0x73, 0x00, 0x07 };
 
+#define DoNETRefer "@DoNETRefer"
 #define SP "\r"
 #define DONET "@donet"
 #define DONET_NAMESPACE "@namespace"
