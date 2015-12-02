@@ -36,26 +36,7 @@ TypeDefinition^ FindType(IList<TypeDefinition^>^ alltype, String^ fullname)
 	return nullptr;
 }
 
-IList<ModuleReference^>^ FindReferDistinct(ICollection<ModuleReference^>^ refer1, ICollection<ModuleReference^>^ refer2)
-{
-	ICollection<ModuleReference^>^ a;
-	ICollection<ModuleReference^>^ b;
-	if (refer1->Count >= refer2->Count)
-	{
-		a = refer1;
-		b = refer2;
-	}
-	else
-	{
-		a = refer2;
-		b = refer1;
-	}
-	IList<ModuleReference^>^ list = gcnew List<ModuleReference^>();
-	for each (ModuleReference^ item in a) if (!b->Contains(item)) list->Add(item);
-	return list;
-}
-
-IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method)
+IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method, IDictionary<MethodReference^, MethodDefinition^>^ chart)
 {
 	List<MethodDefinition^>^ list = gcnew List<MethodDefinition^>();
 	IList<MethodReference^>^ refer = GetDictionary(Plugins::_refermethod, method);
@@ -63,9 +44,10 @@ IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method)
 	{
 		for each (MethodReference^ item in refer)
 		{
-			MethodDefinition^ m = item->Resolve();
+			MethodDefinition^ m = GetDictionary(chart, item);
+			if (m == nullptr) m = item->Resolve();
 			AddList(list, m);
-			AddList(list, GetMethodList(m));
+			AddList(list, GetMethodList(m, chart));
 		}
 	}
 	return list;
@@ -259,7 +241,6 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 	array<Object^>^ arr = type->GetCustomAttributes(typeof(LibGuidAttribute), false);
 	if (arr != nullptr && arr->Length == 1)
 	{
-		IList<ModuleReference^>^ oldrefer = gcnew List<ModuleReference^>(module->ModuleReferences);
 		PluginInfo^ info = gcnew PluginInfo();
 		info->Lib = dynamic_cast<LibGuidAttribute^>(arr[0])->_libguid->ToLower();
 		info->Packages = gcnew Dictionary<UINT, IList<Package^>^>();
@@ -274,8 +255,6 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 				package->Mode = attr->_mode;
 				package->Methods = gcnew List<MethodDefinition^>();
 				package->Methods->Add(dynamic_cast<MethodDefinition^>(method->Invoke(plugin, gcnew array < Object^ > { module })));
-				package->Refers = FindReferDistinct(module->ModuleReferences, oldrefer);
-				if (package->Refers->Count > 0) DelList(module->ModuleReferences, package->Refers);
 				AddDictionary(info->Packages, tag, package);
 			}
 		}
@@ -285,7 +264,7 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 		Plugins::_refertype = gcnew List<TypeDefinition^>();
 		Plugins::_refermethod = gcnew Dictionary<MethodDefinition^, IList<MethodReference^>^>();
 		Plugins::_refermethodtype = gcnew Dictionary<MethodDefinition^, IList<TypeDefinition^>^>();
-		IDictionary<UINT, MethodDefinition^>^ methods = gcnew Dictionary<UINT, MethodDefinition^>();
+		IDictionary<UINT, IList<MethodDefinition^>^>^ methods = gcnew Dictionary<UINT, IList<MethodDefinition^>^>();
 		IDictionary<MethodReference^, MethodDefinition^>^ dic = gcnew Dictionary<MethodReference^, MethodDefinition^>();
 		for each (MethodDefinition^ method in T->Methods)
 		{
@@ -299,7 +278,7 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 						method->CustomAttributes->Remove(ca);
 						MethodDefinition^ m = MethodClone(module, M, method);
 						dic->Add(method, m);
-						methods->Add(tag, m);
+						AddDictionary(methods, tag, m);
 						break;
 					}
 				}
@@ -326,18 +305,18 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 			Plugins::_refer = dic2;
 			for each (MethodDefinition^ method in hidemethod) dic->Add(method, MethodClone(module, M, method));
 		} while (true);
-		IList<ModuleReference^>^ x = FindReferDistinct(module->ModuleReferences, oldrefer);
-		if (x->Count > 0) DelList(module->ModuleReferences, x);
-		for each (KeyValuePair<UINT, MethodDefinition^>^ item in methods)
+		for each (KeyValuePair<UINT, IList<MethodDefinition^>^>^ item in methods)
 		{
-			Package^ package = gcnew Package();
-			package->Mode = EMethodMode::Call;
-			package->Refers = x;
-			package->Methods = gcnew List<MethodDefinition^>();
-			package->Methods->Add(item->Value);
-			AddList(package->Methods, GetMethodList(item->Value));
-			package->Types = GetDictionary(Plugins::_refermethodtype, item->Value);
-			AddDictionary(info->Packages, item->Key, package);
+			for each (MethodDefinition^ method in item->Value)
+			{
+				Package^ package = gcnew Package();
+				package->Mode = EMethodMode::Call;
+				package->Methods = gcnew List<MethodDefinition^>();
+				package->Methods->Add(method);
+				AddList(package->Methods, GetMethodList(method, dic));
+				package->Types = GetDictionary(Plugins::_refermethodtype, method);
+				AddDictionary(info->Packages, item->Key, package);
+			}
 		}
 		Plugins::_refer = nullptr;
 		Plugins::_refertype = nullptr;

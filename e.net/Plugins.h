@@ -57,7 +57,6 @@ using namespace wnxd::E_NET;
 ref struct Package
 {
 	EMethodMode Mode;
-	IList<ModuleReference^>^ Refers;
 	IList<MethodDefinition^>^ Methods;
 	IList<TypeDefinition^>^ Types;
 };

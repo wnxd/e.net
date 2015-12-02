@@ -198,7 +198,7 @@ ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, Paramete
 void AddModule(IList<ModuleReference^>^ modules, ModuleReference^ module)
 {
 	for each (ModuleReference^ m in modules) if (m->Name == module->Name) return;
-	modules->Add(module);
+	AddList(modules, module);
 }
 
 Exception^ Error(String^ methodname, String^ paramname, String^ error)
@@ -903,7 +903,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					}
 					case ECode_Type::BinConst:
 					{
-						IList<byte>^ bin;
+						IList<int>^ bin = gcnew List<int>();
 						do
 						{
 							switch (GetData<ECode_Type>(Code))
@@ -911,7 +911,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							case ECode_Type::NumberConst:
 							{
 								double number = GetData<double>(Code);
-								bin->Add((byte)number);
+								bin->Add((int)number);
 								break;
 							}
 							case ECode_Type::BinEnd:
@@ -1233,7 +1233,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						}
 						case EParamDataType::Bin:
 						{
-							IList<byte>^ bin = (IList<byte>^)param->Data;
+							IList<int>^ bin = (IList<int>^)param->Data;
 							AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
 							AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
 							for (int i = 0; i < bin->Count; i++)
@@ -1387,7 +1387,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								}
 								case EParamDataType::Bin:
 								{
-									IList<byte>^ bin = (IList<byte>^)param->Data;
+									IList<int>^ bin = (IList<int>^)param->Data;
 									AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
 									AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
 									for (int i = 0; i < bin->Count; i++)

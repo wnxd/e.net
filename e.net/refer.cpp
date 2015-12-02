@@ -11,7 +11,6 @@ using namespace System::IO;
 extern INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
 extern EInfo* ParseEcode(byte* code);
 extern array<byte>^ ReadFile(String^ path);
-extern void AddModule(IList<ModuleReference^>^ modules, ModuleReference^ module);
 
 String^ GetMethodName(MethodReference^ method)
 {
@@ -340,7 +339,6 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 		{
 			for each (Package^ package in info->Packages[tag])
 			{
-				for each (ModuleReference^ m in package->Refers) AddModule(this->_module->ModuleReferences, m);
 				EMethodData^ data = gcnew EMethodData(package->Methods[0], package->Mode);
 				this->AddMethodRefer(index, tag, data);
 				if (package->Mode != EMethodMode::Embed)

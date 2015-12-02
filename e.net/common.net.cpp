@@ -66,7 +66,7 @@ generic<typename T> void AddList(ICollection<T>^ list1, T item)
 
 generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2)
 {
-	for each (T item in list2) if (!list1->Contains(item)) list1->Add(item);
+	for each (T item in list2) AddList(list1, item);
 }
 
 generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2)

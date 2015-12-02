@@ -80,9 +80,21 @@ enum krnln_method : UINT
 	取重复文本 = 0x62,
 	文本比较 = 0x63,
 	分割文本 = 0x64,
+	取字节集长度 = 0x65,
+	到字节集 = 0x66,
+	取字节集数据 = 0x67,
+	取字节集左边 = 0x68,
+	取字节集右边 = 0x69,
+	取字节集中间 = 0x6A,
+	寻找字节集 = 0x6B,
+	倒找字节集 = 0x6C,
+	字节集替换 = 0x6D,
+	子字节集替换 = 0x6E,
 	数值到大写 = 0x72,
 	数值到金额 = 0x73,
 	数值到格式文本 = 0x74,
+	取十六进制文本 = 0x75,
+	取八进制文本 = 0x76,
 	增减时间 = 0x77,
 	取时间间隔 = 0x78,
 	取某月天数 = 0x79,
@@ -108,6 +120,11 @@ enum krnln_method : UINT
 	到小数 = 0x0279,
 	左移 = 0x027E,
 	右移 = 0x027F,
+	十六进制 = 0x029A,
+	二进制 = 0x029B,
+
+	取空白字节集,
+	取重复字节集,
 };
 
 [LibGuid(KRNLN)]
@@ -129,8 +146,6 @@ ref class Krnln : Plugin
 	MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module);
 	[LibMethod(krnln_method::相加, EMethodMode::Call)]
 	MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module);
-	[LibMethod(krnln_method::相加, EMethodMode::Call)]
-	MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module);
 	[LibMethod(krnln_method::相加, EMethodMode::Embed)]
 	MethodDefinition^ CreateAdd(ModuleDefinition^ module);
 	[LibMethod(krnln_method::相加, EMethodMode::Call)]
@@ -279,6 +294,18 @@ ref class Krnln : Plugin
 	MethodDefinition^ CreateGetDatePart(ModuleDefinition^ module);
 	[LibMethod(krnln_method::取时间, EMethodMode::Embed)]
 	MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取十六进制文本, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetHexText(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取八进制文本, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetOctText(ModuleDefinition^ module);
+	[LibMethod(krnln_method::十六进制, EMethodMode::Embed)]
+	MethodDefinition^ CreateHex(ModuleDefinition^ module);
+	[LibMethod(krnln_method::二进制, EMethodMode::Embed)]
+	MethodDefinition^ CreateBinary(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取空白字节集, EMethodMode::Embed)]
+	MethodDefinition^ CreateSpaceBin(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加)]
+	static array<byte>^ 相加(array<byte>^ 被加字节集, ...array<array<byte>^>^ 加字节集);
 	[LibMethod(krnln_method::删除成员)]
 	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional][DefaultValue(1)]int 欲删除的成员数目);
 	[LibMethod(krnln_method::清除数组)]
@@ -331,4 +358,44 @@ ref class Krnln : Plugin
 	static String^ 数值到金额(double 欲转换形式的数值, bool 是否转换为简体);
 	[LibMethod(krnln_method::数值到格式文本)]
 	static String^ 数值到格式文本(double 欲转换为文本的数值, [Optional]Nullable<int> 小数保留位数, bool 是否进行千分位分隔);
+	[LibMethod(krnln_method::取字节集长度)]
+	static int 取字节集长度(array<byte>^ 字节集数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(String^ 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(DateTime 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(IntPtr 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(bool 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(byte 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(short 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(int 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(Int64 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(float 欲转换为字节集的数据);
+	[LibMethod(krnln_method::到字节集)]
+	static array<byte>^ 到字节集(double 欲转换为字节集的数据);
+	[LibMethod(krnln_method::取字节集数据)]
+	static Object^ 取字节集数据(array<byte>^ 欲取出其中数据的字节集, int 欲取出数据的类型, [Optional][DefaultValue(1)]int 起始索引位置);
+	[LibMethod(krnln_method::取字节集左边)]
+	static array<byte>^ 取字节集左边(array<byte>^ 欲取其部分的字节集, int 欲取出字节的数目);
+	[LibMethod(krnln_method::取字节集右边)]
+	static array<byte>^ 取字节集右边(array<byte>^ 欲取其部分的字节集, int 欲取出字节的数目);
+	[LibMethod(krnln_method::取字节集中间)]
+	static array<byte>^ 取字节集中间(array<byte>^ 欲取其部分的字节集, int 起始取出位置, int 欲取出字节的数目);
+	[LibMethod(krnln_method::寻找字节集)]
+	static int 寻找字节集(array<byte>^ 被搜寻的字节集, array<byte>^ 欲寻找的字节集, [Optional][DefaultValue(1)]int 起始搜寻位置);
+	[LibMethod(krnln_method::倒找字节集)]
+	static int 倒找字节集(array<byte>^ 被搜寻的字节集, array<byte>^ 欲寻找的字节集, [Optional][DefaultValue(1)]int 起始搜寻位置);
+	[LibMethod(krnln_method::字节集替换)]
+	static array<byte>^ 字节集替换(array<byte>^ 欲替换其部分的字节集, int 起始替换位置, int 替换长度, [Optional]array<byte>^ 用作替换的字节集);
+	[LibMethod(krnln_method::子字节集替换)]
+	static array<byte>^ 子字节集替换(array<byte>^ 欲被替换的字节集, array<byte>^ 欲被替换的子字节集, [Optional]array<byte>^ 用作替换的子字节集, [Optional][DefaultValue(1)]int 进行替换的起始位置, [Optional]int 替换进行的次数);
+	[LibMethod(krnln_method::取重复字节集)]
+	static array<byte>^ 取重复字节集(int 重复次数, array<byte>^ 待重复的字节集);
 };

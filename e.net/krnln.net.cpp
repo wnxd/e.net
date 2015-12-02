@@ -3,6 +3,8 @@
 #include "common.net.h"
 #include "krnln.net.h"
 
+using namespace System::Text;
+
 extern MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
 extern ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 
@@ -197,92 +199,92 @@ MethodDefinition^ Krnln::CreateEvenDoubleAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ Krnln::CreateEvenBinAdd(ModuleDefinition^ module)
-{
-	TypeReference^ Bin = gcnew ArrayType(module->TypeSystem->Byte);
-	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
-	ParameterDefinition^ params = CreateParameter("加字节集", gcnew ArrayType(Bin));
-	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
-	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
-	MethodDefinition^ method = CreateMethod("相加", Bin, ToList(CreateParameter("被加字节集", Bin), params), STATICMETHOD);
-	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-	method->Body->InitLocals = true;
-	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
-	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
-	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
-	method->Body->Variables->Add(gcnew VariableDefinition(Bin));
-	method->Body->Variables->Add(gcnew VariableDefinition(Bin));
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Stloc_0);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Stloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Stloc_2);
-	Instruction^ ret = ILProcessor->Create(OpCodes::Ldloc_0);
-	Instruction^ loop = ILProcessor->Create(OpCodes::Ldloc_2);
-	ILProcessor->Append(loop);
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Bge_S, ret);
-	AddILCode(ILProcessor, OpCodes::Ldloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc_2);
-	AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Add);
-	AddILCode(ILProcessor, OpCodes::Stloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc_2);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-	AddILCode(ILProcessor, OpCodes::Add);
-	AddILCode(ILProcessor, OpCodes::Stloc_2);
-	AddILCode(ILProcessor, OpCodes::Br_S, loop);
-	ILProcessor->Append(ret);
-	AddILCode(ILProcessor, OpCodes::Ldloc_1);
-	AddILCode(ILProcessor, OpCodes::Add);
-	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
-	AddILCode(ILProcessor, OpCodes::Stloc_3);
-	AddILCode(ILProcessor, OpCodes::Ldarg_0);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Ldloc_3);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Ldloc_0);
-	AddILCode(ILProcessor, OpCodes::Call, Copy);
-	AddILCode(ILProcessor, OpCodes::Ldloc_0);
-	AddILCode(ILProcessor, OpCodes::Stloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Stloc_2);
-	ret = ILProcessor->Create(OpCodes::Ldloc_3);
-	loop = ILProcessor->Create(OpCodes::Ldloc_2);
-	ILProcessor->Append(loop);
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Bge_S, ret);
-	AddILCode(ILProcessor, OpCodes::Ldarg_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc_2);
-	AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
-	AddILCode(ILProcessor, OpCodes::Dup);
-	AddILCode(ILProcessor, OpCodes::Stloc, 4);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-	AddILCode(ILProcessor, OpCodes::Ldloc_3);
-	AddILCode(ILProcessor, OpCodes::Ldloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc, 4);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Call, Copy);
-	AddILCode(ILProcessor, OpCodes::Ldloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc, 4);
-	AddILCode(ILProcessor, OpCodes::Ldlen);
-	AddILCode(ILProcessor, OpCodes::Add);
-	AddILCode(ILProcessor, OpCodes::Stloc_1);
-	AddILCode(ILProcessor, OpCodes::Ldloc_2);
-	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-	AddILCode(ILProcessor, OpCodes::Add);
-	AddILCode(ILProcessor, OpCodes::Stloc_2);
-	AddILCode(ILProcessor, OpCodes::Br_S, loop);
-	ILProcessor->Append(ret);
-	AddILCode(ILProcessor, OpCodes::Ret);
-	return method;
-}
+//MethodDefinition^ Krnln::CreateEvenBinAdd(ModuleDefinition^ module)
+//{
+//	TypeReference^ Bin = gcnew ArrayType(module->TypeSystem->Byte);
+//	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
+//	ParameterDefinition^ params = CreateParameter("加字节集", gcnew ArrayType(Bin));
+//	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
+//	params->CustomAttributes->Add(gcnew CustomAttribute(ctor));
+//	MethodDefinition^ method = CreateMethod("相加", Bin, ToList(CreateParameter("被加字节集", Bin), params), STATICMETHOD);
+//	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+//	method->Body->InitLocals = true;
+//	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+//	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+//	method->Body->Variables->Add(gcnew VariableDefinition(module->TypeSystem->Int32));
+//	method->Body->Variables->Add(gcnew VariableDefinition(Bin));
+//	method->Body->Variables->Add(gcnew VariableDefinition(Bin));
+//	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Stloc_0);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Stloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Stloc_2);
+//	Instruction^ ret = ILProcessor->Create(OpCodes::Ldloc_0);
+//	Instruction^ loop = ILProcessor->Create(OpCodes::Ldloc_2);
+//	ILProcessor->Append(loop);
+//	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Bge_S, ret);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_2);
+//	AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Add);
+//	AddILCode(ILProcessor, OpCodes::Stloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_2);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+//	AddILCode(ILProcessor, OpCodes::Add);
+//	AddILCode(ILProcessor, OpCodes::Stloc_2);
+//	AddILCode(ILProcessor, OpCodes::Br_S, loop);
+//	ILProcessor->Append(ret);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+//	AddILCode(ILProcessor, OpCodes::Add);
+//	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+//	AddILCode(ILProcessor, OpCodes::Stloc_3);
+//	AddILCode(ILProcessor, OpCodes::Ldarg_0);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_3);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+//	AddILCode(ILProcessor, OpCodes::Call, Copy);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_0);
+//	AddILCode(ILProcessor, OpCodes::Stloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Stloc_2);
+//	ret = ILProcessor->Create(OpCodes::Ldloc_3);
+//	loop = ILProcessor->Create(OpCodes::Ldloc_2);
+//	ILProcessor->Append(loop);
+//	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Bge_S, ret);
+//	AddILCode(ILProcessor, OpCodes::Ldarg_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_2);
+//	AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
+//	AddILCode(ILProcessor, OpCodes::Dup);
+//	AddILCode(ILProcessor, OpCodes::Stloc, 4);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_3);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc, 4);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Call, Copy);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc, 4);
+//	AddILCode(ILProcessor, OpCodes::Ldlen);
+//	AddILCode(ILProcessor, OpCodes::Add);
+//	AddILCode(ILProcessor, OpCodes::Stloc_1);
+//	AddILCode(ILProcessor, OpCodes::Ldloc_2);
+//	AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+//	AddILCode(ILProcessor, OpCodes::Add);
+//	AddILCode(ILProcessor, OpCodes::Stloc_2);
+//	AddILCode(ILProcessor, OpCodes::Br_S, loop);
+//	ILProcessor->Append(ret);
+//	AddILCode(ILProcessor, OpCodes::Ret);
+//	return method;
+//}
 
 MethodDefinition^ Krnln::CreateSub(ModuleDefinition^ module)
 {
@@ -1195,6 +1197,69 @@ MethodDefinition^ Krnln::CreateGetTimePart(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ Krnln::CreateGetHexText(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取十六进制文本", module->TypeSystem->String, ToList(CreateParameter("欲取进制文本的数值", module->TypeSystem->Int32)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 16);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Convert, "ToString", typeof(int), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateGetOctText(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取八进制文本", module->TypeSystem->String, ToList(CreateParameter("欲取进制文本的数值", module->TypeSystem->Int32)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 8);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Convert, "ToString", typeof(int), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateHex(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("十六进制", module->TypeSystem->Int32, ToList(CreateParameter("十六进制文本常量", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 16);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Convert, "ToInt32", typeof(String), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateBinary(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("二进制", module->TypeSystem->Int32, ToList(CreateParameter("二进制文本常量", module->TypeSystem->String)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Ldc_I4, 2);
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Convert, "ToInt32", typeof(String), typeof(int))));
+	return method;
+}
+
+MethodDefinition^ CreateSpaceBin(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取空白字节集", gcnew ArrayType(module->TypeSystem->Byte), ToList(CreateParameter("零字节数目", module->TypeSystem->Int32)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+	return method;
+}
+
+array<byte>^ Krnln::相加(array<byte>^ 被加字节集, ...array<array<byte>^>^ 加字节集)
+{
+	int num;
+	if (被加字节集 == nullptr) num = 0;
+	else num = 被加字节集->Length;
+	int num2 = 0;
+	for (int i = 0; i < 加字节集->Length; i++) num2 += 加字节集[i]->Length;
+	array<byte>^ arr = gcnew array<byte>(num + num2);
+	if (被加字节集 != nullptr) Array::Copy(被加字节集, 0, arr, 0, num);
+	num2 = num;
+	for (int i = 0; i < 加字节集->Length; i++)
+	{
+		array<byte>^ arr2 = 加字节集[i];
+		Array::Copy(arr2, 0, arr, num2, arr2->Length);
+		num2 += arr2->Length;
+	}
+	return arr;
+}
+
 int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的成员数目)
 {
 	if (欲删除成员的数组变量 == nullptr) return 0;
@@ -1667,4 +1732,260 @@ String^ Krnln::数值到格式文本(double 欲转换为文本的数值, [Optional]Nullable<int>
 		if (小数保留位数.HasValue) str = "F" + 小数保留位数.Value;
 	}
 	return 欲转换为文本的数值.ToString(str);
+}
+
+int Krnln::取字节集长度(array<byte>^ 字节集数据)
+{
+	if (字节集数据 == nullptr) return 0;
+	return 字节集数据->Length;
+}
+
+array<byte>^ Krnln::到字节集(String^ 欲转换为字节集的数据)
+{
+	if (欲转换为字节集的数据 == nullptr) return gcnew array<byte>(0);
+	return Encoding::ASCII->GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(DateTime 欲转换为字节集的数据)
+{
+	return 到字节集(欲转换为字节集的数据.Ticks);
+}
+
+array<byte>^ Krnln::到字节集(IntPtr 欲转换为字节集的数据)
+{
+	if (IntPtr::Size == 4) return 到字节集(欲转换为字节集的数据.ToInt32());
+	else return 到字节集(欲转换为字节集的数据.ToInt64());
+}
+
+array<byte>^ Krnln::到字节集(bool 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(byte 欲转换为字节集的数据)
+{
+	return gcnew array<byte>{ 欲转换为字节集的数据 };
+}
+
+array<byte>^ Krnln::到字节集(short 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(int 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(Int64 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(float 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+array<byte>^ Krnln::到字节集(double 欲转换为字节集的数据)
+{
+	return BitConverter::GetBytes(欲转换为字节集的数据);
+}
+
+Object^ Krnln::取字节集数据(array<byte>^ 欲取出其中数据的字节集, int 欲取出数据的类型, int 起始索引位置)
+{
+	if (欲取出其中数据的字节集 == nullptr || 欲取出其中数据的字节集->Length == 0) return nullptr;
+	起始索引位置--;
+	if (起始索引位置 < 0) return nullptr;
+	Object^ obj;
+	switch (欲取出数据的类型)
+	{
+	case 1:
+		obj = 欲取出其中数据的字节集[起始索引位置];
+		break;
+	case 2:
+		obj = BitConverter::ToInt16(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 3:
+		obj = BitConverter::ToInt32(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 4:
+		obj = BitConverter::ToInt64(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 5:
+		obj = BitConverter::ToSingle(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 6:
+		obj = BitConverter::ToDouble(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 7:
+		obj = BitConverter::ToBoolean(欲取出其中数据的字节集, 起始索引位置);
+		break;
+	case 8:
+		obj = DateTime(BitConverter::ToInt64(欲取出其中数据的字节集, 起始索引位置));
+		break;
+	case 9:
+		if (IntPtr::Size == 4) obj = IntPtr(BitConverter::ToInt32(欲取出其中数据的字节集, 起始索引位置));
+		else obj = IntPtr(BitConverter::ToInt64(欲取出其中数据的字节集, 起始索引位置));
+		break;
+	case 10:
+		obj = Encoding::ASCII->GetString(欲取出其中数据的字节集, 起始索引位置, 欲取出其中数据的字节集->Length - 起始索引位置);
+		break;
+	}
+	return obj;
+}
+
+array<byte>^ Krnln::取字节集左边(array<byte>^ 欲取其部分的字节集, int 欲取出字节的数目)
+{
+	if (欲取其部分的字节集 != nullptr && 欲取出字节的数目 > 0)
+	{
+		if (欲取出字节的数目 > 欲取其部分的字节集->Length) 欲取出字节的数目 = 欲取其部分的字节集->Length;
+		array<byte>^ arr = gcnew array<byte>(欲取出字节的数目);
+		Array::Copy(欲取其部分的字节集, arr, 欲取出字节的数目);
+		return arr;
+	}
+	return nullptr;
+}
+
+array<byte>^ Krnln::取字节集右边(array<byte>^ 欲取其部分的字节集, int 欲取出字节的数目)
+{
+	if (欲取其部分的字节集 != nullptr && 欲取出字节的数目 > 0)
+	{
+		if (欲取出字节的数目 > 欲取其部分的字节集->Length) 欲取出字节的数目 = 欲取其部分的字节集->Length;
+		int index = 欲取其部分的字节集->Length - 欲取出字节的数目;
+		array<byte>^ arr = gcnew array<byte>(欲取出字节的数目);
+		Array::Copy(欲取其部分的字节集, index, arr, 0, 欲取出字节的数目);
+		return arr;
+	}
+	return nullptr;
+}
+
+array<byte>^ Krnln::取字节集中间(array<byte>^ 欲取其部分的字节集, int 起始取出位置, int 欲取出字节的数目)
+{
+	if (欲取其部分的字节集 != nullptr && 起始取出位置 > 0 && 欲取出字节的数目 > 0)
+	{
+		起始取出位置--;
+		int len = 欲取其部分的字节集->Length - 起始取出位置;
+		if (len >= 0)
+		{
+			if (欲取出字节的数目 > len) 欲取出字节的数目 = len;
+			array<byte>^ arr = gcnew array<byte>(欲取出字节的数目);
+			Array::Copy(欲取其部分的字节集, 起始取出位置, arr, 0, 欲取出字节的数目);
+			return arr;
+		}
+	}
+	return nullptr;
+}
+
+int Krnln::寻找字节集(array<byte>^ 被搜寻的字节集, array<byte>^ 欲寻找的字节集, int 起始搜寻位置)
+{
+	if (被搜寻的字节集 != nullptr && 起始搜寻位置 > 0)
+	{
+		if (欲寻找的字节集 != nullptr && 欲寻找的字节集->Length > 0)
+		{
+			if (被搜寻的字节集->Length > 0)
+			{
+				起始搜寻位置--;
+				byte f = 欲寻找的字节集[0];
+				do
+				{
+					起始搜寻位置 = Array::IndexOf(被搜寻的字节集, f, 起始搜寻位置);
+					if (起始搜寻位置 >= 0)
+					{
+						int len = 被搜寻的字节集->Length - 起始搜寻位置;
+						if (len < 欲寻找的字节集->Length) break;
+						for (int i = 0; i < 欲寻找的字节集->Length; i++) if (被搜寻的字节集[起始搜寻位置 + i] != 欲寻找的字节集[i]) goto rt;
+						return 起始搜寻位置 + 1;
+					rt:;
+					}
+				} while (起始搜寻位置 >= 0);
+			}
+		}
+		else return 1;
+	}
+	return -1;
+}
+
+int Krnln::倒找字节集(array<byte>^ 被搜寻的字节集, array<byte>^ 欲寻找的字节集, [Optional][DefaultValue(1)]int 起始搜寻位置)
+{
+	if (被搜寻的字节集 != nullptr && 起始搜寻位置 > 0)
+	{
+		if (欲寻找的字节集 != nullptr && 欲寻找的字节集->Length > 0)
+		{
+			if (被搜寻的字节集->Length > 0)
+			{
+				起始搜寻位置--;
+				byte f = 欲寻找的字节集[0];
+				do
+				{
+					起始搜寻位置 = Array::LastIndexOf(被搜寻的字节集, f, 起始搜寻位置);
+					if (起始搜寻位置 >= 0)
+					{
+						int len = 被搜寻的字节集->Length - 起始搜寻位置;
+						if (len < 欲寻找的字节集->Length) break;
+						for (int i = 0; i < 欲寻找的字节集->Length; i++) if (被搜寻的字节集[起始搜寻位置 + i] != 欲寻找的字节集[i]) goto rt;
+						return 起始搜寻位置 + 1;
+					rt:;
+					}
+				} while (起始搜寻位置 >= 0);
+			}
+		}
+		else return 1;
+	}
+	return -1;
+}
+
+array<byte>^ Krnln::字节集替换(array<byte>^ 欲替换其部分的字节集, int 起始替换位置, int 替换长度, array<byte>^ 用作替换的字节集)
+{
+	if (欲替换其部分的字节集 != nullptr)
+	{
+		int len = 欲替换其部分的字节集->Length;
+		起始替换位置--;
+		if (起始替换位置 >= 0 && 起始替换位置 < len)
+		{
+			len -= 替换长度 + 起始替换位置;
+			if (len <= 0)
+			{
+				替换长度 += len;
+				if (起始替换位置 == 0) return 欲替换其部分的字节集;
+			}
+			array<byte>^ bin;
+			if (起始替换位置 > 0) bin = 取字节集左边(欲替换其部分的字节集, 起始替换位置);
+			bin = 相加(bin, 用作替换的字节集);
+			if (len > 0) bin = 相加(bin, 取字节集右边(欲替换其部分的字节集, len));
+			return bin;
+		}
+	}
+	return 欲替换其部分的字节集;
+}
+
+array<byte>^ Krnln::子字节集替换(array<byte>^ 欲被替换的字节集, array<byte>^ 欲被替换的子字节集, array<byte>^ 用作替换的子字节集, int 进行替换的起始位置, int 替换进行的次数)
+{
+	if (欲被替换的字节集 != nullptr && 欲被替换的子字节集 != nullptr && 欲被替换的子字节集->Length > 0)
+	{
+		if (进行替换的起始位置 > 0 && 进行替换的起始位置 < 欲被替换的子字节集->Length)
+		{
+			int len = 欲被替换的子字节集->Length;
+			do
+			{
+				进行替换的起始位置 = 寻找字节集(欲被替换的字节集, 欲被替换的子字节集, 进行替换的起始位置);
+				if (进行替换的起始位置 == -1) break;
+				欲被替换的字节集 = 字节集替换(欲被替换的字节集, 进行替换的起始位置, len, 用作替换的子字节集);
+				替换进行的次数--;
+			} while (替换进行的次数 > 0);
+		}
+	}
+	return 欲被替换的字节集;
+}
+
+array<byte>^ Krnln::取重复字节集(int 重复次数, array<byte>^ 待重复的字节集)
+{
+	if (待重复的字节集 != nullptr && 重复次数 > 0)
+	{
+		int len = 待重复的字节集->Length;
+		array<byte>^ arr = gcnew array<byte>(len * 重复次数);
+		for (int i = 0; i < 重复次数; i++) Array::Copy(待重复的字节集, 0, arr, i * len, len);
+		return arr;
+	}
+	return nullptr;
 }
