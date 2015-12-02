@@ -78,7 +78,7 @@ static LIB_INFO s_lib_info =
 	TEXT(LI_LIB_GUID_STR),
 	1,
 	1,
-	1128,
+	1202,
 	0,
 	0,
 	0,

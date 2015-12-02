@@ -14,9 +14,9 @@ using namespace System::Security::Permissions;
 [assembly:AssemblyTitleAttribute(L"donet2ec")];
 [assembly:AssemblyDescriptionAttribute(L"")];
 [assembly:AssemblyConfigurationAttribute(L"")];
-[assembly:AssemblyCompanyAttribute(L"")];
+[assembly:AssemblyCompanyAttribute(L"ÎªÄãÐ¾¶³")];
 [assembly:AssemblyProductAttribute(L"donet2ec")];
-[assembly:AssemblyCopyrightAttribute(L"Copyright (c)  2015")];
+[assembly:AssemblyCopyrightAttribute(L"ÎªÄãÐ¾¶³")];
 [assembly:AssemblyTrademarkAttribute(L"")];
 [assembly:AssemblyCultureAttribute(L"")];
 
