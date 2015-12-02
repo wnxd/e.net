@@ -6,7 +6,7 @@
 extern MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
 extern ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 
-MethodDefinition^ CreateReturn(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateReturn(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("返回", module->TypeSystem->Void, ToList(CreateParameter("返回到调用方的值", module->TypeSystem->Void)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -14,7 +14,7 @@ MethodDefinition^ CreateReturn(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMod(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMod(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("求余数", module->TypeSystem->Int32, ToList(CreateParameter("被除数", module->TypeSystem->Double), CreateParameter("除数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -22,7 +22,7 @@ MethodDefinition^ CreateMod(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateAdd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->String, ToList(CreateParameter("被加文本", module->TypeSystem->Object), CreateParameter("加文本", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -30,7 +30,7 @@ MethodDefinition^ CreateAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEvenAdd(ModuleDefinition^ module)
 {
 	TypeReference^ objarr = gcnew ArrayType(module->TypeSystem->Object);
 	ParameterDefinition^ params = CreateParameter("加文本", objarr);
@@ -65,7 +65,7 @@ MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateIntAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateIntAdd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int32, ToList(CreateParameter("被加数", module->TypeSystem->Int32), CreateParameter("加数", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -73,7 +73,7 @@ MethodDefinition^ CreateIntAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEvenIntAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int32));
 	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
@@ -109,7 +109,7 @@ MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateLongAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLongAdd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Int64, ToList(CreateParameter("被加数", module->TypeSystem->Int64), CreateParameter("加数", module->TypeSystem->Int64)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -117,7 +117,7 @@ MethodDefinition^ CreateLongAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEvenLongAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Int64));
 	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
@@ -153,7 +153,7 @@ MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateDoubleAdd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相加", module->TypeSystem->Double, ToList(CreateParameter("被加数", module->TypeSystem->Double), CreateParameter("加数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -161,7 +161,7 @@ MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEvenDoubleAdd(ModuleDefinition^ module)
 {
 	ParameterDefinition^ params = CreateParameter("加数", gcnew ArrayType(module->TypeSystem->Double));
 	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
@@ -197,7 +197,7 @@ MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEvenBinAdd(ModuleDefinition^ module)
 {
 	TypeReference^ Bin = gcnew ArrayType(module->TypeSystem->Byte);
 	MethodReference^ Copy = module->ImportReference(GetStaticMethod(Array, "Copy", typeof(Array), typeof(int), typeof(Array), typeof(int), typeof(int)));
@@ -284,7 +284,7 @@ MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateSub(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateSub(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相减", module->TypeSystem->Double, ToList(CreateParameter("被减数", module->TypeSystem->Double), CreateParameter("减数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -293,7 +293,7 @@ MethodDefinition^ CreateSub(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateIntSub(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateIntSub(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相减", module->TypeSystem->Int32, ToList(CreateParameter("被减数", module->TypeSystem->Int32), CreateParameter("减数", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -301,7 +301,7 @@ MethodDefinition^ CreateIntSub(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNeg(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNeg(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("负", module->TypeSystem->Double, ToList(CreateParameter("数值", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -310,7 +310,7 @@ MethodDefinition^ CreateNeg(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMul(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMul(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相乘", module->TypeSystem->Double, ToList(CreateParameter("被乘数", module->TypeSystem->Double), CreateParameter("乘数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -319,7 +319,7 @@ MethodDefinition^ CreateMul(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateDiv(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateDiv(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("相除", module->TypeSystem->Double, ToList(CreateParameter("被除数", module->TypeSystem->Double), CreateParameter("除数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -328,7 +328,7 @@ MethodDefinition^ CreateDiv(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateIDiv(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateIDiv(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("整除", module->TypeSystem->Int32, ToList(CreateParameter("被除数", module->TypeSystem->Double), CreateParameter("除数", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -336,7 +336,7 @@ MethodDefinition^ CreateIDiv(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEqual(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -344,7 +344,7 @@ MethodDefinition^ CreateEqual(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEqualNull1(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEqualNull1(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -352,7 +352,7 @@ MethodDefinition^ CreateEqualNull1(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateEqualNull2(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEqualNull2(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -360,7 +360,7 @@ MethodDefinition^ CreateEqualNull2(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNotEqual(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNotEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -370,7 +370,7 @@ MethodDefinition^ CreateNotEqual(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNotEqualNull1(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNotEqualNull1(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -380,7 +380,7 @@ MethodDefinition^ CreateNotEqualNull1(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNotEqualNull2(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNotEqualNull2(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -390,7 +390,7 @@ MethodDefinition^ CreateNotEqualNull2(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateLess(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLess(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("小于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Double), CreateParameter("比较值", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -398,7 +398,7 @@ MethodDefinition^ CreateLess(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMore(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMore(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("大于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Double), CreateParameter("比较值", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -406,7 +406,7 @@ MethodDefinition^ CreateMore(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateLessOrEqual(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLessOrEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("小于或等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Double), CreateParameter("比较值", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -416,7 +416,7 @@ MethodDefinition^ CreateLessOrEqual(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMoreOrEqual(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMoreOrEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("大于或等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Double), CreateParameter("比较值", module->TypeSystem->Double)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -426,7 +426,7 @@ MethodDefinition^ CreateMoreOrEqual(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateAnd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateAnd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("并且", module->TypeSystem->Boolean, ToList(CreateParameter("逻辑值一", module->TypeSystem->Boolean), CreateParameter("逻辑值二", module->TypeSystem->Boolean)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -440,7 +440,7 @@ MethodDefinition^ CreateAnd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateOr(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateOr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("或者", module->TypeSystem->Boolean, ToList(CreateParameter("逻辑值一", module->TypeSystem->Boolean), CreateParameter("逻辑值二", module->TypeSystem->Boolean)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -454,7 +454,7 @@ MethodDefinition^ CreateOr(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNot(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNot(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取反", module->TypeSystem->Boolean, ToList(CreateParameter("被反转的逻辑值", module->TypeSystem->Boolean)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -463,7 +463,7 @@ MethodDefinition^ CreateNot(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateBnot(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateBnot(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("位取反", module->TypeSystem->Int32, ToList(CreateParameter("欲取反的数值", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -471,7 +471,7 @@ MethodDefinition^ CreateBnot(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateBand(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateBand(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("位与", module->TypeSystem->Int32, ToList(CreateParameter("位运算数值一", module->TypeSystem->Int32), CreateParameter("位运算数值二", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -479,7 +479,7 @@ MethodDefinition^ CreateBand(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateBor(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateBor(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("位或", module->TypeSystem->Int32, ToList(CreateParameter("位运算数值一", module->TypeSystem->Int32), CreateParameter("位运算数值二", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -487,7 +487,7 @@ MethodDefinition^ CreateBor(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateBxor(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateBxor(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("位异或", module->TypeSystem->Int32, ToList(CreateParameter("位运算数值一", module->TypeSystem->Int32), CreateParameter("位运算数值二", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -495,13 +495,13 @@ MethodDefinition^ CreateBxor(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateSet(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateSet(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("赋值", module->TypeSystem->Void, ToList(CreateParameter("被赋值的变量或变量数组", gcnew ByReferenceType(module->TypeSystem->Object), ParameterAttributes::Out), CreateParameter("用作赋于的值或资源", module->TypeSystem->Object)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateToDouble(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToDouble(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到数值", module->TypeSystem->Double, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -523,7 +523,7 @@ MethodDefinition^ CreateToDouble(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToStr(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToStr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到文本", module->TypeSystem->String, ToList(CreateParameter("待转换的数据", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -531,7 +531,7 @@ MethodDefinition^ CreateToStr(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToByte(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToByte(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到字节", module->TypeSystem->Byte, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -553,7 +553,7 @@ MethodDefinition^ CreateToByte(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToShort(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToShort(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到短整数", module->TypeSystem->Int16, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -575,7 +575,7 @@ MethodDefinition^ CreateToShort(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToInt(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToInt(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到整数", module->TypeSystem->Int32, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -597,7 +597,7 @@ MethodDefinition^ CreateToInt(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToLong(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToLong(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到长整数", module->TypeSystem->Int64, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -619,7 +619,7 @@ MethodDefinition^ CreateToLong(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToFloat(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToFloat(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到小数", module->TypeSystem->Single, ToList(CreateParameter("待转换的文本或数值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -641,7 +641,7 @@ MethodDefinition^ CreateToFloat(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateShl(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateShl(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("左移", module->TypeSystem->Int32, ToList(CreateParameter("欲移动的整数", module->TypeSystem->Int32), CreateParameter("欲移动的位数", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -649,7 +649,7 @@ MethodDefinition^ CreateShl(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateShr(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateShr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("右移", module->TypeSystem->Int32, ToList(CreateParameter("欲移动的整数", module->TypeSystem->Int32), CreateParameter("欲移动的位数", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -657,73 +657,73 @@ MethodDefinition^ CreateShr(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateIfe(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateIfe(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("如果", module->TypeSystem->Void, ToList(CreateParameter("条件", module->TypeSystem->Boolean)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateIf(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateIf(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("如果真", module->TypeSystem->Void, ToList(CreateParameter("条件", module->TypeSystem->Boolean)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateSwitch(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateSwitch(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("判断", module->TypeSystem->Void, ToList(CreateParameter("条件", module->TypeSystem->Boolean)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateWhile(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateWhile(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("判断循环首", module->TypeSystem->Void, ToList(CreateParameter("条件", module->TypeSystem->Boolean)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateWend(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateWend(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("判断循环尾", module->TypeSystem->Void, nullptr, STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateDoWhile(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateDoWhile(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("循环判断首", module->TypeSystem->Void, nullptr, STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateLoop(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLoop(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("循环判断尾", module->TypeSystem->Void, ToList(CreateParameter("条件", module->TypeSystem->Boolean)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateCounter(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateCounter(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("计次循环首", module->TypeSystem->Void, ToList(CreateParameter("循环次数", module->TypeSystem->Int32), CreateParameter("已循环次数记录变量", gcnew ByReferenceType(module->TypeSystem->Int32), ParameterAttributes::Out)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateCounterLoop(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateCounterLoop(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("计次循环尾", module->TypeSystem->Void, nullptr, STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateFor(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateFor(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("变量循环首", module->TypeSystem->Void, ToList(CreateParameter("变量起始值", module->TypeSystem->Int32), CreateParameter("变量目标值", module->TypeSystem->Int32), CreateParameter("变量递增值", module->TypeSystem->Int32), CreateParameter("循环变量", gcnew ByReferenceType(module->TypeSystem->Int32), ParameterAttributes::Out | ParameterAttributes::Optional)), STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateNext(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNext(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("变量循环尾", module->TypeSystem->Void, nullptr, STATICMETHOD);
 	return method;
 }
 
-MethodDefinition^ CreateEnd(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateEnd(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("结束", module->TypeSystem->Void, nullptr, STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -731,7 +731,7 @@ MethodDefinition^ CreateEnd(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateReDim(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateReDim(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("数组类型", module->ImportReference(typeof(RuntimeTypeHandle))), CreateParameter("欲重定义的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("是否保留以前的内容", module->TypeSystem->Boolean), CreateParameter("数组对应维的上限值", gcnew ArrayType(module->TypeSystem->Int32)));
 	MethodReference^ ctor = module->ImportReference(GetCtor(ParamArrayAttribute));
@@ -807,7 +807,7 @@ MethodDefinition^ CreateReDim(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateGetAryElementCount(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取数组成员数", module->TypeSystem->Int32, ToList(CreateParameter("欲检查的数组变量", module->ImportReference(typeof(Array)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -824,7 +824,7 @@ MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateUBound(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateUBound(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取数组下标", module->TypeSystem->Int32, ToList(CreateParameter("欲取某维最大下标的数组变量", module->ImportReference(typeof(Array))), CreateParameter("欲取其最大下标的维", module->TypeSystem->Int32, ParameterAttributes::Optional)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -841,7 +841,7 @@ MethodDefinition^ CreateUBound(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateCopyAry(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateCopyAry(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("复制数组", module->TypeSystem->Void, ToList(CreateParameter("复制到的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("待复制的数组数据", module->ImportReference(typeof(Array)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -857,7 +857,7 @@ MethodDefinition^ CreateCopyAry(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateAddElement(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateAddElement(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲加入成员的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("欲加入的成员数据", module->TypeSystem->Object));
 	MethodDefinition^ method = CreateMethod("加入成员", module->TypeSystem->Void, params, STATICMETHOD);
@@ -901,7 +901,7 @@ MethodDefinition^ CreateAddElement(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateInsElement(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("欲插入成员的数组变量", gcnew ByReferenceType(module->ImportReference(typeof(Array))), ParameterAttributes::Out), CreateParameter("欲插入的位置", module->TypeSystem->Int32), CreateParameter("欲插入的成员数据", module->TypeSystem->Object));
 	MethodDefinition^ method = CreateMethod("插入成员", module->TypeSystem->Void, params, STATICMETHOD);
@@ -973,7 +973,7 @@ MethodDefinition^ CreateInsElement(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateChr(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateChr(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("字符", module->TypeSystem->String, ToList(CreateParameter("欲取其字符的字符代码", module->TypeSystem->Byte)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -981,7 +981,7 @@ MethodDefinition^ CreateChr(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateUCase(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateUCase(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到大写", module->TypeSystem->String, ToList(CreateParameter("欲变换的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -989,7 +989,7 @@ MethodDefinition^ CreateUCase(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateLCase(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLCase(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到小写", module->TypeSystem->String, ToList(CreateParameter("欲变换的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -997,7 +997,7 @@ MethodDefinition^ CreateLCase(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateLTrim(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateLTrim(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("删首空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1015,7 +1015,7 @@ MethodDefinition^ CreateLTrim(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateRTrim(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateRTrim(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("删尾空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1033,7 +1033,7 @@ MethodDefinition^ CreateRTrim(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateTrim(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateTrim(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("删首尾空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1051,7 +1051,7 @@ MethodDefinition^ CreateTrim(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateTrimAll(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateTrimAll(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("删全部空", module->TypeSystem->String, ToList(CreateParameter("欲删除空格的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1065,7 +1065,7 @@ MethodDefinition^ CreateTrimAll(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateStrComp(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateStrComp(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("文本比较", module->TypeSystem->Int32, ToList(CreateParameter("待比较文本一", module->TypeSystem->String), CreateParameter("待比较文本二", module->TypeSystem->String), CreateParameter("是否区分大小写", module->TypeSystem->Boolean)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1075,7 +1075,7 @@ MethodDefinition^ CreateStrComp(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateToTime(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateToTime(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("到时间", module->ImportReference(typeof(DateTime)), ToList(CreateParameter("欲转换的文本", module->TypeSystem->String)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1083,7 +1083,7 @@ MethodDefinition^ CreateToTime(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateGetDaysOfSpecMonth(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateGetDaysOfSpecMonth(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取某月天数", module->TypeSystem->Int32, ToList(CreateParameter("年份", module->TypeSystem->Int32), CreateParameter("月份", module->TypeSystem->Int32)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1091,7 +1091,7 @@ MethodDefinition^ CreateGetDaysOfSpecMonth(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateYear(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateYear(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取年份", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1099,7 +1099,7 @@ MethodDefinition^ CreateYear(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMonth(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMonth(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取月份", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1107,7 +1107,7 @@ MethodDefinition^ CreateMonth(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateDay(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateDay(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取日", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1115,7 +1115,7 @@ MethodDefinition^ CreateDay(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateWeekDay(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateWeekDay(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取星期几", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1125,7 +1125,7 @@ MethodDefinition^ CreateWeekDay(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateHour(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateHour(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取小时", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1133,7 +1133,7 @@ MethodDefinition^ CreateHour(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateMinute(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateMinute(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取分钟", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1141,7 +1141,7 @@ MethodDefinition^ CreateMinute(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateSecond(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateSecond(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取秒", module->TypeSystem->Int32, ToList(CreateParameter("时间", module->ImportReference(typeof(DateTime)))), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1149,7 +1149,7 @@ MethodDefinition^ CreateSecond(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateGetSpecTime(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateGetSpecTime(ModuleDefinition^ module)
 {
 	IList<ParameterDefinition^>^ params = ToList(CreateParameter("年", module->TypeSystem->Int32), CreateParameter("月", module->TypeSystem->Int32), CreateParameter("日", module->TypeSystem->Int32), CreateParameter("小时", module->TypeSystem->Int32), CreateParameter("分钟", module->TypeSystem->Int32), CreateParameter("秒", module->TypeSystem->Int32));
 	params[1]->IsOptional = true;
@@ -1168,7 +1168,7 @@ MethodDefinition^ CreateGetSpecTime(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateNow(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateNow(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("取现行时间", module->ImportReference(typeof(DateTime)), nullptr, STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
@@ -1176,7 +1176,7 @@ MethodDefinition^ CreateNow(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateGetDatePart(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateGetDatePart(ModuleDefinition^ module)
 {
 	TypeReference^ dt = module->ImportReference(typeof(DateTime));
 	MethodDefinition^ method = CreateMethod("取日期", dt, ToList(CreateParameter("时间", dt)), STATICMETHOD);
@@ -1185,7 +1185,7 @@ MethodDefinition^ CreateGetDatePart(ModuleDefinition^ module)
 	return method;
 }
 
-MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module)
+MethodDefinition^ Krnln::CreateGetTimePart(ModuleDefinition^ module)
 {
 	TypeReference^ dt = module->ImportReference(typeof(DateTime));
 	MethodDefinition^ method = CreateMethod("取时间", dt, ToList(CreateParameter("时间", dt)), STATICMETHOD);
@@ -1193,95 +1193,6 @@ MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module)
 	AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(GetInstanceMethod(DateTime, "ToLongTimeString")));
 	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(DateTime, "Parse", typeof(String))));
 	return method;
-}
-
-IList<MonoInfo^>^ Krnln::GetMethods(ModuleDefinition^ module)
-{
-	IList<MonoInfo^>^ list = gcnew List<MonoInfo^>();
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::返回, CreateReturn(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::求余数, CreateMod(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相加, CreateIntAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::相加, CreateEvenIntAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相加, CreateLongAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::相加, CreateEvenLongAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相加, CreateDoubleAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::相加, CreateEvenDoubleAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::相加, CreateEvenBinAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相加, CreateAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::相加, CreateEvenAdd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相减, CreateSub(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相减, CreateIntSub(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::负, CreateNeg(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相乘, CreateMul(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::相除, CreateDiv(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::整除, CreateIDiv(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqualNull1(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqualNull2(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::等于, CreateEqual(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqualNull1(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqualNull2(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::不等于, CreateNotEqual(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于, CreateLess(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::大于, CreateMore(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::小于或等于, CreateLessOrEqual(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::大于或等于, CreateMoreOrEqual(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::并且, CreateAnd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::或者, CreateOr(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取反, CreateNot(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位取反, CreateBnot(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位与, CreateBand(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位或, CreateBor(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::位异或, CreateBxor(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::赋值, CreateSet(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到数值, CreateToDouble(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到文本, CreateToStr(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到字节, CreateToByte(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到短整数, CreateToShort(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到整数, CreateToInt(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到长整数, CreateToLong(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::到小数, CreateToFloat(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::左移, CreateShl(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::右移, CreateShr(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::如果, CreateIfe(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::如果真, CreateIf(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断, CreateSwitch(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断循环首, CreateWhile(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::判断循环尾, CreateWend(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::循环判断首, CreateDoWhile(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::循环判断尾, CreateLoop(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::计次循环首, CreateCounter(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::计次循环尾, CreateCounterLoop(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::变量循环首, CreateFor(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::变量循环尾, CreateNext(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::结束, CreateEnd(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::重定义数组, CreateReDim(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::取数组成员数, CreateGetAryElementCount(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::取数组下标, CreateUBound(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::复制数组, CreateCopyAry(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::加入成员, CreateAddElement(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Call, krnln_method::插入成员, CreateInsElement(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::字符, CreateChr(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到大写, CreateUCase(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到小写, CreateLCase(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删首空, CreateLTrim(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删尾空, CreateRTrim(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删首尾空, CreateTrim(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::删全部空, CreateTrimAll(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::文本比较, CreateStrComp(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::到时间, CreateToTime(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取某月天数, CreateGetDaysOfSpecMonth(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取年份, CreateYear(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取月份, CreateMonth(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取日, CreateDay(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取星期几, CreateWeekDay(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取小时, CreateHour(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取分钟, CreateMinute(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取秒, CreateSecond(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::指定时间, CreateGetSpecTime(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取现行时间, CreateNow(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取日期, CreateGetDatePart(module)));
-	list->Add(gcnew MonoInfo(EMethodMode::Embed, krnln_method::取时间, CreateGetTimePart(module)));
-	return list;
 }
 
 int Krnln::删除成员(Array^% 欲删除成员的数组变量, int 欲删除的位置, int 欲删除的成员数目)

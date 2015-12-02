@@ -306,7 +306,18 @@ bool ECompile::CompileRefer()
 			String^ mscorlib = Environment::GetFolderPath(Environment::SpecialFolder::Windows) + "\\Microsoft.NET\\Framework\\v4.0.30319\\mscorlib.dll";
 			this->_refer = gcnew array < String^ > { mscorlib };
 		}
-		this->_CodeRefer = gcnew CodeRefer(module);
+		List<ELibInfo^>^ libs = gcnew List<ELibInfo^>();
+		for each (ESection_Library lib in this->_CodeProcess->GetLibraries())
+		{
+			ELibInfo^ info = gcnew ELibInfo();
+			info->Name = CStr2String(lib.FileName)->ToLower();
+			info->Guid = CStr2String(lib.Guid);
+			libs->Add(info);
+		}
+		short i;
+		this->_CodeProcess->FindLibrary(KRNLN, i);
+		this->krnln_id = i;
+		this->_CodeRefer = gcnew CodeRefer(module, libs);
 		this->_CodeRefer->AddReferList(this->_refer);
 		List<String^>^ list = gcnew List<String^>();
 		for each (ESection_ECList_Info info in this->_CodeProcess->GetECList()) list->Add(CStr2String(info.Path));
@@ -613,7 +624,6 @@ bool ECompile::CompileCode()
 			EMethodData^ md = gcnew EMethodData(method, EMethodMode::Call);
 			this->_CodeRefer->AddMethodRefer(DLL, dll.Tag, md);
 		}
-		this->LoadKrnln();
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
 			TypeDefinition^ type = this->_CodeRefer->FindType(GetTypeName(assembly));
@@ -1982,36 +1992,6 @@ end:
 	if (end != nullptr) ILProcessor->Append(end);
 }
 
-void ECompile::LoadKrnln()
-{
-	ModuleDefinition^ module = this->_assembly->MainModule;
-	TypeDefinition^ global = module->GetType("<Module>");
-	PluginInfo^ info = Plugins::Load(module, typeof(Krnln));
-	short id;
-	this->_CodeProcess->FindLibrary(String2LPSTR(info->Lib), id);
-	this->krnln_id = id;
-	for each (MonoInfo^ mi in info->Methods)
-	{
-		EMethodData^ md = gcnew EMethodData(mi->Method, mi->Mode);
-		this->_CodeRefer->AddMethodRefer(id, mi->Tag, md);
-		if (mi->Mode != EMethodMode::Embed)
-		{
-			if (mi->Method->HasPInvokeInfo)
-			{
-				if (mi->Method->PInvokeInfo->Module->Name == "") AddModule(module->ModuleReferences, gcnew ModuleReference("kernel32.dll"));
-				AddModule(module->ModuleReferences, mi->Method->PInvokeInfo->Module);
-			}
-			global->Methods->Add(mi->Method);
-		}
-	}
-	for each (TypeDefinition^ type in info->Types) module->Types->Add(type);
-}
-
-void ECompile::LoadE_net()
-{
-
-}
-
 EMethodReference^ ECompile::GetMethodReference(short index, ETAG tag)
 {
 	EMethodReference^ mr;
@@ -2194,9 +2174,6 @@ EMethodData^ ECompile::FindReferMethod(short index, ETAG tag)
 	{
 
 	}
-	else
-	{
-
-	}
+	else return this->_CodeRefer->FindLibMethod(index, tag);
 	return nullptr;
 }

@@ -22,10 +22,16 @@ ref struct ECListInfo
 	EInfo* Info;
 };
 
+ref struct ELibInfo
+{
+	String^ Name;
+	String^ Guid;
+};
+
 ref class CodeRefer
 {
 public:
-	CodeRefer(ModuleDefinition^ module);
+	CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list);
 	~CodeRefer();
 	void AddType(ETAG tag, TypeDefinition^ type);
 	void AddTypeRefer(ETAG tag, TypeReference^ type);
@@ -54,6 +60,7 @@ public:
 	FieldDefinition^ FindField(ETAG tag);
 	FieldDefinition^ FindGlobalVariable(ETAG tag);
 	PropertyDefinition^ FindProperty(ETAG tag);
+	EMethodData^ FindLibMethod(short index, ETAG tag);
 private:
 	ModuleDefinition^ _module;
 	Dictionary<String^, TypeDefinition^>^ _type;
@@ -68,4 +75,7 @@ private:
 	Dictionary<UINT, FieldDefinition^>^ _globalvar;
 	Dictionary<UINT, PropertyDefinition^>^ _prop;
 	List<ECListInfo^>^ _eclist;
+	List<ELibInfo^>^ _elib;
+	List<PluginInfo^>^ _elibinfo;
+	void LoadKrnln();
 };

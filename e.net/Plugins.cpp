@@ -6,7 +6,7 @@ using namespace System::IO;
 
 extern CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type);
 extern FieldDefinition^ FindField(TypeDefinition^ type, String^ name);
-TypeDefinition^ TypeClone(ModuleDefinition^ module, ModuleDefinition^ M, TypeDefinition^ type);
+TypeDefinition^ TypeClone(MethodDefinition^ method, ModuleDefinition^ module, ModuleDefinition^ M, TypeDefinition^ type);
 
 LibGuidAttribute::LibGuidAttribute(String^ LibGuid)
 {
@@ -89,7 +89,7 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 		TypeDefinition^ t = FindType(Plugins::_refertype, (String::IsNullOrEmpty(ttype->Namespace) ? "" : ttype->Namespace + ".") + ttype->Name);
 		if (t == nullptr)
 		{
-			t = TypeClone(module, M, T);
+			t = TypeClone(method, module, M, T);
 			Plugins::_refertype->Add(t);
 		}
 		AddDictionary(Plugins::_refermethodtype, method, t);
@@ -261,8 +261,8 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 	{
 		IList<ModuleReference^>^ oldrefer = gcnew List<ModuleReference^>(module->ModuleReferences);
 		PluginInfo^ info = gcnew PluginInfo();
-		info->Lib = dynamic_cast<LibGuidAttribute^>(arr[0])->_libguid;
-		info->Packages = gcnew Dictionary<UINT, Package^>();
+		info->Lib = dynamic_cast<LibGuidAttribute^>(arr[0])->_libguid->ToLower();
+		info->Packages = gcnew Dictionary<UINT, IList<Package^>^>();
 		for each (System::Reflection::MethodInfo^ method in type->GetMethods(BINDING_ALLINSTANCE))
 		{
 			array<Object^>^ arr2 = method->GetCustomAttributes(typeof(LibMethodAttribute), false);
@@ -276,7 +276,7 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 				package->Methods->Add(dynamic_cast<MethodDefinition^>(method->Invoke(plugin, gcnew array < Object^ > { module })));
 				package->Refers = FindReferDistinct(module->ModuleReferences, oldrefer);
 				if (package->Refers->Count > 0) DelList(module->ModuleReferences, package->Refers);
-				info->Packages->Add(tag, package);
+				AddDictionary(info->Packages, tag, package);
 			}
 		}
 		ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
@@ -337,7 +337,7 @@ PluginInfo^ Plugins::Load(ModuleDefinition^ module, Plugin^ plugin)
 			package->Methods->Add(item->Value);
 			AddList(package->Methods, GetMethodList(item->Value));
 			package->Types = GetDictionary(Plugins::_refermethodtype, item->Value);
-			info->Packages->Add(item->Key, package);
+			AddDictionary(info->Packages, item->Key, package);
 		}
 		Plugins::_refer = nullptr;
 		Plugins::_refertype = nullptr;

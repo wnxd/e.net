@@ -111,15 +111,174 @@ enum krnln_method : UINT
 };
 
 [LibGuid(KRNLN)]
-ref class Krnln : Plugin, MonoPlugin
+ref class Krnln : Plugin
 {
-public:
-	property PluginType Type
-	{
-		virtual PluginType get() override;
-	}
-	virtual IList<MonoInfo^>^ GetMethods(ModuleDefinition^ module) override;
-private:
+	[LibMethod(krnln_method::返回, EMethodMode::Embed)]
+	MethodDefinition^ CreateReturn(ModuleDefinition^ module);
+	[LibMethod(krnln_method::求余数, EMethodMode::Embed)]
+	MethodDefinition^ CreateMod(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Embed)]
+	MethodDefinition^ CreateIntAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Call)]
+	MethodDefinition^ CreateEvenIntAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Embed)]
+	MethodDefinition^ CreateLongAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Call)]
+	MethodDefinition^ CreateEvenLongAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Embed)]
+	MethodDefinition^ CreateDoubleAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Call)]
+	MethodDefinition^ CreateEvenDoubleAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Call)]
+	MethodDefinition^ CreateEvenBinAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Embed)]
+	MethodDefinition^ CreateAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相加, EMethodMode::Call)]
+	MethodDefinition^ CreateEvenAdd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相减, EMethodMode::Embed)]
+	MethodDefinition^ CreateSub(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相减, EMethodMode::Embed)]
+	MethodDefinition^ CreateIntSub(ModuleDefinition^ module);
+	[LibMethod(krnln_method::负, EMethodMode::Embed)]
+	MethodDefinition^ CreateNeg(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相乘, EMethodMode::Embed)]
+	MethodDefinition^ CreateMul(ModuleDefinition^ module);
+	[LibMethod(krnln_method::相除, EMethodMode::Embed)]
+	MethodDefinition^ CreateDiv(ModuleDefinition^ module);
+	[LibMethod(krnln_method::整除, EMethodMode::Embed)]
+	MethodDefinition^ CreateIDiv(ModuleDefinition^ module);
+	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateEqualNull1(ModuleDefinition^ module);
+	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateEqualNull2(ModuleDefinition^ module);
+	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateEqual(ModuleDefinition^ module);
+	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateNotEqualNull1(ModuleDefinition^ module);
+	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateNotEqualNull2(ModuleDefinition^ module);
+	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateNotEqual(ModuleDefinition^ module);
+	[LibMethod(krnln_method::小于, EMethodMode::Embed)]
+	MethodDefinition^ CreateLess(ModuleDefinition^ module);
+	[LibMethod(krnln_method::大于, EMethodMode::Embed)]
+	MethodDefinition^ CreateMore(ModuleDefinition^ module);
+	[LibMethod(krnln_method::小于或等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateLessOrEqual(ModuleDefinition^ module);
+	[LibMethod(krnln_method::大于或等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateMoreOrEqual(ModuleDefinition^ module);
+	[LibMethod(krnln_method::并且, EMethodMode::Embed)]
+	MethodDefinition^ CreateAnd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::或者, EMethodMode::Embed)]
+	MethodDefinition^ CreateOr(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取反, EMethodMode::Embed)]
+	MethodDefinition^ CreateNot(ModuleDefinition^ module);
+	[LibMethod(krnln_method::位取反, EMethodMode::Embed)]
+	MethodDefinition^ CreateBnot(ModuleDefinition^ module);
+	[LibMethod(krnln_method::位与, EMethodMode::Embed)]
+	MethodDefinition^ CreateBand(ModuleDefinition^ module);
+	[LibMethod(krnln_method::位或, EMethodMode::Embed)]
+	MethodDefinition^ CreateBor(ModuleDefinition^ module);
+	[LibMethod(krnln_method::位异或, EMethodMode::Embed)]
+	MethodDefinition^ CreateBxor(ModuleDefinition^ module);
+	[LibMethod(krnln_method::赋值, EMethodMode::Embed)]
+	MethodDefinition^ CreateSet(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到数值, EMethodMode::Call)]
+	MethodDefinition^ CreateToDouble(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到文本, EMethodMode::Embed)]
+	MethodDefinition^ CreateToStr(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到字节, EMethodMode::Call)]
+	MethodDefinition^ CreateToByte(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到短整数, EMethodMode::Call)]
+	MethodDefinition^ CreateToShort(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到整数, EMethodMode::Call)]
+	MethodDefinition^ CreateToInt(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到长整数, EMethodMode::Call)]
+	MethodDefinition^ CreateToLong(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到小数, EMethodMode::Call)]
+	MethodDefinition^ CreateToFloat(ModuleDefinition^ module);
+	[LibMethod(krnln_method::左移, EMethodMode::Embed)]
+	MethodDefinition^ CreateShl(ModuleDefinition^ module);
+	[LibMethod(krnln_method::右移, EMethodMode::Embed)]
+	MethodDefinition^ CreateShr(ModuleDefinition^ module);
+	[LibMethod(krnln_method::如果, EMethodMode::Embed)]
+	MethodDefinition^ CreateIfe(ModuleDefinition^ module);
+	[LibMethod(krnln_method::如果真, EMethodMode::Embed)]
+	MethodDefinition^ CreateIf(ModuleDefinition^ module);
+	[LibMethod(krnln_method::判断, EMethodMode::Embed)]
+	MethodDefinition^ CreateSwitch(ModuleDefinition^ module);
+	[LibMethod(krnln_method::判断循环首, EMethodMode::Embed)]
+	MethodDefinition^ CreateWhile(ModuleDefinition^ module);
+	[LibMethod(krnln_method::判断循环尾, EMethodMode::Embed)]
+	MethodDefinition^ CreateWend(ModuleDefinition^ module);
+	[LibMethod(krnln_method::循环判断首, EMethodMode::Embed)]
+	MethodDefinition^ CreateDoWhile(ModuleDefinition^ module);
+	[LibMethod(krnln_method::循环判断尾, EMethodMode::Embed)]
+	MethodDefinition^ CreateLoop(ModuleDefinition^ module);
+	[LibMethod(krnln_method::计次循环首, EMethodMode::Embed)]
+	MethodDefinition^ CreateCounter(ModuleDefinition^ module);
+	[LibMethod(krnln_method::计次循环尾, EMethodMode::Embed)]
+	MethodDefinition^ CreateCounterLoop(ModuleDefinition^ module);
+	[LibMethod(krnln_method::变量循环首, EMethodMode::Embed)]
+	MethodDefinition^ CreateFor(ModuleDefinition^ module);
+	[LibMethod(krnln_method::变量循环尾, EMethodMode::Embed)]
+	MethodDefinition^ CreateNext(ModuleDefinition^ module);
+	[LibMethod(krnln_method::结束, EMethodMode::Embed)]
+	MethodDefinition^ CreateEnd(ModuleDefinition^ module);
+	[LibMethod(krnln_method::重定义数组, EMethodMode::Call)]
+	MethodDefinition^ CreateReDim(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取数组成员数, EMethodMode::Call)]
+	MethodDefinition^ CreateGetAryElementCount(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取数组下标, EMethodMode::Call)]
+	MethodDefinition^ CreateUBound(ModuleDefinition^ module);
+	[LibMethod(krnln_method::复制数组, EMethodMode::Call)]
+	MethodDefinition^ CreateCopyAry(ModuleDefinition^ module);
+	[LibMethod(krnln_method::加入成员, EMethodMode::Call)]
+	MethodDefinition^ CreateAddElement(ModuleDefinition^ module);
+	[LibMethod(krnln_method::插入成员, EMethodMode::Call)]
+	MethodDefinition^ CreateInsElement(ModuleDefinition^ module);
+	[LibMethod(krnln_method::字符, EMethodMode::Embed)]
+	MethodDefinition^ CreateChr(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到大写, EMethodMode::Embed)]
+	MethodDefinition^ CreateUCase(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到小写, EMethodMode::Embed)]
+	MethodDefinition^ CreateLCase(ModuleDefinition^ module);
+	[LibMethod(krnln_method::删首空, EMethodMode::Embed)]
+	MethodDefinition^ CreateLTrim(ModuleDefinition^ module);
+	[LibMethod(krnln_method::删尾空, EMethodMode::Embed)]
+	MethodDefinition^ CreateRTrim(ModuleDefinition^ module);
+	[LibMethod(krnln_method::删首尾空, EMethodMode::Embed)]
+	MethodDefinition^ CreateTrim(ModuleDefinition^ module);
+	[LibMethod(krnln_method::删全部空, EMethodMode::Embed)]
+	MethodDefinition^ CreateTrimAll(ModuleDefinition^ module);
+	[LibMethod(krnln_method::文本比较, EMethodMode::Embed)]
+	MethodDefinition^ CreateStrComp(ModuleDefinition^ module);
+	[LibMethod(krnln_method::到时间, EMethodMode::Embed)]
+	MethodDefinition^ CreateToTime(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取某月天数, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetDaysOfSpecMonth(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取年份, EMethodMode::Embed)]
+	MethodDefinition^ CreateYear(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取月份, EMethodMode::Embed)]
+	MethodDefinition^ CreateMonth(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取日, EMethodMode::Embed)]
+	MethodDefinition^ CreateDay(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取星期几, EMethodMode::Embed)]
+	MethodDefinition^ CreateWeekDay(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取小时, EMethodMode::Embed)]
+	MethodDefinition^ CreateHour(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取分钟, EMethodMode::Embed)]
+	MethodDefinition^ CreateMinute(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取秒, EMethodMode::Embed)]
+	MethodDefinition^ CreateSecond(ModuleDefinition^ module);
+	[LibMethod(krnln_method::指定时间, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetSpecTime(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取现行时间, EMethodMode::Embed)]
+	MethodDefinition^ CreateNow(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取日期, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetDatePart(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取时间, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetTimePart(ModuleDefinition^ module);
 	[LibMethod(krnln_method::删除成员)]
 	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional][DefaultValue(1)]int 欲删除的成员数目);
 	[LibMethod(krnln_method::清除数组)]

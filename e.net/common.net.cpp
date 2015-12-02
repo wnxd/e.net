@@ -61,7 +61,7 @@ bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
 
 generic<typename T> void AddList(ICollection<T>^ list1, T item)
 {
-	if (!list1->Contains(item)) list1->Add(item);
+	if (item != nullptr && !list1->Contains(item)) list1->Add(item);
 }
 
 generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2)

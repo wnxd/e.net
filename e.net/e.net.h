@@ -136,8 +136,6 @@ private:
 	EVariableData^ CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);
 	ELibConstData^ CompileCode_LibConst(LIBCONST libconst);
 	void CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset, size_t& Index);
-	void LoadKrnln();
-	void LoadE_net();
 	EMethodReference^ GetMethodReference(short index, ETAG tag);
 	EMethodReference^ GetMethodReference(EMethodData^ methoddata, short index, ETAG tag);
 	TypeReference^ EDT2Type(DataType edt);

@@ -65,7 +65,7 @@ ref struct Package
 ref struct PluginInfo
 {
 	String^ Lib;
-	IDictionary<UINT, Package^>^ Packages;
+	IDictionary<UINT, IList<Package^>^>^ Packages;
 };
 
 ref class Plugins

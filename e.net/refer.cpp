@@ -3,6 +3,7 @@
 #include "common.net.h"
 #include "Plugins.h"
 #include "compile.h"
+#include "krnln.net.h"
 #include "refer.h"
 
 using namespace System::IO;
@@ -10,6 +11,7 @@ using namespace System::IO;
 extern INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
 extern EInfo* ParseEcode(byte* code);
 extern array<byte>^ ReadFile(String^ path);
+extern void AddModule(IList<ModuleReference^>^ modules, ModuleReference^ module);
 
 String^ GetMethodName(MethodReference^ method)
 {
@@ -46,7 +48,7 @@ bool EMethodData::operator==(EMethodData^ data)
 		if (b1) return true;
 		return this->Mode == data->Mode && this->Method == data->Method;
 	}
-	else return false;	
+	else return false;
 }
 
 bool EMethodData::operator!=(EMethodData^ data)
@@ -64,7 +66,7 @@ EMethodData::operator MethodDefinition ^ ()
 	return this->Method->Resolve();
 }
 
-CodeRefer::CodeRefer(ModuleDefinition^ module)
+CodeRefer::CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list)
 {
 	this->_module = module;
 	this->_type = gcnew Dictionary<String^, TypeDefinition^>();
@@ -79,6 +81,9 @@ CodeRefer::CodeRefer(ModuleDefinition^ module)
 	this->_globalvar = gcnew Dictionary<UINT, FieldDefinition^>();
 	this->_prop = gcnew Dictionary<UINT, PropertyDefinition^>();
 	this->_eclist = gcnew List<ECListInfo^>();
+	this->_elib = gcnew List<ELibInfo^>(list);
+	this->_elibinfo = gcnew List<PluginInfo^>();
+	this->LoadKrnln();
 }
 
 CodeRefer::~CodeRefer()
@@ -323,4 +328,38 @@ PropertyDefinition^ CodeRefer::FindProperty(ETAG tag)
 {
 	if (this->_prop->ContainsKey(tag)) return this->_prop[tag];
 	return nullptr;
+}
+
+EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
+{
+	if (index < 0 && index >= this->_elib->Count) return nullptr;
+	ELibInfo^ libinfo = this->_elib[index];
+	for each (PluginInfo^ info in this->_elibinfo)
+	{
+		if (info->Lib == libinfo->Guid && info->Packages->ContainsKey(tag))
+		{
+			for each (Package^ package in info->Packages[tag])
+			{
+				for each (ModuleReference^ m in package->Refers) AddModule(this->_module->ModuleReferences, m);
+				EMethodData^ data = gcnew EMethodData(package->Methods[0], package->Mode);
+				this->AddMethodRefer(index, tag, data);
+				if (package->Mode != EMethodMode::Embed)
+				{
+					TypeDefinition^ global = this->_module->GetType("<Module>");
+					for each (MethodDefinition^ method in package->Methods) AddList(global->Methods, method);
+					if (package->Types != nullptr) for each (TypeDefinition^ type in package->Types) AddList(this->_module->Types, type);
+				}
+			}
+			return this->FindMethodRefer(index, tag);
+		}
+	}
+
+
+	return nullptr;
+}
+
+void CodeRefer::LoadKrnln()
+{
+	PluginInfo^ info = Plugins::Load(this->_module, typeof(Krnln));
+	AddList(this->_elibinfo, info);
 }
