@@ -16,7 +16,7 @@ String^ GetMethodName(MethodReference^ method)
 {
 	String^ fullname;
 	TypeReference^ type = method->DeclaringType;
-	if (type != nullptr) fullname = type->FullName + (method->HasThis ? "." : ":") + method->Name;
+	if (type != nullptr) fullname = type->FullName->Replace("/", ".") + (method->HasThis ? "." : ":") + method->Name;
 	else fullname = "<Module>:" + method->Name;
 	return fullname;
 }
@@ -103,14 +103,15 @@ void CodeRefer::AddTypeRefer(ETAG tag, TypeReference^ type)
 {
 	if (!this->_typerefername->ContainsKey(tag))
 	{
-		this->_typerefername->Add(tag, type->FullName);
-		if (!this->_typerefer->ContainsKey(type->FullName)) this->_typerefer->Add(type->FullName, type);
+		String^ fullname = type->FullName->Replace("/", ".");
+		this->_typerefername->Add(tag, fullname);
+		if (!this->_typerefer->ContainsKey(fullname)) this->_typerefer->Add(fullname, type);
 	}
 }
 
 void CodeRefer::AddTypeRefer(ETAG tag, String^ fullname)
 {
-	if (!this->_typerefername->ContainsKey(tag)) this->_typerefername->Add(tag, fullname);
+	if (!this->_typerefername->ContainsKey(tag)) this->_typerefername->Add(tag, fullname->Replace("/", "."));
 }
 
 void CodeRefer::AddReferList(IEnumerable<String^>^ list)
@@ -121,7 +122,7 @@ void CodeRefer::AddReferList(IEnumerable<String^>^ list)
 void CodeRefer::AddReferList(String^ refer)
 {
 	ModuleDefinition^ module = ModuleDefinition::ReadModule(refer);
-	for each (TypeDefinition^ type in module->GetTypes()) if (type->IsPublic && !(type->IsGenericParameter || type->IsGenericInstance)) this->_typerefer->Add(type->FullName, type);
+	for each (TypeDefinition^ type in module->GetTypes()) if ((type->IsPublic || type->IsNestedPublic) && !(type->IsGenericParameter || type->IsGenericInstance)) AddItem<String^, TypeReference^>(this->_typerefer, type->FullName->Replace("/", "."), type);
 }
 
 void CodeRefer::AddMethodRefer(short index, ETAG tag, EMethodData^ method)

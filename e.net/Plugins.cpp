@@ -157,7 +157,7 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, ModuleDefinition^ M, Met
 		Dictionary<VariableDefinition^, VariableDefinition^>^ vars = gcnew Dictionary<VariableDefinition^, VariableDefinition^>();
 		if (method->Body->HasVariables)
 		{
-			m->Body->InitLocals = method->Body->Variables->Count > 0;
+			m->Body->InitLocals = method->Body->InitLocals;
 			for each (VariableDefinition^ var in method->Body->Variables)
 			{
 				VariableDefinition^ v = gcnew VariableDefinition(var->Name, GetTypeReference(m, module, M, var->VariableType));

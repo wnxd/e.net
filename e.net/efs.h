@@ -120,7 +120,6 @@ struct ETAG
 	ETYPE Type2;
 	ETAG();
 	ETAG(UINT uint);
-	ETAG* operator=(UINT uint);
 	bool operator==(ETAG tag);
 	bool operator!=(ETAG tag);
 	bool operator==(UINT uint);
@@ -142,8 +141,8 @@ struct LIBCONST
 
 struct EFieldInfo
 {
-	ETAG Class;
 	ETAG Field;
+	ETAG Class;
 	EFieldInfo();
 	EFieldInfo(UINT64 uint);
 	operator UINT64();

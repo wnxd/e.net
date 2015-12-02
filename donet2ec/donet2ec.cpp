@@ -344,9 +344,9 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 	Dictionary<String^, TreeInfo^>^ tree = gcnew Dictionary<String^, TreeInfo^>();
 	for each (Type^ T in types)
 	{
-		if (T->IsPublic && !T->IsGenericType)
+		if (!T->IsGenericType && (T->IsPublic || T->IsNestedPublic))
 		{
-			if (T->IsClass)
+			if (T->IsClass || T->IsInterface)
 			{
 				ETAG etag = GetTagID();
 				etag.Type2 = ETYPE::Class;
@@ -476,7 +476,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				toi->mode = TypeOffsetInfoMode::Method;
 				typeoffsetList->Add(toi);
 				typedata.write(C(&null), 4);
-				name = T->FullName;
+				name = T->FullName->Replace("+", ".");
 				lpstr = String2LPSTR(name);
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
@@ -674,7 +674,7 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				int offset = structdata.pcount();
 				structhead2.write(C(&offset), 4);
 				structdata.write(C(&_true), 4);
-				String^ name = T->FullName;
+				String^ name = T->FullName->Replace("+", ".");
 				char* lpstr = String2LPSTR(name);
 				len = strlen(lpstr);
 				structdata.write(C(&len), 4);

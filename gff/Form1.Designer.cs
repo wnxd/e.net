@@ -32,10 +32,10 @@
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.listBox2 = new System.Windows.Forms.ListBox();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.add = new System.Windows.Forms.ToolStripMenuItem();
             this.delete = new System.Windows.Forms.ToolStripMenuItem();
             this.button1 = new System.Windows.Forms.Button();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.add = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -64,12 +64,19 @@
             this.add,
             this.delete});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(153, 70);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(101, 48);
+            // 
+            // add
+            // 
+            this.add.Name = "add";
+            this.add.Size = new System.Drawing.Size(100, 22);
+            this.add.Text = "添加";
+            this.add.Click += new System.EventHandler(this.add_Click);
             // 
             // delete
             // 
             this.delete.Name = "delete";
-            this.delete.Size = new System.Drawing.Size(152, 22);
+            this.delete.Size = new System.Drawing.Size(100, 22);
             this.delete.Text = "删除";
             this.delete.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
             // 
@@ -87,13 +94,6 @@
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
-            // add
-            // 
-            this.add.Name = "add";
-            this.add.Size = new System.Drawing.Size(152, 22);
-            this.add.Text = "添加";
-            this.add.Click += new System.EventHandler(this.add_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -104,6 +104,7 @@
             this.Controls.Add(this.listBox1);
             this.MaximizeBox = false;
             this.Name = "Form1";
+            this.TopMost = true;
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.contextMenuStrip1.ResumeLayout(false);

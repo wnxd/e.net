@@ -11,12 +11,6 @@ ETAG::ETAG(UINT uint)
 	memcpy(this, &uint, sizeof(UINT));
 }
 
-ETAG* ETAG::operator=(UINT uint)
-{
-	memcpy(this, &uint, sizeof(UINT));
-	return this;
-}
-
 bool ETAG::operator==(ETAG tag)
 {
 	return *this == ETAG2UINT(tag);
@@ -85,7 +79,7 @@ EFieldInfo::EFieldInfo()
 
 EFieldInfo::EFieldInfo(UINT64 uint64)
 {
-	memcpy(&uint64, this, sizeof(UINT64));
+	memcpy(this, &uint64, sizeof(UINT64));
 }
 
 EFieldInfo::operator UINT64()
@@ -279,7 +273,7 @@ vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_
 			else
 			{
 				ESection_TagStatus status = FindInfo(tagstatus, spa.Tag);
-				if (status != NULL && status.Status == ETagStatus::C_Extern) goto referadd;
+				if (status != NULL && (status.Status & ETagStatus::C_Extern) == ETagStatus::C_Extern) goto referadd;
 				else goto add;
 			}
 		}

@@ -36,7 +36,7 @@ bool operator==(TypeReference^ type1, TypeReference^ type2)
 	if (b1 == b2)
 	{
 		if (b1) return true;
-		return type1->FullName == type2->FullName;
+		return type1->FullName->Replace("/", ".") == type2->FullName->Replace("/", ".");
 	}
 	else return false;
 }
@@ -51,9 +51,15 @@ bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
 	else if (type1 == type2) return true;
 	else
 	{
+		if (type1->IsByReference)
+		{
+			type1 = dynamic_cast<ByReferenceType^>(type1)->ElementType;
+			if (type1 == type2) return true;
+		}
+		TypeDefinition^ type = type1->Resolve();
+		for each (TypeReference^ t in type->Interfaces) if (IsAssignableFrom(t, type2)) return true;
 		if (type1->IsArray) type1 = type1->Module->ImportReference(typeof(Array));
-		else if (type1->IsByReference) type1 = dynamic_cast<ByReferenceType^>(type1)->ElementType;
-		else type1 = type1->Resolve()->BaseType;
+		else type1 = type->BaseType;
 		if (type1 == nullptr) return false;
 		return IsAssignableFrom(type1, type2);
 	}
@@ -91,4 +97,9 @@ generic<typename T1, typename T2> void AddDictionary(IDictionary<T1, IList<T2>^>
 		dictionary->Add(key, list);
 	}
 	AddList(list, item);
+}
+
+generic<typename T1, typename T2> void AddItem(IDictionary<T1, T2>^ dictionary, T1 key, T2 item)
+{
+	if (key != nullptr && item != nullptr && !dictionary->ContainsKey(key)) dictionary->Add(key, item);
 }

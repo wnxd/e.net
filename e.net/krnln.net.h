@@ -4,6 +4,7 @@
 
 using namespace System;
 using namespace System::Collections::Generic;
+using namespace System::Windows::Forms;
 using namespace Mono::Cecil;
 using namespace Mono::Cecil::Cil;
 using namespace wnxd::E_NET;
@@ -90,6 +91,9 @@ enum krnln_method : UINT
 	倒找字节集 = 0x6C,
 	字节集替换 = 0x6D,
 	子字节集替换 = 0x6E,
+	取空白字节集 = 0x6F,
+	取重复字节集 = 0x70,
+	分割字节集 = 0x71,
 	数值到大写 = 0x72,
 	数值到金额 = 0x73,
 	数值到格式文本 = 0x74,
@@ -110,9 +114,14 @@ enum krnln_method : UINT
 	指定时间 = 0x83,
 	取现行时间 = 0x84,
 	置现行时间 = 0x85,
+	信息框 = 0xC0,
+	取启动时间 = 0xC2,
+	延时 = 0x019F,
 	取日期 = 0x022F,
 	取时间 = 0x0230,
 	数组清零 = 0x0231,
+	标准输出 = 0x0241,
+	标准输入 = 0x0242,
 	到字节 = 0x0275,
 	到短整数 = 0x0276,
 	到整数 = 0x0277,
@@ -122,9 +131,6 @@ enum krnln_method : UINT
 	右移 = 0x027F,
 	十六进制 = 0x029A,
 	二进制 = 0x029B,
-
-	取空白字节集,
-	取重复字节集,
 };
 
 [LibGuid(KRNLN)]
@@ -304,8 +310,14 @@ ref class Krnln : Plugin
 	MethodDefinition^ CreateBinary(ModuleDefinition^ module);
 	[LibMethod(krnln_method::取空白字节集, EMethodMode::Embed)]
 	MethodDefinition^ CreateSpaceBin(ModuleDefinition^ module);
+	[LibMethod(krnln_method::取启动时间, EMethodMode::Embed)]
+	MethodDefinition^ CreateGetTickCount(ModuleDefinition^ module);
+	[LibMethod(krnln_method::延时, EMethodMode::Embed)]
+	MethodDefinition^ CreateSleep(ModuleDefinition^ module);
 	[LibMethod(krnln_method::相加)]
 	static array<byte>^ 相加(array<byte>^ 被加字节集, ...array<array<byte>^>^ 加字节集);
+	[LibMethod(krnln_method::到文本)]
+	static String^ 到文本(array<byte>^ 待转换的数据);
 	[LibMethod(krnln_method::删除成员)]
 	static int 删除成员([Out]Array^% 欲删除成员的数组变量, int 欲删除的位置, [Optional][DefaultValue(1)]int 欲删除的成员数目);
 	[LibMethod(krnln_method::清除数组)]
@@ -398,4 +410,12 @@ ref class Krnln : Plugin
 	static array<byte>^ 子字节集替换(array<byte>^ 欲被替换的字节集, array<byte>^ 欲被替换的子字节集, [Optional]array<byte>^ 用作替换的子字节集, [Optional][DefaultValue(1)]int 进行替换的起始位置, [Optional]int 替换进行的次数);
 	[LibMethod(krnln_method::取重复字节集)]
 	static array<byte>^ 取重复字节集(int 重复次数, array<byte>^ 待重复的字节集);
+	[LibMethod(krnln_method::分割字节集)]
+	static array<array<byte>^>^ 分割字节集(array<byte>^ 待分割字节集, [Optional]array<byte>^ 用作分割的字节集, [Optional]int 要返回的子字节集数目);
+	[LibMethod(krnln_method::信息框)]
+	static int 信息框(Object^ 提示信息, int 按钮, [Optional]String^ 窗口标题, [Optional]IWin32Window^ 父窗口);
+	[LibMethod(krnln_method::标准输出)]
+	static void 标准输出([Optional][DefaultValue(1)]int 输出方向, ...array<Object^>^ 欲输出内容);
+	[LibMethod(krnln_method::标准输入)]
+	static String^ 标准输入([Optional][DefaultValue(true)]bool 是否回显);
 };

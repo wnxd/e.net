@@ -26,6 +26,19 @@ String^ DotDecode(String^ str)
 	return str;
 }
 
+float GetMainTrait(MethodDefinition^ method)
+{
+	if (method == nullptr) return 0;
+	float trait = 0;
+	if (method->Name == "Main") trait += 1;
+	else if (method->Name == "_启动子程序") trait += 0.5;
+	else return 0;
+	ModuleDefinition^ module = method->Module;
+	if (method->Parameters->Count == 0) trait += 0.5;
+	else if (method->Parameters->Count == 1) if (method->Parameters[0]->ParameterType == gcnew ArrayType(module->TypeSystem->String)) trait += 1;
+	return trait;
+}
+
 array<byte>^ ReadFile(String^ path)
 {
 	if (String::IsNullOrEmpty(path)) return nullptr;
@@ -145,7 +158,7 @@ MethodDefinition^ FindMethod(TypeDefinition^ type, String^ name, bool isstatic, 
 	{
 		if (method->Name == name && method->IsStatic == isstatic)
 		{
-			if (params != nullptr && params->Count > 0)
+			if (params != nullptr)
 			{
 				if (method->Parameters->Count != params->Count) continue;
 				for (int i = 0; i < method->Parameters->Count; i++) if (method->Parameters[i]->ParameterType != params[i]) goto _continue;
@@ -166,7 +179,15 @@ MethodDefinition^ FindMethod(TypeDefinition^ type, UINT token)
 List<MethodDefinition^>^ FindAllMethod(TypeDefinition^ type, String^ name, bool isstatic)
 {
 	List<MethodDefinition^>^ list = gcnew List<MethodDefinition^>();
-	for each (MethodDefinition^ method in type->Methods) if (method->IsStatic == isstatic && method->Name == name) list->Add(method);
+	do
+	{
+		for each (MethodDefinition^ method in type->Methods) if (method->IsStatic == isstatic && method->Name == name) list->Add(method);
+		TypeReference^ t;
+		if (type->IsArray) t = type->Module->ImportReference(typeof(Array));
+		else t = type->BaseType;
+		if (t == nullptr) break;
+		type = t->Resolve();
+	} while (true);
 	return list;
 }
 
@@ -552,11 +573,8 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 					}
 				}
 				type->Methods->Add(method);
-				if (method->Name == "Main")
-				{
-					if (module->EntryPoint == nullptr) module->EntryPoint = method;
-					else if (module->EntryPoint->Parameters->Count == 1 && module->EntryPoint->Parameters[0]->ParameterType == this->Type_StrArr) module->EntryPoint = method;
-				}
+				float trait = GetMainTrait(method);
+				if (trait > 0) if (trait > GetMainTrait(module->EntryPoint)) module->EntryPoint = method;
 				EMethodData^ md = gcnew EMethodData(method, ctor ? EMethodMode::Newobj : EMethodMode::Call);
 				this->_CodeRefer->AddMethodRefer(CUSTOM, tag, md);
 			}
@@ -741,7 +759,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			{
 				MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 				EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
-				if (vardata == nullptr) throw  Error(mr->Name, "使用了未知类");
+				if (vardata == nullptr) throw Error(mr->Name, "使用了未知类");
 				thistype = vardata->Type;
 				headcode = t->Body->Instructions;
 			}
@@ -819,7 +837,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 							EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
-							if (vardata == nullptr || vardata->VariableType == EVariableType::DoNET) throw  Error(mr->Name, "参数" + params->Count + "类型错误");
+							if (vardata == nullptr || vardata->VariableType == EVariableType::DoNET) throw Error(mr->Name, "参数" + params->Count + "类型错误");
 							IList<Instruction^>^ code;
 							if (mr->Tag == krnln_method::赋值 && params->Count == 0)
 							{
@@ -851,7 +869,8 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 								{
 									param->DataType = EParamDataType::Property;
 									PropertyDefinition^ p = (PropertyDefinition^)vardata->Data;
-									lastins->Operand = p->SetMethod;
+									lastins->Operand = module->ImportReference(p->SetMethod);
+									break;
 								}
 								case EVariableType::GlobalField:
 									param->DataType = EParamDataType::GlobalField;
@@ -1454,7 +1473,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										m->Parameters->Add(this->Nullable_Ctor->Parameters[0]);
 										AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(m));
 									}
-									else if (!item->IsAddress && param->Type->IsValueType && item->OriginalType == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
+									else if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, param->Type);
 								}
 								i++;
 								ii++;
@@ -1735,7 +1754,7 @@ varend:
 					}
 					else this->_CodeRefer->AddField(var.Tag, fd);
 				}
-				if (fd == nullptr)
+				if (pd == nullptr)
 				{
 					vardata->VariableType = EVariableType::Field;
 					vardata->Type = fd->FieldType;
