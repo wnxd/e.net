@@ -99,6 +99,7 @@
     <ClInclude Include="e.net.h" />
     <ClInclude Include="efs.h" />
     <ClInclude Include="elib.h" />
+    <ClInclude Include="e_net.net.h" />
     <ClInclude Include="krnln.net.h" />
     <ClInclude Include="Plugins.h" />
     <ClInclude Include="refer.h" />
@@ -127,6 +128,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="e_net.net.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="krnln.net.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

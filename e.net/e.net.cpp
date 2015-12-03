@@ -6,14 +6,13 @@
 #include "krnln.net.h"
 #include "refer.h"
 #include "e.net.h"
+#include "e_net.net.h"
 
 using namespace std;
 using namespace System::IO;
 using namespace System::Windows::Forms;
 using namespace System::Runtime::CompilerServices;
 using namespace System::Text::RegularExpressions;
-
-#define E_NET LI_LIB_GUID_STR
 
 extern "C" PLIB_INFO WINAPI GetNewInf();
 extern String^ GetMethodName(MethodReference^ method);
@@ -304,9 +303,6 @@ bool ECompile::CompileHead()
 			break;
 		}
 		this->_assembly = AssemblyDefinition::CreateAssembly(name, str, mp);
-		short id;
-		this->_CodeProcess->FindLibrary(E_NET, id);
-		this->e_net_id = id;
 		return true;
 	}
 	catch (Exception^ ex)
@@ -328,16 +324,19 @@ bool ECompile::CompileRefer()
 			this->_refer = gcnew array < String^ > { mscorlib };
 		}
 		List<ELibInfo^>^ libs = gcnew List<ELibInfo^>();
-		for each (ESection_Library lib in this->_CodeProcess->GetLibraries())
+		this->krnln_id = -1;
+		this->e_net_id = -1;
+		vector<ESection_Library> arr = this->_CodeProcess->GetLibraries();
+		for (int i = 0; i < arr.size(); i++)
 		{
+			ESection_Library lib = arr[i];
 			ELibInfo^ info = gcnew ELibInfo();
-			info->Name = CStr2String(lib.FileName)->ToLower();
+			info->Name = CStr2String(lib.FileName);
 			info->Guid = CStr2String(lib.Guid);
 			libs->Add(info);
+			if (String::Equals(info->Guid, KRNLN, StringComparison::CurrentCultureIgnoreCase)) this->krnln_id = i;
+			else if (String::Equals(info->Guid, E_NET, StringComparison::CurrentCultureIgnoreCase)) this->e_net_id = i;
 		}
-		short i;
-		this->_CodeProcess->FindLibrary(KRNLN, i);
-		this->krnln_id = i;
 		this->_CodeRefer = gcnew CodeRefer(module, libs);
 		this->_CodeRefer->AddReferList(this->_refer);
 		List<String^>^ list = gcnew List<String^>();
@@ -448,6 +447,7 @@ bool ECompile::CompileClass()
 			{
 				FieldAttributes attr;
 				if (var.Remark == "public") attr = FieldAttributes::Public;
+				else attr = FieldAttributes::Private;
 				if (isstatic) attr = attr | FieldAttributes::Static;
 				TypeReference^ t = this->EDT2Type(var.DataType);
 				if (var.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, var.ArrayInfo.Dimension);
@@ -761,7 +761,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 				EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
 				if (vardata == nullptr) throw Error(mr->Name, "使用了未知类");
 				thistype = vardata->Type;
-				headcode = t->Body->Instructions;
+				if (vardata->VariableType != EVariableType::DoNET) headcode = t->Body->Instructions;
 			}
 			else if (!staticmethod)
 			{
@@ -837,7 +837,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 							EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
-							if (vardata == nullptr || vardata->VariableType == EVariableType::DoNET) throw Error(mr->Name, "参数" + params->Count + "类型错误");
+							if (vardata == nullptr) throw Error(mr->Name, "参数" + params->Count + "类型错误");
 							IList<Instruction^>^ code;
 							if (mr->Tag == krnln_method::赋值 && params->Count == 0)
 							{
@@ -911,6 +911,10 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									break;
 								case EVariableType::Array:
 									param->DataType = EParamDataType::Array;
+									break;
+								case EVariableType::Method:
+								case EVariableType::DoNET:
+									param->DataType = EParamDataType::IL;
 									break;
 								}
 								code = t->Body->Instructions;
@@ -1510,6 +1514,24 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					break;
 				}
 				}
+				if (LibID == this->e_net_id && etag == e_net_method::实例化)
+				{
+					EParamData^ param = params[0];
+					IList<Instruction^>^ code = dynamic_cast<IList<Instruction^>^>(param->Data);
+					if (code != nullptr && code->Count > 0)
+					{
+						Instruction^ ins = code[0];
+						if (ins->OpCode == OpCodes::Ldtoken)
+						{
+							TypeReference^ type = dynamic_cast<TypeReference^>(ins->Operand);
+							if (type != nullptr)
+							{
+								mr->ReturnType = type;
+								AddILCode(ILProcessor, OpCodes::Unbox_Any, type);
+							}
+						}
+					}
+				}
 				return mr->ReturnType;
 			}
 		}
@@ -1547,6 +1569,7 @@ EVariableData^ ECompile::CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ I
 				MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
 				EVariableData^ tvd = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
 				if (tvd == nullptr || tvd->VariableType == EVariableType::DoNET || (tvd->Type != module->TypeSystem->Byte && tvd->Type != module->TypeSystem->Int16 && tvd->Type != module->TypeSystem->Int32 && tvd->Type != module->TypeSystem->Int64)) return nullptr;
+				tvi->Type = tvd->Type;
 				tvi->IndexData = t->Body->Instructions;
 				break;
 			}
@@ -1554,8 +1577,7 @@ EVariableData^ ECompile::CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ I
 			{
 				tvi->IndexType = EIndexType::Method;
 				MethodDefinition^ t = CreateMethod("tmp", module->TypeSystem->Void);
-				TypeReference^ ttype = this->CompileCode_Call(MethodInfo, t->Body->GetILProcessor(), Code, End);
-				if (ttype != module->TypeSystem->Byte && ttype != module->TypeSystem->Int16 && ttype != module->TypeSystem->Int32 && ttype != module->TypeSystem->Int64) return nullptr;
+				tvi->Type = this->CompileCode_Call(MethodInfo, t->Body->GetILProcessor(), Code, End);
 				tvi->IndexData = t->Body->Instructions;
 				break;
 			}
@@ -1580,7 +1602,9 @@ varend:
 	FieldDefinition^ f;
 	FieldDefinition^ g;
 	PropertyDefinition^ pp;
+	ESection_Program_Assembly assembly = NULL;
 	bool donetnp = false;
+	bool chain = false;
 	switch (tag.Type2)
 	{
 	case Variable:
@@ -1595,20 +1619,29 @@ varend:
 		if (g == nullptr)
 		{
 			ESection_Variable gv = this->_CodeProcess->FindGlobalVariable(tag);
-			if (gv != NULL && (gv.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
+			if (gv != NULL)
 			{
-				vector<string> arr = split(gv.Remark, SP);
-				if (arr[0] == DONET_CLASS || arr[0] == DONET_NAMESPACE) donetnp = true;
-				else
+				if ((gv.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
 				{
-					TypeReference^ t = this->EDT2Type(gv.DataType);
-					if (gv.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, gv.ArrayInfo.Dimension);
-					g = gcnew FieldDefinition(CStr2String(gv.Name), FieldAttributes::Static, t);
-					TypeDefinition^ global = module->GetType("<Module>");
-					global->Fields->Add(g);
-					this->_CodeRefer->AddGlobalVariable(gv.Tag, g);
+					vector<string> arr = split(gv.Remark, SP);
+					if (arr[0] == DONET_NAMESPACE) donetnp = true;
+					else if (arr[0] == DONET_CLASS)
+					{
+						assembly = this->_CodeProcess->FindReferAssembly(tag);
+						goto donet;
+					}
+					else
+					{
+						TypeReference^ t = this->EDT2Type(gv.DataType);
+						if (gv.ArrayInfo.Dimension > 0) t = gcnew ArrayType(t, gv.ArrayInfo.Dimension);
+						g = gcnew FieldDefinition(CStr2String(gv.Name), FieldAttributes::Static, t);
+						TypeDefinition^ global = module->GetType("<Module>");
+						global->Fields->Add(g);
+						this->_CodeRefer->AddGlobalVariable(gv.Tag, g);
+					}
 				}
 			}
+			else if (varindex->Count > 0) chain = true;
 		}
 		break;
 	}
@@ -1657,11 +1690,27 @@ varend:
 			vardata->Data = g;
 		}
 	}
-	else
+	else if (!chain)
 	{
-		if (donetnp)
+		if (donetnp && varindex->Count > 0)
 		{
+			EVariableIndex^ lastitem = varindex[varindex->Count - 1];
+			EFieldInfo fi = (UINT64)lastitem->IndexData;
+			assembly = this->_CodeProcess->FindReferStruct(fi.Class);
+			if (assembly == NULL) return nullptr;
+			{
+				ESection_Variable var = assembly.FindField(fi.Field);
+				if (var == NULL) return nullptr;
+				assembly = this->_CodeProcess->FindReferAssembly(var.DataType);
+			}
+		donet:
+			if (assembly == NULL) return nullptr;
+			vector<string> arr = split(assembly.Remark, SP);
+			if (arr[0] != DONET_CLASS) return nullptr;
+			vardata->Type = module->ImportReference(typeof(RuntimeTypeHandle));
+			TypeReference^ type = this->_CodeRefer->FindTypeRefer(CStr2String(arr[1]));
 			vardata->VariableType = EVariableType::DoNET;
+			AddILCode(ILProcessor, OpCodes::Ldtoken, module->ImportReference(type));
 			return vardata;
 		}
 		else return nullptr;
@@ -1675,58 +1724,71 @@ varend:
 			{
 			case EIndexType::Array:
 			{
-				ArrayType^ arrtype = dynamic_cast<ArrayType^>(vardata->Type);
-				if (arrtype == nullptr) return nullptr;
-				vardata->VariableType = EVariableType::Array;
-				vardata->Type = arrtype->ElementType;
-				vardata->Data = arrtype;
-				size_t ii = 0;
-				do
+				if (chain)
 				{
 					item = (EVariableIndex^)item->IndexData;
-					switch (item->IndexType)
+					if (item->IndexType != EIndexType::Method) return nullptr;
+					IList<Instruction^>^ code = (IList<Instruction^>^)item->IndexData;
+					for each (Instruction^ ins in code) ILProcessor->Append(ins);
+					vardata->VariableType = EVariableType::Method;
+					vardata->Type = item->Type;
+				}
+				else
+				{
+					ArrayType^ arrtype = dynamic_cast<ArrayType^>(vardata->Type);
+					if (arrtype == nullptr) return nullptr;
+					vardata->VariableType = EVariableType::Array;
+					vardata->Type = arrtype->ElementType;
+					vardata->Data = arrtype;
+					size_t ii = 0;
+					do
 					{
-					case EIndexType::Number:
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->IndexData);
-						break;
-					case EIndexType::Var:
-					case EIndexType::Method:
-					{
-						IList<Instruction^>^ tcode = (IList<Instruction^>^)item->IndexData;
-						for each (Instruction^ ins in tcode) ILProcessor->Append(ins);
-						break;
-					}
-					}
-					if (ii > 0)
-					{
-						AddILCode(ILProcessor, OpCodes::Mul);
-						goto next;
-
-					}
-					else if (dynamic_cast<ArrayType^>(vardata->Type)) break;
-					else
-					{
-					next:
-						if (varindex->Count > i + 1)
+						item = (EVariableIndex^)item->IndexData;
+						switch (item->IndexType)
 						{
-							item = varindex[i + 1];
-							if (item->IndexType != EIndexType::Array) break;
-							i++;
+						case EIndexType::Number:
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->IndexData);
+							break;
+						case EIndexType::Var:
+						case EIndexType::Method:
+						{
+							if (item->Type != module->TypeSystem->Byte && item->Type != module->TypeSystem->Int16 && item->Type != module->TypeSystem->Int32 && item->Type != module->TypeSystem->Int64) return nullptr;
+							IList<Instruction^>^ tcode = (IList<Instruction^>^)item->IndexData;
+							for each (Instruction^ ins in tcode) ILProcessor->Append(ins);
+							break;
 						}
-						else break;
-					}
-					ii++;
-				} while (true);
-				AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-				AddILCode(ILProcessor, OpCodes::Sub);
-				if (vardata->Type == module->TypeSystem->Byte) AddILCode(ILProcessor, OpCodes::Ldelem_I1);
-				else if (vardata->Type == module->TypeSystem->Int16) AddILCode(ILProcessor, OpCodes::Ldelem_I2);
-				else if (vardata->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldelem_I4);
-				else if (vardata->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldelem_I8);
-				else if (vardata->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldelem_R4);
-				else if (vardata->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldelem_R8);
-				else if (vardata->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldelem_I);
-				else AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
+						}
+						if (ii > 0)
+						{
+							AddILCode(ILProcessor, OpCodes::Mul);
+							goto next;
+
+						}
+						else if (dynamic_cast<ArrayType^>(vardata->Type)) break;
+						else
+						{
+						next:
+							if (varindex->Count > i + 1)
+							{
+								item = varindex[i + 1];
+								if (item->IndexType != EIndexType::Array) break;
+								i++;
+							}
+							else break;
+						}
+						ii++;
+					} while (true);
+					AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+					AddILCode(ILProcessor, OpCodes::Sub);
+					if (vardata->Type == module->TypeSystem->Byte) AddILCode(ILProcessor, OpCodes::Ldelem_I1);
+					else if (vardata->Type == module->TypeSystem->Int16) AddILCode(ILProcessor, OpCodes::Ldelem_I2);
+					else if (vardata->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldelem_I4);
+					else if (vardata->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldelem_I8);
+					else if (vardata->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldelem_R4);
+					else if (vardata->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldelem_R8);
+					else if (vardata->Type == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldelem_I);
+					else AddILCode(ILProcessor, OpCodes::Ldelem_Ref);
+				}
 				break;
 			}
 			case EIndexType::Field:

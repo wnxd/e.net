@@ -174,15 +174,6 @@ struct ETAG
 	operator ECode_Method();
 };
 
-struct EFieldInfo
-{
-	ETAG Class;
-	ETAG Field;
-	EFieldInfo();
-	EFieldInfo(UINT64 uint);
-	operator UINT64();
-};
-
 struct EFile_Header
 {
 	byte Magic1[4];
@@ -284,15 +275,6 @@ struct ESection_Program_Method
 	ESection_Program_Method(nullptr_t);
 	bool operator==(nullptr_t);
 	bool operator!=(nullptr_t);
-};
-
-struct ESection_Program
-{
-	vector<string> Libraries;
-	vector<ESection_Program_Assembly> Assemblies;
-	vector<ESection_Program_Method> Methods;
-	vector<ESection_Variable> GlobalVariables;
-	vector<ESection_Program_Assembly> Structs;
 };
 
 struct ESection_TagStatus

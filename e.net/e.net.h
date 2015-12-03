@@ -43,6 +43,7 @@ enum class EVariableType
 	Field,
 	Property,
 	GlobalField,
+	Method,
 	DoNET
 };
 
@@ -58,6 +59,7 @@ ref struct EVariableIndex
 {
 	EIndexType IndexType;
 	Object^ IndexData;
+	TypeReference^ Type;
 };
 
 ref struct EVariableData

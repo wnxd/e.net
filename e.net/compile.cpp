@@ -147,7 +147,7 @@ ESection_Library CodeProcess::FindLibrary(string name, short& i)
 {
 	vector<ESection_Library> libraries = this->GetLibraries();
 	size_t len = libraries.size();
-	for (i = 0; i < len; i++) if (libraries[i].Guid == name) return libraries[i];
+	for (i = 0; i < len; i++) if (stricmp(libraries[i].Guid.c_str(), name.c_str())) return libraries[i];
 	i = -1;
 	return NULL;
 }

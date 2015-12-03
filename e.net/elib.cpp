@@ -32,7 +32,7 @@ INT WINAPI notify_lib(INT nMsg, DWORD dwParam1, DWORD dwParam2)
 	}
 }
 
-static LIB_CONST_INFO s_const_info[] =
+LIB_CONST_INFO s_const_info[] =
 {
 	{ TEXT("空"), TEXT("null"), NULL, LVL_SIMPLE, CT_NULL, NULL, NULL }
 };
@@ -72,6 +72,46 @@ INT WINAPI addin_func(INT nAddInFnIndex)
 	return TRUE;
 }
 
+ARG_INFO s_ArgInfo[] =
+{
+	{
+		TEXT("类型"),
+		NULL,
+		0,
+		0,
+		_SDT_ALL,
+		0,
+		AS_RECEIVE_VAR
+	},
+	{
+		TEXT("参数"),
+		NULL,
+		0,
+		0,
+		_SDT_ALL,
+		0,
+		AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_ALL_TYPE_DATA
+	}
+};
+
+static CMD_INFO s_CmdInfo[] =
+{
+	{
+		TEXT("实例化"),
+		TEXT("new"),
+		TEXT("根据所传参数执行对象的相应构造函数"),
+		1,
+		CT_ALLOW_APPEND_NEW_ARG,
+		_SDT_ALL,
+		NULL,
+		LVL_SIMPLE,
+		0,
+		0,
+		2,
+		s_ArgInfo
+	}
+};
+
 static LIB_INFO s_lib_info =
 {
 	LIB_FORMAT_VER,
@@ -99,8 +139,8 @@ static LIB_INFO s_lib_info =
 	NULL,
 	1,
 	TEXT("0000.net命令\0"),
-	0,
-	NULL,
+	sizeof(s_CmdInfo) / sizeof(CMD_INFO),
+	s_CmdInfo,
 	NULL,
 	addin_func,
 	TEXT("e.net编译\0编译为.net程序\0DoNET引用\0修改当前源码引用\0\0"),

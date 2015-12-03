@@ -4,6 +4,7 @@
 #include "Plugins.h"
 #include "compile.h"
 #include "krnln.net.h"
+#include "e_net.net.h"
 #include "refer.h"
 
 using namespace System::IO;
@@ -83,6 +84,7 @@ CodeRefer::CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list)
 	this->_elib = gcnew List<ELibInfo^>(list);
 	this->_elibinfo = gcnew List<PluginInfo^>();
 	this->LoadKrnln();
+	this->LoadE_Net();
 }
 
 CodeRefer::~CodeRefer()
@@ -336,7 +338,7 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 	ELibInfo^ libinfo = this->_elib[index];
 	for each (PluginInfo^ info in this->_elibinfo)
 	{
-		if (info->Lib == libinfo->Guid && info->Packages->ContainsKey(tag))
+		if (String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->Packages->ContainsKey(tag))
 		{
 			for each (Package^ package in info->Packages[tag])
 			{
@@ -360,5 +362,11 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 void CodeRefer::LoadKrnln()
 {
 	PluginInfo^ info = Plugins::Load(this->_module, typeof(Krnln));
+	AddList(this->_elibinfo, info);
+}
+
+void CodeRefer::LoadE_Net()
+{
+	PluginInfo^ info = Plugins::Load(this->_module, typeof(E_Net));
 	AddList(this->_elibinfo, info);
 }

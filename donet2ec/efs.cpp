@@ -64,24 +64,6 @@ ETAG::operator ECode_Method()
 	return type;
 }
 
-EFieldInfo::EFieldInfo()
-{
-	this->Class = NULL;
-	this->Field = NULL;
-}
-
-EFieldInfo::EFieldInfo(UINT64 uint64)
-{
-	memcpy(&uint64, this, sizeof(UINT64));
-}
-
-EFieldInfo::operator UINT64()
-{
-	UINT64 uint64;
-	memcpy(&uint64, this, sizeof(UINT64));
-	return uint64;
-}
-
 ESection_Variable::ESection_Variable()
 {
 	this->Tag = NULL;
