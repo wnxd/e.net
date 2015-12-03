@@ -684,8 +684,14 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				structdata.write(C(&len), 4);
 				structdata.write(lpstr, len);
 				array<PropertyInfo^>^ plist = T->GetProperties(BINDING_INSTANCE);
-				array<FieldInfo^>^ flist = T->GetFields(BINDING_INSTANCE);
-				len = plist->Length + flist->Length;
+				List<FieldInfo^>^ flist = gcnew List<FieldInfo^>(T->GetFields(BINDING_INSTANCE));
+				for (int i = 0; i < flist->Count;)
+				{
+					FieldInfo^ field = flist[i];
+					if (field->IsSpecialName && field->Name == "value__") flist->Remove(field);
+					else i++;
+				}
+				len = plist->Length + flist->Count;
 				structdata.write(C(&len), 4);
 				if (len > 0)
 				{
