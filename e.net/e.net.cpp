@@ -770,7 +770,8 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			}
 			if (head == ECode_Type::ParamBegin || head == ECode_Type::ParameterBegin)
 			{
-				if (mr->Tag == krnln_method::返回) mr->Params[0]->Type = MethodInfo->Method->ReturnType;
+				if (LibID == this->krnln_id && mr->Tag == krnln_method::返回) 
+					mr->Params[0]->Type = MethodInfo->Method->ReturnType;
 				IList<EParamData^>^ params = gcnew List<EParamData^>();
 				do
 				{
@@ -839,7 +840,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							EVariableData^ vardata = this->CompileCode_Var(MethodInfo, t->Body->GetILProcessor(), Code, End);
 							if (vardata == nullptr) throw Error(mr->Name, "参数" + params->Count + "类型错误");
 							IList<Instruction^>^ code;
-							if (mr->Tag == krnln_method::赋值 && params->Count == 0)
+							if (LibID == this->krnln_id && mr->Tag == krnln_method::赋值 && params->Count == 0)
 							{
 								mr->Params[0]->Type = vardata->Type;
 								mr->Params[1]->Type = vardata->Type;
@@ -977,7 +978,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 						case ELibConstType::Null:
 							param->DataType = EParamDataType::Null;
-							if (mr->Tag == krnln_method::返回 && params->Count == 0) param->Type = MethodInfo->Method->ReturnType;
+							if (LibID == this->krnln_id && mr->Tag == krnln_method::返回 && params->Count == 0) param->Type = MethodInfo->Method->ReturnType;
 							break;
 						case ELibConstType::Num:
 							param->DataType = EParamDataType::Number;
@@ -995,7 +996,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					params->Add(param);
 				} while (Code < End);
 			paramend:
-				if (mr->Tag == krnln_method::重定义数组 && params->Count >= 3)
+				if (LibID == this->krnln_id && mr->Tag == krnln_method::重定义数组 && params->Count >= 3)
 				{
 					EParamData^ param = gcnew EParamData();
 					param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
@@ -1011,7 +1012,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 				{
 					String^ tagName = GetMethodName(mr->MethodData);
 					IList<EMethodData^>^ mdlist = nullptr;
-					if (!(LibID == krnln_id && (etag == krnln_method::赋值 || etag == krnln_method::返回))) mdlist = this->_CodeRefer->FindMethodList(tagName);
+					if (!(LibID == this->krnln_id && (etag == krnln_method::赋值 || etag == krnln_method::返回))) mdlist = this->_CodeRefer->FindMethodList(tagName);
 					IList<EMethodReference^>^ conform = gcnew List<EMethodReference^>();
 					if (mdlist != nullptr)
 					{
@@ -1083,7 +1084,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						{
 							if (i < mrparams->Length)
 							{
-								if (mrparams[i]->Type == tparams[i]->Type || IsAssignableFrom(tparams[i]->Type, mrparams[i]->Type))
+								if (mrparams[i]->Type == tparams[i]->Type)
 								{
 									similarity++;
 									satisfy++;
@@ -1093,7 +1094,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									similarity++;
 									satisfy++;
 								}
-								else if (mrparams[i]->Type == module->TypeSystem->Object)
+								else if (IsAssignableFrom(tparams[i]->Type, mrparams[i]->Type))
 								{
 									similarity += 0.45;
 									satisfy++;
@@ -1127,14 +1128,9 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									ArrayType^ arrtype = dynamic_cast<ArrayType^>(pi->Type);
 									if (arrtype != nullptr)
 									{
-										if (arrtype->ElementType == tparams[i]->Type || IsAssignableFrom(params[i]->Type, arrtype->ElementType))
+										if (arrtype->ElementType == tparams[i]->Type)
 										{
 											similarity++;
-											satisfy++;
-										}
-										else if (arrtype->ElementType == module->TypeSystem->Object)
-										{
-											similarity += 0.5;
 											satisfy++;
 										}
 										else if (arrtype->ElementType->IsValueType && tparams[i]->Type->IsValueType)
@@ -1154,6 +1150,11 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 												similarity += 0.5;
 												satisfy++;
 											}
+										}
+										else if (IsAssignableFrom(params[i]->Type, arrtype->ElementType))
+										{
+											similarity += 0.5;
+											satisfy++;
 										}
 									}
 								}
@@ -1196,7 +1197,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						}
 					}
 					md = mr->MethodData;
-					if (mr->Tag == krnln_method::赋值)
+					if (LibID == this->krnln_id && mr->Tag == krnln_method::赋值)
 					{
 						EParamInfo^ item = mr->Params[1];
 						EParamData^ param = params[1];
