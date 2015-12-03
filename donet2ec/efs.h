@@ -298,6 +298,7 @@ const byte KEY[4] = { 0x19, 0x73, 0x00, 0x07 };
 #define DONET "@donet"
 #define DONET_NAMESPACE "@namespace"
 #define DONET_CLASS "@class"
+#define DONET_ENUM "@enum"
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
 
 void Decode_Str(byte data[], const byte key[]);

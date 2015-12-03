@@ -325,6 +325,7 @@ const byte KEY[4] = { 25, 115, 0, 7 };
 #define DONET "@donet"
 #define DONET_NAMESPACE "@namespace"
 #define DONET_CLASS "@class"
+#define DONET_ENUM "@enum"
 #define REMAKE -1
 #define CUSTOM -2
 #define DLL -3

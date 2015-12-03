@@ -54,7 +54,7 @@ TreeInfo^ AddTreeInfo(Dictionary<String^, TreeInfo^>^ tree, Type^ type)
 			member = member[item]->Member;
 		}
 	}
-	if (!member->ContainsKey(type->Name)) member->Add(type->Name, gcnew TreeInfo(TreeType::ClassName));
+	if (!member->ContainsKey(type->Name)) member->Add(type->Name, gcnew TreeInfo(type->IsEnum ? TreeType::Enum : TreeType::ClassName));
 	return member[type->Name];
 }
 
@@ -170,6 +170,7 @@ UINT WriteTree(strstream& structhead, strstream& structoffset, strstream& struct
 			else tag = WriteTree(structhead, structoffset, structdata, name + "." + item->Key, item->Value->Member);
 			break;
 		case TreeType::ClassName:
+		case TreeType::Enum:
 			tag = item->Value->Tag;
 			break;
 		}
@@ -358,12 +359,11 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 				typehead2.write(C(&offset), 4);
 				typedata.write(C(&_true), 4);
 				typedata.write(C(&not), 4);
-				String^ name;
 				char* lpstr = "\1";
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
 				typedata.write(lpstr, len);
-				name = Join(SP, DONET_CLASS, T->FullName->Replace("+", "."));
+				String^ name = Join(SP, DONET_CLASS, T->FullName->Replace("+", "."));
 				lpstr = String2LPSTR(name);
 				len = strlen(lpstr);
 				typedata.write(C(&len), 4);
@@ -666,129 +666,16 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 			}
 			else if (T->IsValueType)
 			{
-				ETAG etag = GetTagID();
-				etag.Type2 = ETYPE::Class;
-				TreeInfo^ info = AddTreeInfo(tree, T);
-				info->Tag = etag;
-				classlist.push_back(etag);
-				typehead1.write(C(&etag), 4);
-				int offset = typedata.pcount();
-				typehead2.write(C(&offset), 4);
-				typedata.write(C(&_true), 4);
-				typedata.write(C(&not), 4);
-				String^ name;
-				char* lpstr = "\1";
-				len = strlen(lpstr);
-				typedata.write(C(&len), 4);
-				typedata.write(lpstr, len);
-				name = Join(SP, DONET_CLASS, T->FullName->Replace("+", "."));
-				lpstr = String2LPSTR(name);
-				len = strlen(lpstr);
-				typedata.write(C(&len), 4);
-				typedata.write(lpstr, len);
-				array<MethodInfo^>^ mlist = T->GetMethods(BINDING_STATIC);
-				len = mlist->Length * 4;
-				typedata.write(C(&len), 4);
-				for each (MethodInfo^ mi in mlist)
-				{
-					ETAG mtag = GetTagID();;
-					mtag.Type2 = ETYPE::Method;
-					typedata.write(C(&mtag), 4);
-					methodhead1.write(C(&mtag), 4);
-					offset = methoddata.pcount();
-					methodhead2.write(C(&offset), 4);
-					methoddata.write(C(&etag), 4);
-					len = EMethodAttr::Public;
-					methoddata.write(C(&len), 4);
-					TypeOffsetInfo^ toi = gcnew TypeOffsetInfo();
-					toi->type = mi->ReturnType;
-					toi->offset = methoddata.pcount();
-					toi->mode = TypeOffsetInfoMode::Method;
-					offsetList->Add(toi);
-					methoddata.write(C(&null), 4);
-					name = mi->Name;
-					lpstr = String2LPSTR(name);
-					len = strlen(lpstr);
-					methoddata.write(C(&len), 4);
-					methoddata.write(lpstr, len);
-					name = Join(SP, DONET, "1");
-					lpstr = String2LPSTR(name);
-					len = strlen(lpstr);
-					methoddata.write(C(&len), 4);
-					methoddata.write(lpstr, len);
-					methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					array<ParameterInfo^>^ plist = mi->GetParameters();
-					len = plist->Length;
-					methoddata.write(C(&len), 4);
-					if (len > 0)
-					{
-						strstream paramhead1(0, 0, strstream::out | strstream::binary);
-						strstream paramhead2(0, 0, strstream::out | strstream::binary);
-						strstream paramdata(0, 0, strstream::out | strstream::binary);
-						strstreambuf* tbuff;
-						List<TypeOffsetInfo^>^ toffset = gcnew List<TypeOffsetInfo^>();
-						for each (ParameterInfo^ param in plist)
-						{
-							ETAG ptag = GetTagID();
-							ptag.Type2 = ETYPE::Variable;
-							paramhead1.write(C(&ptag), 4);
-							offset = paramdata.pcount();
-							paramhead2.write(C(&offset), 4);
-							strstream pdata(0, 0, strstream::out | strstream::binary);
-							toi = gcnew TypeOffsetInfo();
-							toi->type = param->ParameterType;
-							toi->offset = paramdata.pcount() + pdata.pcount() + 4;
-							toi->mode = TypeOffsetInfoMode::Param;
-							toffset->Add(toi);
-							pdata.write(C(&null), 4);
-							pdata.write(C(&null), 2);
-							pdata.write(C(&null), 1);
-							name = param->Name;
-							lpstr = String2LPSTR(name);
-							len = strlen(lpstr);
-							pdata.write(lpstr, len + 1);
-							pdata.write(C(&null), 1);
-							tbuff = pdata.rdbuf();
-							len = tbuff->pcount();
-							paramdata.write(C(&len), 4);
-							paramdata.write(tbuff->str(), len);
-						}
-						len = paramhead1.pcount() + paramhead2.pcount() + paramdata.pcount();
-						methoddata.write(C(&len), 4);
-						tbuff = paramhead1.rdbuf();
-						methoddata.write(tbuff->str(), tbuff->pcount());
-						tbuff = paramhead2.rdbuf();
-						methoddata.write(tbuff->str(), tbuff->pcount());
-						len = methoddata.pcount();
-						for each (TypeOffsetInfo^ item in toffset) item->offset += len;
-						offsetList->AddRange(toffset);
-						tbuff = paramdata.rdbuf();
-						methoddata.write(tbuff->str(), tbuff->pcount());
-					}
-					else methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					methoddata.write(C(&null), 4);
-					const byte nop[19] = { 0x6A, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x01 };
-					len = 19;
-					methoddata.write(C(&len), 4);
-					methoddata.write(C(nop), len);
-				}
-				typedata.write(C(&null), 4);
-				typedata.write(C(&null), 4);
-				etag = GetTagID();
-				etag.Type2 = ETYPE::Struct;
-				classlist.push_back(etag);
-				Global::typeList->Add(T, etag);
-				structhead1.write(C(&etag), 4);
-				offset = structdata.pcount();
+				ETAG vtag = GetTagID();
+				vtag.Type2 = ETYPE::Struct;
+				classlist.push_back(vtag);
+				Global::typeList->Add(T, vtag);
+				structhead1.write(C(&vtag), 4);
+				int offset = structdata.pcount();
 				structhead2.write(C(&offset), 4);
 				structdata.write(C(&_true), 4);
-				name = T->FullName->Replace("+", ".");
-				lpstr = String2LPSTR(name);
+				String^ name = T->FullName->Replace("+", ".");
+				char* lpstr = String2LPSTR(name);
 				len = strlen(lpstr);
 				structdata.write(C(&len), 4);
 				structdata.write(lpstr, len);
@@ -872,6 +759,186 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 					structdata.write(tbuff->str(), tbuff->pcount());
 				}
 				else structdata.write(C(&null), 4);
+				ETAG etag = GetTagID();
+				if (T->IsEnum)
+				{
+					etag.Type2 = ETYPE::Struct;
+					TreeInfo^ info = AddTreeInfo(tree, T);
+					info->Tag = etag;
+					classlist.push_back(etag);
+					structhead1.write(C(&etag), 4);
+					offset = structdata.pcount();
+					structhead2.write(C(&offset), 4);
+					structdata.write(C(&_true), 4);
+					lpstr = "\1";
+					len = strlen(lpstr);
+					structdata.write(C(&len), 4);
+					structdata.write(lpstr, len);
+					name = Join(SP, DONET_ENUM, T->FullName->Replace("+", "."));
+					lpstr = String2LPSTR(name);
+					len = strlen(lpstr);
+					structdata.write(C(&len), 4);
+					structdata.write(lpstr, len);
+					array<String^>^ elist = T->GetEnumNames();
+					len = elist->Length;
+					structdata.write(C(&len), 4);
+					if (len > 0)
+					{
+						Type^ type = T->GetEnumUnderlyingType();
+						Array^ arr = T->GetEnumValues();
+						strstream paramhead1(0, 0, strstream::out | strstream::binary);
+						strstream paramhead2(0, 0, strstream::out | strstream::binary);
+						strstream paramdata(0, 0, strstream::out | strstream::binary);
+						strstreambuf* tbuff;
+						for (int i = 0; i < elist->Length; i++)
+						{
+							name = elist[i];
+							ETAG ftag = GetTagID();
+							ftag.Type2 = ETYPE::Variable;
+							paramhead1.write(C(&ftag), 4);
+							offset = paramdata.pcount();
+							paramhead2.write(C(&offset), 4);
+							strstream pdata(0, 0, strstream::out | strstream::binary);
+							pdata.write(C(&vtag), 4);
+							pdata.write(C(&null), 2);
+							pdata.write(C(&null), 1);
+							lpstr = String2LPSTR(name);
+							len = strlen(lpstr);
+							pdata.write(lpstr, len + 1);
+							name = Convert::ChangeType(arr->GetValue(i), type)->ToString();
+							lpstr = String2LPSTR(name);
+							pdata.write(lpstr, len + 1);
+							tbuff = pdata.rdbuf();
+							len = tbuff->pcount();
+							paramdata.write(C(&len), 4);
+							paramdata.write(tbuff->str(), len);
+						}
+						len = paramhead1.pcount() + paramhead2.pcount() + paramdata.pcount();
+						structdata.write(C(&len), 4);
+						tbuff = paramhead1.rdbuf();
+						structdata.write(tbuff->str(), tbuff->pcount());
+						tbuff = paramhead2.rdbuf();
+						structdata.write(tbuff->str(), tbuff->pcount());
+						len = structdata.pcount();
+						tbuff = paramdata.rdbuf();
+						structdata.write(tbuff->str(), tbuff->pcount());
+					}
+					else structdata.write(C(&null), 4);
+				}
+				else
+				{
+					etag.Type2 = ETYPE::Class;
+					TreeInfo^ info = AddTreeInfo(tree, T);
+					info->Tag = etag;
+					classlist.push_back(etag);
+					typehead1.write(C(&etag), 4);
+					int offset = typedata.pcount();
+					typehead2.write(C(&offset), 4);
+					typedata.write(C(&_true), 4);
+					typedata.write(C(&not), 4);
+					char* lpstr = "\1";
+					len = strlen(lpstr);
+					typedata.write(C(&len), 4);
+					typedata.write(lpstr, len);
+					String^ name = Join(SP, DONET_CLASS, T->FullName->Replace("+", "."));
+					lpstr = String2LPSTR(name);
+					len = strlen(lpstr);
+					typedata.write(C(&len), 4);
+					typedata.write(lpstr, len);
+					array<MethodInfo^>^ mlist = T->GetMethods(BINDING_STATIC);
+					len = mlist->Length * 4;
+					typedata.write(C(&len), 4);
+					for each (MethodInfo^ mi in mlist)
+					{
+						ETAG mtag = GetTagID();;
+						mtag.Type2 = ETYPE::Method;
+						typedata.write(C(&mtag), 4);
+						methodhead1.write(C(&mtag), 4);
+						offset = methoddata.pcount();
+						methodhead2.write(C(&offset), 4);
+						methoddata.write(C(&etag), 4);
+						len = EMethodAttr::Public;
+						methoddata.write(C(&len), 4);
+						TypeOffsetInfo^ toi = gcnew TypeOffsetInfo();
+						toi->type = mi->ReturnType;
+						toi->offset = methoddata.pcount();
+						toi->mode = TypeOffsetInfoMode::Method;
+						offsetList->Add(toi);
+						methoddata.write(C(&null), 4);
+						name = mi->Name;
+						lpstr = String2LPSTR(name);
+						len = strlen(lpstr);
+						methoddata.write(C(&len), 4);
+						methoddata.write(lpstr, len);
+						name = Join(SP, DONET, "1");
+						lpstr = String2LPSTR(name);
+						len = strlen(lpstr);
+						methoddata.write(C(&len), 4);
+						methoddata.write(lpstr, len);
+						methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						array<ParameterInfo^>^ plist = mi->GetParameters();
+						len = plist->Length;
+						methoddata.write(C(&len), 4);
+						if (len > 0)
+						{
+							strstream paramhead1(0, 0, strstream::out | strstream::binary);
+							strstream paramhead2(0, 0, strstream::out | strstream::binary);
+							strstream paramdata(0, 0, strstream::out | strstream::binary);
+							strstreambuf* tbuff;
+							List<TypeOffsetInfo^>^ toffset = gcnew List<TypeOffsetInfo^>();
+							for each (ParameterInfo^ param in plist)
+							{
+								ETAG ptag = GetTagID();
+								ptag.Type2 = ETYPE::Variable;
+								paramhead1.write(C(&ptag), 4);
+								offset = paramdata.pcount();
+								paramhead2.write(C(&offset), 4);
+								strstream pdata(0, 0, strstream::out | strstream::binary);
+								toi = gcnew TypeOffsetInfo();
+								toi->type = param->ParameterType;
+								toi->offset = paramdata.pcount() + pdata.pcount() + 4;
+								toi->mode = TypeOffsetInfoMode::Param;
+								toffset->Add(toi);
+								pdata.write(C(&null), 4);
+								pdata.write(C(&null), 2);
+								pdata.write(C(&null), 1);
+								name = param->Name;
+								lpstr = String2LPSTR(name);
+								len = strlen(lpstr);
+								pdata.write(lpstr, len + 1);
+								pdata.write(C(&null), 1);
+								tbuff = pdata.rdbuf();
+								len = tbuff->pcount();
+								paramdata.write(C(&len), 4);
+								paramdata.write(tbuff->str(), len);
+							}
+							len = paramhead1.pcount() + paramhead2.pcount() + paramdata.pcount();
+							methoddata.write(C(&len), 4);
+							tbuff = paramhead1.rdbuf();
+							methoddata.write(tbuff->str(), tbuff->pcount());
+							tbuff = paramhead2.rdbuf();
+							methoddata.write(tbuff->str(), tbuff->pcount());
+							len = methoddata.pcount();
+							for each (TypeOffsetInfo^ item in toffset) item->offset += len;
+							offsetList->AddRange(toffset);
+							tbuff = paramdata.rdbuf();
+							methoddata.write(tbuff->str(), tbuff->pcount());
+						}
+						else methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						methoddata.write(C(&null), 4);
+						const byte nop[19] = { 0x6A, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x01 };
+						len = 19;
+						methoddata.write(C(&len), 4);
+						methoddata.write(C(nop), len);
+					}
+					typedata.write(C(&null), 4);
+					typedata.write(C(&null), 4);
+				}
 			}
 		}
 	}
@@ -889,6 +956,10 @@ void WriteProgramInfo(fstream& fs, int index, array<Type^>^ types, vector<ETAG>&
 		case TreeType::ClassName:
 			tag = item->Value->Tag;
 			type = DONET_CLASS;
+			break;
+		case TreeType::Enum:
+			tag = item->Value->Tag;
+			type = DONET_ENUM;
 			break;
 		}
 		WriteGlobalVariable(globalvarhead1, globalvarhead2, globalvardata, String2LPSTR(item->Key), tag, type);

@@ -1630,6 +1630,11 @@ varend:
 						assembly = this->_CodeProcess->FindReferAssembly(tag);
 						goto donet;
 					}
+					else if (arr[0] == DONET_ENUM)
+					{
+						assembly = this->_CodeProcess->FindReferStruct(tag);
+						goto donet;
+					}
 					else
 					{
 						TypeReference^ t = this->EDT2Type(gv.DataType);
@@ -1701,7 +1706,22 @@ varend:
 			{
 				ESection_Variable var = assembly.FindField(fi.Field);
 				if (var == NULL) return nullptr;
-				assembly = this->_CodeProcess->FindReferAssembly(var.DataType);
+				vector<string> arr = split(assembly.Remark, SP);
+				if (arr[0] == DONET_ENUM)
+				{
+					TypeDefinition^ type = this->_CodeRefer->FindTypeDefine(CStr2String(arr[1]));
+					FieldDefinition^ ff = FindField(type, CStr2String(var.Name));
+					Type^ T = ff->Constant->GetType();
+					vardata->Type = type;
+					if (T == typeof(Int64) || T == typeof(UInt64)) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)ff->Constant);
+					else AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)ff->Constant);
+					vardata->VariableType = EVariableType::DoNET;
+					return vardata;
+				}
+				else
+				{
+					assembly = this->_CodeProcess->FindReferAssembly(var.DataType);
+				}
 			}
 		donet:
 			if (assembly == NULL) return nullptr;

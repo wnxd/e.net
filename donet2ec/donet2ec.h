@@ -20,7 +20,8 @@ enum class TreeType
 {
 	NameSpace,
 	ClassName,
-	MethodName
+	MethodName,
+	Enum
 };
 
 ref struct TreeInfo
