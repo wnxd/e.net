@@ -167,7 +167,7 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, ModuleDefinition^ M, Met
 		}
 		for each (Instruction^ ins in method->Body->Instructions)
 		{
-			if (ins->OpCode == OpCodes::Newobj || ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt)
+			if (ins->OpCode == OpCodes::Newobj || ins->OpCode == OpCodes::Call || ins->OpCode == OpCodes::Calli || ins->OpCode == OpCodes::Callvirt || ins->OpCode == OpCodes::Ldftn)
 			{
 				MethodReference^ mr = dynamic_cast<MethodReference^>(ins->Operand);
 				if (M->GetType(mr->DeclaringType->FullName) != nullptr)

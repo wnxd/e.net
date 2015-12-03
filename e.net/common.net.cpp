@@ -103,3 +103,16 @@ generic<typename T1, typename T2> void AddItem(IDictionary<T1, T2>^ dictionary, 
 {
 	if (key != nullptr && item != nullptr && !dictionary->ContainsKey(key)) dictionary->Add(key, item);
 }
+
+MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params, MethodAttributes attr)
+{
+	MethodDefinition^ method = gcnew MethodDefinition(name, attr, returntype);
+	if (params != nullptr && params->Count > 0) for each (ParameterDefinition^ item in params) method->Parameters->Add(item);
+	return method;
+}
+
+ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr)
+{
+	ParameterDefinition^ param = gcnew ParameterDefinition(name, attr, type);
+	return param;
+}

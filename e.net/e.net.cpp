@@ -202,19 +202,6 @@ FieldDefinition^ FindField(TypeDefinition^ type, String^ name)
 	return nullptr;
 }
 
-MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig)
-{
-	MethodDefinition^ method = gcnew MethodDefinition(name, attr, returntype);
-	if (params != nullptr && params->Count > 0) for each (ParameterDefinition^ item in params) method->Parameters->Add(item);
-	return method;
-}
-
-ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None)
-{
-	ParameterDefinition^ param = gcnew ParameterDefinition(name, attr, type);
-	return param;
-}
-
 void AddModule(IList<ModuleReference^>^ modules, ModuleReference^ module)
 {
 	for each (ModuleReference^ m in modules) if (m->Name == module->Name) return;
@@ -770,8 +757,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			}
 			if (head == ECode_Type::ParamBegin || head == ECode_Type::ParameterBegin)
 			{
-				if (LibID == this->krnln_id && mr->Tag == krnln_method::·µ»Ø) 
-					mr->Params[0]->Type = MethodInfo->Method->ReturnType;
+				if (LibID == this->krnln_id && mr->Tag == krnln_method::·µ»Ø) mr->Params[0]->Type = MethodInfo->Method->ReturnType;
 				IList<EParamData^>^ params = gcnew List<EParamData^>();
 				do
 				{

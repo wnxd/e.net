@@ -34,7 +34,9 @@ INT WINAPI notify_lib(INT nMsg, DWORD dwParam1, DWORD dwParam2)
 
 LIB_CONST_INFO s_const_info[] =
 {
-	{ TEXT("空"), TEXT("null"), NULL, LVL_SIMPLE, CT_NULL, NULL, NULL }
+	{ TEXT("空"), TEXT("null"), NULL, LVL_SIMPLE, CT_NULL, NULL, NULL },
+	{ TEXT("构造函数"), TEXT("ctor"), NULL, LVL_SIMPLE, CT_TEXT, TEXT(".ctor"), NULL },
+	{ TEXT("静态构造函数"), TEXT("cctor"), NULL, LVL_SIMPLE, CT_TEXT, TEXT(".cctor"), NULL }
 };
 
 INT WINAPI addin_func(INT nAddInFnIndex)
@@ -74,24 +76,14 @@ INT WINAPI addin_func(INT nAddInFnIndex)
 
 ARG_INFO s_ArgInfo[] =
 {
-	{
-		TEXT("类型"),
-		NULL,
-		0,
-		0,
-		_SDT_ALL,
-		0,
-		AS_RECEIVE_VAR
-	},
-	{
-		TEXT("参数"),
-		NULL,
-		0,
-		0,
-		_SDT_ALL,
-		0,
-		AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_ALL_TYPE_DATA
-	}
+#define new_Args s_ArgInfo
+#define GetType_Args s_ArgInfo
+	{ TEXT("类型"), NULL, 0, 0, _SDT_ALL, NULL, AS_RECEIVE_VAR },
+	{ TEXT("参数"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_ALL_TYPE_DATA },
+#define GetSubPtr_Args &s_ArgInfo[2]
+	{ TEXT("对象"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_VAR_OR_ARRAY },
+	{ TEXT("名称"), NULL, 0, 0, SDT_TEXT, NULL, AS_RECEIVE_VAR_OR_OTHER },
+	{ TEXT("参数类型"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_VAR }
 };
 
 static CMD_INFO s_CmdInfo[] =
@@ -108,7 +100,35 @@ static CMD_INFO s_CmdInfo[] =
 		0,
 		0,
 		2,
-		s_ArgInfo
+		new_Args
+	},
+	{
+		TEXT("取子程序指针"),
+		TEXT("GetSubPtr"),
+		NULL,
+		1,
+		0,
+		SDT_SUB_PTR,
+		NULL,
+		LVL_SIMPLE,
+		0,
+		0,
+		2,
+		GetSubPtr_Args
+	},
+	{
+		TEXT("取类型"),
+		TEXT("typeof"),
+		NULL,
+		1,
+		0,
+		_SDT_ALL,
+		NULL,
+		LVL_SIMPLE,
+		0,
+		0,
+		1,
+		GetType_Args
 	}
 };
 
