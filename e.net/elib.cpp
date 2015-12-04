@@ -134,9 +134,9 @@ static LIB_INFO s_lib_info =
 {
 	LIB_FORMAT_VER,
 	TEXT(LI_LIB_GUID_STR),
-	1,
-	1,
-	1202,
+	MAJOR,
+	MINOR,
+	BUILD,
 	0,
 	0,
 	0,

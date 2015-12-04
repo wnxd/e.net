@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 using namespace System;
 using namespace System::Reflection;
 using namespace System::Runtime::CompilerServices;
@@ -28,8 +30,12 @@ using namespace System::Security::Permissions;
 //
 // 您可以指定所有值，也可以使用“修订号”和“生成号”的默认值，
 // 方法是按如下所示使用“*”: 
+#define _V(x) #x
+#define V(x) _V(x)
+#define _F MAJOR.MINOR.BUILD.REVISION
+#define FULLVISON V(_F)
 
-[assembly:AssemblyVersionAttribute("1.1.1202.1310")];
+[assembly:AssemblyVersionAttribute(FULLVISON)];
 
 [assembly:ComVisible(false)];
 
