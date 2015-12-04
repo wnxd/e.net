@@ -44,7 +44,6 @@ generic<typename T> ref struct Linked
 generic<typename T> IList<T>^ ToList(...array<T>^ args);
 bool operator==(TypeReference^ type1, TypeReference^ type2);
 bool operator!=(TypeReference^ type1, TypeReference^ type2);
-TypeReference^ GetNullableType(TypeReference^ type);
 TypeReference^ GetElementType(TypeReference^ type, bool workarr = true);
 bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2);
 bool IsInherit(TypeReference^ type1, TypeReference^ type2);

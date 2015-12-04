@@ -354,6 +354,7 @@ bool ECompile::CompileRefer()
 		List<String^>^ list = gcnew List<String^>();
 		for each (ESection_ECList_Info info in this->_CodeProcess->GetECList()) list->Add(CStr2String(info.Path));
 		this->_CodeRefer->AddECList(list);
+		this->_Operator = gcnew Operator(module);
 		return true;
 	}
 	catch (Exception^ ex)
@@ -1099,26 +1100,10 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									similarity++;
 									satisfy++;
 								}
-								else if (IsAssignableFrom(mrparams[i]->Type, tparams[i]->Type))
+								else if (this->_Operator->IsConvert(tparams[i]->Type, mrparams[i]->Type))
 								{
-									similarity += 0.45;
+									similarity += 0.5;
 									satisfy++;
-								}
-								else if (mrparams[i]->Type->IsValueType && tparams[i]->Type->IsValueType)
-								{
-									if (IsInherit(mrparams[i]->Type, tparams[i]->Type))
-									{
-										similarity += 0.5;
-										satisfy++;
-									}
-									else if (mrparams[i]->Type->Name == "Nullable`1" || tparams[i]->Type->Name == "Nullable`1")
-									{
-										if (IsInherit(GetNullableType(mrparams[i]->Type), GetNullableType(tparams[i]->Type)))
-										{
-											similarity += 0.5;
-											satisfy++;
-										}
-									}
 								}
 								else if (mrparams[i]->IsVariable && (i + 1) == mrparams->Length) goto isvar;
 							}
@@ -1136,26 +1121,10 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											similarity++;
 											satisfy++;
 										}
-										else if (IsAssignableFrom(arrtype->ElementType, tparams[i]->Type))
+										else if (this->_Operator->IsConvert(tparams[i]->Type, arrtype->ElementType))
 										{
 											similarity += 0.5;
 											satisfy++;
-										}
-										else if (arrtype->ElementType->IsValueType && tparams[i]->Type->IsValueType)
-										{
-											if (IsInherit(arrtype->ElementType, tparams[i]->Type))
-											{
-												similarity += 0.5;
-												satisfy++;
-											}
-											else if (arrtype->ElementType->Name == "Nullable`1" || tparams[i]->Type->Name == "Nullable`1")
-											{
-												if (IsInherit(GetNullableType(arrtype->ElementType), GetNullableType(tparams[i]->Type)))
-												{
-													similarity += 0.5;
-													satisfy++;
-												}
-											}
 										}
 									}
 								}
@@ -1209,36 +1178,19 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32)
 							{
 								if (param->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-								else goto error;
 							}
 							else if (item->Type == module->TypeSystem->Int64)
 							{
 								if (param->Type == module->TypeSystem->Int32 || param->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
-								else goto error;
 							}
 							else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
 							else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-							else if (item->Type == module->TypeSystem->IntPtr)
-							{
-								if (param->Type == module->TypeSystem->Int32)
-								{
-									AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-									AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(IntPtr, "op_Explicit", typeof(int))));
-								}
-								else if (param->Type == module->TypeSystem->Int64)
-								{
-									AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
-									AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(IntPtr, "op_Explicit", typeof(Int64))));
-								}
-								else goto error;
-							}
-							else if (IsAssignableFrom(item->Type, param->Type))
+							else
 							{
 								if (param->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
 								else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
 								else AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
 							}
-							else goto error;
 							break;
 						}
 						case EParamDataType::Bool:
@@ -1313,11 +1265,11 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 							int ii = 0;
 							if (item->IsVariable)
 							{
-								item->OriginalType = GetElementType(item->OriginalType);
-								item->Type = GetNullableType(item->OriginalType);
+								item->Type = GetElementType(item->Type);
 								AddILCode(ILProcessor, OpCodes::Ldc_I4, params->Count - i);
-								AddILCode(ILProcessor, OpCodes::Newarr, module->ImportReference(item->OriginalType));
+								AddILCode(ILProcessor, OpCodes::Newarr, module->ImportReference(item->Type));
 							}
+							TypeReference^ oldtype = item->Type;
 							while (i < params->Count)
 							{
 								if (item->IsVariable)
@@ -1326,7 +1278,10 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									AddILCode(ILProcessor, OpCodes::Ldc_I4, ii);
 								}
 								else if (ii > 0) goto end;
+								item->Type = oldtype;
 								EParamData^ param = params[i];
+								IList<MethodReference^>^ list = this->_Operator->Convert(param->Type, item->Type);
+								if (list != nullptr && list->Count > 0) item->Type = this->_Operator->GetConvertType(list);
 								switch (param->DataType)
 								{
 								case EParamDataType::Null:
@@ -1334,22 +1289,10 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 									{
 										if (item->Type->IsValueType)
 										{
-											if (item->OriginalType->Name == "Nullable`1")
-											{
-												MethodInfo->Method->Body->InitLocals = true;
-												VariableDefinition^ var = gcnew VariableDefinition(module->ImportReference(item->OriginalType));
-												MethodInfo->Method->Body->Variables->Add(var);
-												AddILCode(ILProcessor, OpCodes::Ldloca_S, var);
-												AddILCode(ILProcessor, OpCodes::Initobj, module->ImportReference(item->OriginalType));
-												AddILCode(ILProcessor, OpCodes::Ldloc_S, var);
-											}
-											else
-											{
-												if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-												else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-												else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-												else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-											}
+											if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
+											else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
+											else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
+											else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 										}
 										else AddILCode(ILProcessor, OpCodes::Ldnull);
 									}
@@ -1372,7 +1315,6 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											item->Type = module->TypeSystem->Int32;
 											AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
 										}
-										else goto error;
 									}
 									else if (item->Type == module->TypeSystem->Int64)
 									{
@@ -1381,7 +1323,6 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 											param->Type = module->TypeSystem->Int64;
 											AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
 										}
-										else goto error;
 									}
 									else if (item->Type == module->TypeSystem->Single)
 									{
@@ -1393,31 +1334,11 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										param->Type = module->TypeSystem->Double;
 										AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
 									}
-									else if (item->Type == module->TypeSystem->IntPtr)
-									{
-										if (param->Type == module->TypeSystem->Int32)
-										{
-											AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-											AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(IntPtr, "op_Explicit", typeof(int))));
-										}
-										else if (param->Type == module->TypeSystem->Int64)
-										{
-											AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
-											AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(IntPtr, "op_Explicit", typeof(Int64))));
-										}
-										else goto error;
-										param->Type = module->TypeSystem->IntPtr;
-									}
-									else if (IsAssignableFrom(item->Type, param->Type))
+									else
 									{
 										if (param->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
 										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
 										else AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-									}
-									else
-									{
-									error:
-										throw Error(tagName, item->Name, "ÀàÐÍ´íÎó");
 									}
 									break;
 								}
@@ -1504,13 +1425,9 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Conv_R4);
 										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Conv_R8);
 									}
-									if (item->IsOptional && item->OriginalType->Name == "Nullable`1" && item->OriginalType != param->Type)
-									{
-										MethodReference^ m = CreateMethodReference(module->ImportReference(item->OriginalType), ".ctor", module->TypeSystem->Void, false, ToList<TypeReference^>(item->OriginalType->GenericParameters[0]));
-										AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(m));
-									}
 									else if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->ImportReference(param->Type));
 								}
+								if (list != nullptr) for each (MethodReference^ method in list) AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(method));
 								i++;
 								ii++;
 								if (item->IsVariable)

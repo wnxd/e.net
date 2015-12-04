@@ -62,16 +62,11 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 	{
 		if (ttype->IsArray) list->Insert(0, 0);
 		else if (ttype->IsByReference) list->Insert(0, 1);
-		else if (ttype->Name == "Nullable`1") list->Insert(0, 2);
 		else break;
 		ttype = GetElementType(ttype);
 	} while (true);
 	TypeDefinition^ T = M->GetType(ttype->FullName);
-	if (T == nullptr)
-	{
-		ttype = module->ImportReference(ttype);
-		goto rt;
-	}
+	if (T == nullptr) return module->ImportReference(type);
 	else
 	{
 		TypeDefinition^ t = FindType(Plugins::_refertype, (String::IsNullOrEmpty(ttype->Namespace) ? "" : ttype->Namespace + ".") + ttype->Name);
@@ -82,7 +77,6 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 		}
 		AddDictionary(Plugins::_refermethodtype, method, t);
 		ttype = t;
-	rt:
 		for each (int item in list)
 		{
 			switch (item)
@@ -92,10 +86,7 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 				break;
 			case 1:
 				ttype = gcnew ByReferenceType(ttype);
-				break;
-			case 2:
-				ttype = CreateNullable(ttype);
-				break;
+				break;;
 			}
 		}
 		return ttype;

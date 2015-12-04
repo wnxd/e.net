@@ -16,10 +16,12 @@ ref struct TypeOperator
 ref class Operator
 {
 public:
-	Operator();
+	Operator(ModuleDefinition^ module);
 	bool IsConvert(TypeReference^ type1, TypeReference^ type2);
 	IList<MethodReference^>^ Convert(TypeReference^ type1, TypeReference^ type2);
+	TypeReference^ GetConvertType(IList<MethodReference^>^ list);
 private:
+	ModuleDefinition^ _module;
 	IDictionary<String^, TypeOperator^>^ _map;
 	TypeOperator^ FindOperator(TypeReference^ type);
 };

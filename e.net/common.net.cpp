@@ -45,16 +45,6 @@ bool operator!=(TypeReference^ type1, TypeReference^ type2)
 	return !(type1 == type2);
 }
 
-TypeReference^ GetNullableType(TypeReference^ type)
-{
-	if (type->Name == "Nullable`1")
-	{
-		GenericInstanceType^ t = dynamic_cast<GenericInstanceType^>(type);
-		if (t != nullptr) type = t->GenericArguments[0];
-	}
-	return type;
-}
-
 TypeReference^ GetElementType(TypeReference^ type, bool workarr)
 {
 	if (type->IsArray)
@@ -70,7 +60,6 @@ TypeReference^ GetElementType(TypeReference^ type, bool workarr)
 		ByReferenceType^ t = dynamic_cast<ByReferenceType^>(type);
 		if (t != nullptr) type = t->ElementType;
 	}
-	else type = GetNullableType(type);
 	return type;
 }
 
@@ -169,11 +158,11 @@ bool IsInherit(TypeReference^ type1, TypeReference^ type2)
 	if (type1->IsValueType && type2->IsValueType)
 	{
 		if (type1 == type2) return true;
-		Linked<TypeReference^>^ link = FindLinked(type1);
+		Linked<TypeReference^>^ link = FindLinked(type2);
 		if (link != nullptr)
 		{
 			if (link->Next == nullptr) return false;
-			for each (Linked<TypeReference^>^ item in link->Next) if (IsInherit(item->Value, type2)) return true;
+			for each (Linked<TypeReference^>^ item in link->Next) if (IsInherit(type1, item->Value)) return true;
 			return false;
 		}
 	}
