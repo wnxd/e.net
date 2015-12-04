@@ -1189,6 +1189,34 @@ array<byte>^ Krnln::相加(array<byte>^ 被加字节集, ...array<array<byte>^>^ 加字节
 	return arr;
 }
 
+double Krnln::相加(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数)
+{
+	double num = 被加可空数.HasValue ? 被加可空数.Value : 0;
+	for each (Nullable<double> n in 加可空数) num += n.HasValue ? n.Value : 0;
+	return num;
+}
+
+double Krnln::相减(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数)
+{
+	double num = 被加可空数.HasValue ? 被加可空数.Value : 0;
+	for each (Nullable<double> n in 加可空数) num -= n.HasValue ? n.Value : 0;
+	return num;
+}
+
+double Krnln::相乘(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数)
+{
+	double num = 被加可空数.HasValue ? 被加可空数.Value : 0;
+	for each (Nullable<double> n in 加可空数) num *= n.HasValue ? n.Value : 0;
+	return num;
+}
+
+double Krnln::相除(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数)
+{
+	double num = 被加可空数.HasValue ? 被加可空数.Value : 0;
+	for each (Nullable<double> n in 加可空数) num /= n.HasValue ? n.Value : 0;
+	return num;
+}
+
 String^ Krnln::到文本(array<byte>^ 待转换的数据)
 {
 	if (待转换的数据 == nullptr) return nullptr;

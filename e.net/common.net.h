@@ -35,10 +35,19 @@ const System::Reflection::BindingFlags BINDING_ALLINSTANCE = System::Reflection:
 #define GetStaticField(type, name) typeof(type)->GetField(name, BINDING_ALLSTATIC)
 #define GetInstanceField(type, name) typeof(type)->GetField(name, BINDING_ALLINSTANCE)
 
+generic<typename T> ref struct Linked
+{
+	T Value;
+	IList<Linked^>^ Next;
+};
+
 generic<typename T> IList<T>^ ToList(...array<T>^ args);
 bool operator==(TypeReference^ type1, TypeReference^ type2);
 bool operator!=(TypeReference^ type1, TypeReference^ type2);
+TypeReference^ GetNullableType(TypeReference^ type);
+TypeReference^ GetElementType(TypeReference^ type, bool workarr = true);
 bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2);
+bool IsInherit(TypeReference^ type1, TypeReference^ type2);
 generic<typename T> void AddList(ICollection<T>^ list1, T item);
 generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2);
 generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2);
@@ -47,3 +56,5 @@ generic<typename T1, typename T2> void AddDictionary(IDictionary<T1, IList<T2>^>
 generic<typename T1, typename T2> void AddItem(IDictionary<T1, T2>^ dictionary, T1 key, T2 item);
 MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
 ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
+GenericInstanceType^ CreateGenericType(TypeReference^ type, IList<TypeReference^>^ generics);
+TypeReference^ CreateNullable(TypeReference^ type);

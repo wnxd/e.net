@@ -314,6 +314,14 @@ ref class Krnln : Plugin
 	MethodDefinition^ CreateSleep(ModuleDefinition^ module);
 	[LibMethod(krnln_method::相加)]
 	static array<byte>^ 相加(array<byte>^ 被加字节集, ...array<array<byte>^>^ 加字节集);
+	[LibMethod(krnln_method::相加)]
+	static double 相加(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数);
+	[LibMethod(krnln_method::相减)]
+	static double 相减(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数);
+	[LibMethod(krnln_method::相乘)]
+	static double 相乘(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数);
+	[LibMethod(krnln_method::相除)]
+	static double 相除(Nullable<double> 被加可空数, ...array<Nullable<double>>^ 加可空数);
 	[LibMethod(krnln_method::到文本)]
 	static String^ 到文本(array<byte>^ 待转换的数据);
 	[LibMethod(krnln_method::删除成员)]

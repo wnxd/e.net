@@ -117,13 +117,13 @@ ref class ECompile
 private:
 	CodeProcess* _CodeProcess;
 	CodeRefer^ _CodeRefer;
+	Operator^ _Operator;
 	TypeReference^ Type_DateTime;
 	TypeReference^ Type_Bin;
 	TypeReference^ Type_Decimal;
 	TypeReference^ Type_ValueType;
 	TypeReference^ Type_StrArr;
 	TypeReference^ Type_Nullable;
-	MethodReference^ Nullable_Ctor;
 	array<String^>^ _refer;
 	AssemblyDefinition^ _assembly;
 	short e_net_id;

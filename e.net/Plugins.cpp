@@ -55,17 +55,23 @@ IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method, IDictionary<Me
 
 TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ module, ModuleDefinition^ M, TypeReference^ type)
 {
+	if (type->Module == module) return type;
 	IList<int>^ list = gcnew List<int>();
 	TypeReference^ ttype = type;
 	do
 	{
 		if (ttype->IsArray) list->Insert(0, 0);
 		else if (ttype->IsByReference) list->Insert(0, 1);
+		else if (ttype->Name == "Nullable`1") list->Insert(0, 2);
 		else break;
-		ttype = ttype->GetElementType();
+		ttype = GetElementType(ttype);
 	} while (true);
 	TypeDefinition^ T = M->GetType(ttype->FullName);
-	if (T == nullptr) return module->ImportReference(type);
+	if (T == nullptr)
+	{
+		ttype = module->ImportReference(ttype);
+		goto rt;
+	}
 	else
 	{
 		TypeDefinition^ t = FindType(Plugins::_refertype, (String::IsNullOrEmpty(ttype->Namespace) ? "" : ttype->Namespace + ".") + ttype->Name);
@@ -76,6 +82,7 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 		}
 		AddDictionary(Plugins::_refermethodtype, method, t);
 		ttype = t;
+	rt:
 		for each (int item in list)
 		{
 			switch (item)
@@ -85,6 +92,9 @@ TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ modu
 				break;
 			case 1:
 				ttype = gcnew ByReferenceType(ttype);
+				break;
+			case 2:
+				ttype = CreateNullable(ttype);
 				break;
 			}
 		}
@@ -186,7 +196,7 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, ModuleDefinition^ M, Met
 				if (t != f->DeclaringType) ins->Operand = FindField(t->Resolve(), f->Name);
 				else ins->Operand = module->ImportReference(f);
 			}
-			else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema || ins->OpCode == OpCodes::Initobj || ins->OpCode == OpCodes::Isinst) ins->Operand = GetTypeReference(m, module, M, dynamic_cast<TypeReference^>(ins->Operand));
+			else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema || ins->OpCode == OpCodes::Initobj || ins->OpCode == OpCodes::Isinst || ins->OpCode == OpCodes::Ldobj) ins->Operand = GetTypeReference(m, module, M, dynamic_cast<TypeReference^>(ins->Operand));
 			m->Body->Instructions->Add(ins);
 		}
 	}

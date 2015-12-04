@@ -11,12 +11,13 @@ MethodDefinition^ E_Net::GetType(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ E_Net::GetFunction(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("取类函数", module->ImportReference(typeof(Delegate)), ToList(CreateParameter("序号", module->TypeSystem->Int32)), STATICMETHOD);
+	return method;
+}
+
 Object^ E_Net::实例化(RuntimeTypeHandle 类型, ...array<Object^>^ 参数)
 {
 	return Activator::CreateInstance(Type::GetTypeFromHandle(类型), 参数);
-}
-
-Delegate^ E_Net::取子程序指针(Object^ 对象, String^ 名称, ...array<Object^>^ 参数类型)
-{
-
 }

@@ -81,9 +81,7 @@ ARG_INFO s_ArgInfo[] =
 	{ TEXT("类型"), NULL, 0, 0, _SDT_ALL, NULL, AS_RECEIVE_VAR },
 	{ TEXT("参数"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_ALL_TYPE_DATA },
 #define GetSubPtr_Args &s_ArgInfo[2]
-	{ TEXT("对象"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_VAR_OR_ARRAY },
-	{ TEXT("名称"), NULL, 0, 0, SDT_TEXT, NULL, AS_RECEIVE_VAR_OR_OTHER },
-	{ TEXT("参数类型"), NULL, 0, 0, _SDT_ALL, NULL, AS_DEFAULT_VALUE_IS_EMPTY | AS_RECEIVE_VAR }
+	{ TEXT("序号"), TEXT("只能传入常量"), 0, 0, SDT_INT, NULL, 0 }
 };
 
 static CMD_INFO s_CmdInfo[] =
@@ -103,9 +101,9 @@ static CMD_INFO s_CmdInfo[] =
 		new_Args
 	},
 	{
-		TEXT("取子程序指针"),
-		TEXT("GetSubPtr"),
-		NULL,
+		TEXT("取类函数"),
+		TEXT("GetFuntion"),
+		TEXT("当前程序集或类从上往下的序号,序号从0开始"),
 		1,
 		0,
 		SDT_SUB_PTR,
@@ -113,7 +111,7 @@ static CMD_INFO s_CmdInfo[] =
 		LVL_SIMPLE,
 		0,
 		0,
-		2,
+		1,
 		GetSubPtr_Args
 	},
 	{

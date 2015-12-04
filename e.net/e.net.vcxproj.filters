@@ -44,6 +44,9 @@
     <ClInclude Include="e_net.net.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="operator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="elib.cpp">
@@ -74,6 +77,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="e_net.net.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="operator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
