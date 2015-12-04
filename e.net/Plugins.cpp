@@ -187,7 +187,7 @@ MethodDefinition^ MethodClone(ModuleDefinition^ module, ModuleDefinition^ M, Met
 				if (t != f->DeclaringType) ins->Operand = FindField(t->Resolve(), f->Name);
 				else ins->Operand = module->ImportReference(f);
 			}
-			else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema || ins->OpCode == OpCodes::Initobj || ins->OpCode == OpCodes::Isinst || ins->OpCode == OpCodes::Ldobj) ins->Operand = GetTypeReference(m, module, M, dynamic_cast<TypeReference^>(ins->Operand));
+			else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema || ins->OpCode == OpCodes::Initobj || ins->OpCode == OpCodes::Isinst || ins->OpCode == OpCodes::Ldobj || ins->OpCode == OpCodes::Stobj) ins->Operand = GetTypeReference(m, module, M, dynamic_cast<TypeReference^>(ins->Operand));
 			m->Body->Instructions->Add(ins);
 		}
 	}

@@ -10,26 +10,34 @@ Operator::Operator(ModuleDefinition^ module)
 
 bool Operator::IsConvert(TypeReference^ type1, TypeReference^ type2)
 {
-	return this->Convert(type1, type2) != nullptr;
+	return this->Convert(type1, type2, false) != nullptr;
 }
 
-IList<MethodReference^>^ Operator::Convert(TypeReference^ type1, TypeReference^ type2)
+IList<Instruction^>^ Operator::Convert(TypeReference^ type1, TypeReference^ type2, bool conv)
 {
-	List<MethodReference^>^ list = gcnew List<MethodReference^>();
-	if (IsInherit(type1, type2)) return list;
+	List<Instruction^>^ list = gcnew List<Instruction^>();
+	if (type1 == type2) return list;
+	else if (IsInherit(type1, type2, false))
+	{
+		if (conv)
+		{
+			if (type2 == this->_module->TypeSystem->Int16 || type2 == this->_module->TypeSystem->UInt16) list->Add(Instruction::Create(OpCodes::Conv_I2));
+			else if (type2 == this->_module->TypeSystem->Int32 || type2 == this->_module->TypeSystem->UInt32) list->Add(Instruction::Create(OpCodes::Conv_I4));
+			else if (type2 == this->_module->TypeSystem->Int64 || type2 == this->_module->TypeSystem->UInt64) list->Add(Instruction::Create(OpCodes::Conv_I8));
+			else if (type2 == this->_module->TypeSystem->Single) list->Add(Instruction::Create(OpCodes::Conv_R4));
+			else if (type2 == this->_module->TypeSystem->Double) list->Add(Instruction::Create(OpCodes::Conv_R8));
+			else if (type2 == this->_module->TypeSystem->IntPtr || type2 == this->_module->TypeSystem->UIntPtr) list->Add(Instruction::Create(OpCodes::Conv_I));
+		}
+		return list;
+	}
+	else if (IsAssignableFrom(type2, type1)) return list;
 	TypeOperator^ op = this->FindOperator(type1);
 	for each (KeyValuePair<TypeReference^, MethodReference^>^ item in op->ConvertTo)
 	{
-		TypeReference^ t = item->Key;
-		if (IsInherit(t, type2))
-		{
-			list->Add(item->Value);
-			return list;
-		}
-		IList<MethodReference^>^ l = this->Convert(t, type2);
+		IList<Instruction^>^ l = this->Convert(item->Key, type2, true);
 		if (l != nullptr)
 		{
-			list->Add(item->Value);
+			list->Add(Instruction::Create(OpCodes::Call, this->_module->ImportReference(item->Value)));
 			list->AddRange(l);
 			return list;
 		}
@@ -39,20 +47,15 @@ IList<MethodReference^>^ Operator::Convert(TypeReference^ type1, TypeReference^ 
 	{
 		for each (KeyValuePair<int, MethodReference^>^ item in op->GenericConvertTo)
 		{
-			if (item->Key >= 0 && item->Key < gt->GenericArguments->Count)
+			int index = item->Key;
+			if (index >= 0 && index < gt->GenericArguments->Count)
 			{
-				TypeReference^ t = gt->GenericArguments[item->Key];
-				item->Value->DeclaringType = gt;
-				if (IsInherit(t, type2))
-				{
-
-					list->Add(item->Value);
-					return list;
-				}
-				IList<MethodReference^>^ l = this->Convert(t, type2);
+				IList<Instruction^>^ l = this->Convert(gt->GenericArguments[index], type2, true);
 				if (l != nullptr)
 				{
-					list->Add(item->Value);
+					MethodReference^ m = this->_module->ImportReference(item->Value);
+					m->DeclaringType = this->_module->ImportReference(gt);
+					list->Add(Instruction::Create(OpCodes::Call, this->_module->ImportReference(m)));
 					list->AddRange(l);
 					return list;
 				}
@@ -62,17 +65,11 @@ IList<MethodReference^>^ Operator::Convert(TypeReference^ type1, TypeReference^ 
 	op = this->FindOperator(type2);
 	for each (KeyValuePair<TypeReference^, MethodReference^>^ item in op->Convert)
 	{
-		TypeReference^ t = item->Key;
-		if (IsInherit(type1, t))
-		{
-			list->Add(item->Value);
-			return list;
-		}
-		IList<MethodReference^>^ l = this->Convert(type1, t);
+		IList<Instruction^>^ l = this->Convert(type1, item->Key, conv);
 		if (l != nullptr)
 		{
-			list->Add(item->Value);
 			list->AddRange(l);
+			list->Add(Instruction::Create(OpCodes::Call, this->_module->ImportReference(item->Value)));
 			return list;
 		}
 	}
@@ -81,20 +78,16 @@ IList<MethodReference^>^ Operator::Convert(TypeReference^ type1, TypeReference^ 
 	{
 		for each (KeyValuePair<int, MethodReference^>^ item in op->GenericConvert)
 		{
-			if (item->Key >= 0 && item->Key < gt->GenericArguments->Count)
+			int index = item->Key;
+			if (index >= 0 && index < gt->GenericArguments->Count)
 			{
-				TypeReference^ t = gt->GenericArguments[item->Key];
-				//item->Value->DeclaringType =  type2;
-				if (IsInherit(type1, t))
-				{
-					list->Add(item->Value);
-					return list;
-				}
-				IList<MethodReference^>^ l = this->Convert(type1, t);
+				IList<Instruction^>^ l = this->Convert(type1, gt->GenericArguments[index], conv);
 				if (l != nullptr)
 				{
-					list->Add(item->Value);
 					list->AddRange(l);
+					MethodReference^ m = this->_module->ImportReference(item->Value);
+					m->DeclaringType = this->_module->ImportReference(gt);
+					list->Add(Instruction::Create(OpCodes::Call, this->_module->ImportReference(m)));
 					return list;
 				}
 			}
@@ -103,10 +96,22 @@ IList<MethodReference^>^ Operator::Convert(TypeReference^ type1, TypeReference^ 
 	return nullptr;
 }
 
-TypeReference^ Operator::GetConvertType(IList<MethodReference^>^ list)
+TypeReference^ Operator::GetConvertType(IList<Instruction^>^ list)
 {
 	if (list == nullptr || list->Count == 0) return nullptr;
-	return list[0]->Parameters[0]->ParameterType;
+	Instruction^ ins = list[0];
+	if (ins->OpCode == OpCodes::Call)
+	{
+		MethodReference^ m = dynamic_cast<MethodReference^>(ins->Operand);
+		return GenericHandle(dynamic_cast<GenericInstanceType^>(m->DeclaringType), m->Parameters[0]->ParameterType);
+	}
+	else if (ins->OpCode == OpCodes::Conv_I) return this->_module->TypeSystem->IntPtr;
+	else if (ins->OpCode == OpCodes::Conv_I2) return this->_module->TypeSystem->Int16;
+	else if (ins->OpCode == OpCodes::Conv_I4) return this->_module->TypeSystem->Int32;
+	else if (ins->OpCode == OpCodes::Conv_I8) return this->_module->TypeSystem->Int64;
+	else if (ins->OpCode == OpCodes::Conv_R4) return this->_module->TypeSystem->Single;
+	else if (ins->OpCode == OpCodes::Conv_R8) return this->_module->TypeSystem->Double;
+	return nullptr;
 }
 
 TypeOperator^ Operator::FindOperator(TypeReference^ type)

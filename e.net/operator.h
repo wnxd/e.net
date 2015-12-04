@@ -18,8 +18,8 @@ ref class Operator
 public:
 	Operator(ModuleDefinition^ module);
 	bool IsConvert(TypeReference^ type1, TypeReference^ type2);
-	IList<MethodReference^>^ Convert(TypeReference^ type1, TypeReference^ type2);
-	TypeReference^ GetConvertType(IList<MethodReference^>^ list);
+	IList<Instruction^>^ Convert(TypeReference^ type1, TypeReference^ type2, bool conv);
+	TypeReference^ GetConvertType(IList<Instruction^>^ list);
 private:
 	ModuleDefinition^ _module;
 	IDictionary<String^, TypeOperator^>^ _map;

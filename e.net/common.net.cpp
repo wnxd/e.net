@@ -83,13 +83,6 @@ bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
 	}
 }
 
-static ref class Global
-{
-internal:
-	static IList<Linked<TypeReference^>^>^ valuetype;
-	static TypeReference^ nullable;
-};
-
 Linked<TypeReference^>^ FindLinked(TypeReference^ type)
 {
 	if (Global::valuetype == nullptr)
@@ -153,7 +146,7 @@ Linked<TypeReference^>^ FindLinked(TypeReference^ type)
 	return nullptr;
 }
 
-bool IsInherit(TypeReference^ type1, TypeReference^ type2)
+bool IsInherit(TypeReference^ type1, TypeReference^ type2, bool assignable)
 {
 	if (type1->IsValueType && type2->IsValueType)
 	{
@@ -166,7 +159,7 @@ bool IsInherit(TypeReference^ type1, TypeReference^ type2)
 			return false;
 		}
 	}
-	return IsAssignableFrom(type2, type1);
+	return assignable ? IsAssignableFrom(type2, type1) : false;
 }
 
 generic<typename T> void AddList(ICollection<T>^ list1, T item)
@@ -245,4 +238,33 @@ TypeReference^ CreateNullable(TypeReference^ type)
 		Global::nullable = module->ImportReference(Type::GetType("System.Nullable`1"));
 	}
 	return CreateGenericType(Global::nullable, ToList(type));
+}
+
+MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeReference^ returntype, bool isstatic, IList<TypeReference^>^ params)
+{
+	MethodReference^ method = gcnew MethodReference(name, returntype, type);
+	method->HasThis = !isstatic;
+	for each (TypeReference^ item in params) method->Parameters->Add(gcnew ParameterDefinition(item));
+	return method;
+}
+
+TypeReference^ GenericHandle(GenericInstanceType^ type1, TypeReference^ type2)
+{
+	if (type1 != nullptr && type2 != nullptr)
+	{
+		if (type2->IsGenericParameter)
+		{
+			GenericParameter^ g = dynamic_cast<GenericParameter^>(type2);
+			int index = g->DeclaringType->GenericParameters->IndexOf(g);
+			type2 = type1->GenericArguments[index];
+		}
+		else if (type2->IsGenericInstance)
+		{
+			GenericInstanceType^ g = dynamic_cast<GenericInstanceType^>(type2);
+			IList<TypeReference^>^ list = gcnew List<TypeReference^>();
+			for (int i = 0; i < g->GenericArguments->Count; i++) list->Add(GenericHandle(type1, g->GenericArguments[i]));
+			type2 = CreateGenericType(g->GetElementType(), list);
+		}
+	}
+	return type2;
 }

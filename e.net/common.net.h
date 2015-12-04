@@ -41,12 +41,19 @@ generic<typename T> ref struct Linked
 	IList<Linked^>^ Next;
 };
 
+static ref class Global
+{
+internal:
+	static IList<Linked<TypeReference^>^>^ valuetype;
+	static TypeReference^ nullable;
+};
+
 generic<typename T> IList<T>^ ToList(...array<T>^ args);
 bool operator==(TypeReference^ type1, TypeReference^ type2);
 bool operator!=(TypeReference^ type1, TypeReference^ type2);
 TypeReference^ GetElementType(TypeReference^ type, bool workarr = true);
 bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2);
-bool IsInherit(TypeReference^ type1, TypeReference^ type2);
+bool IsInherit(TypeReference^ type1, TypeReference^ type2, bool assignable = true);
 generic<typename T> void AddList(ICollection<T>^ list1, T item);
 generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2);
 generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2);
@@ -57,3 +64,5 @@ MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<Pa
 ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 GenericInstanceType^ CreateGenericType(TypeReference^ type, IList<TypeReference^>^ generics);
 TypeReference^ CreateNullable(TypeReference^ type);
+MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeReference^ returntype, bool isstatic, IList<TypeReference^>^ params);
+TypeReference^ GenericHandle(GenericInstanceType^ type1, TypeReference^ type2);
