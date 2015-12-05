@@ -71,18 +71,18 @@ LIBCONST::operator UINT()
 	return type;
 }
 
-EFieldInfo::EFieldInfo()
+EKeyValPair::EKeyValPair()
 {
-	this->Class = NULL;
-	this->Field = NULL;
+	this->Key = NULL;
+	this->Value = NULL;
 }
 
-EFieldInfo::EFieldInfo(UINT64 uint64)
+EKeyValPair::EKeyValPair(UINT64 uint64)
 {
 	memcpy(this, &uint64, sizeof(UINT64));
 }
 
-EFieldInfo::operator UINT64()
+EKeyValPair::operator UINT64()
 {
 	UINT64 uint64;
 	memcpy(&uint64, this, sizeof(UINT64));
@@ -344,6 +344,71 @@ vector<ESection_Program_Dll> GetDlls(byte*& pointer)
 	return arr;
 }
 
+vector<ESection_Resources_FormElement> GetElements(byte*& pointer)
+{
+	vector<ESection_Resources_FormElement> arr;
+	UINT count = GetData<UINT>(pointer);
+	UINT length = GetData<UINT>(pointer);
+	byte* oldptr = pointer + length;
+	ETAG* tags = new ETAG[count];
+	byte** os = new byte*[count];
+	for (size_t i = 0; i < count; i++) tags[i] = GetData<ETAG>(pointer);
+	byte* mptr = pointer + count * sizeof(UINT);
+	for (size_t i = 0; i < count; i++) os[i] = mptr + GetData<UINT>(pointer);
+	for (size_t i = 0; i < count; i++)
+	{
+		ESection_Resources_FormElement sre;
+		pointer = os[i];
+		UINT size = GetData<UINT>(pointer);
+		byte* end = pointer + size;
+		sre.Tag = GetData<ETAG>(pointer);
+		pointer += 26;
+		sre.Left = GetData<UINT>(pointer);
+		sre.Top = GetData<UINT>(pointer);
+		sre.Width = GetData<UINT>(pointer);
+		sre.Height = GetData<UINT>(pointer);
+		pointer += 12;
+		sre.Cursor = GetBytes(pointer);
+		sre.Mark = GetAutoString(pointer);
+		pointer += 4;
+		sre.Status = GetData<EElementStatus>(pointer);
+		pointer += 4;
+		size = GetData<UINT>(pointer);
+		for (size_t i = 0; i < size; i++) sre.Events.push_back(GetData<EKeyValPair>(pointer));
+		pointer += 20;
+		sre.Data = pointer;
+		sre.DataSize = end - pointer;
+		arr.push_back(sre);
+	}
+	delete tags;
+	delete os;
+	pointer = oldptr;
+	return arr;
+}
+
+vector<ESection_Resources_Form> GetForms(byte*& pointer)
+{
+	vector<ESection_Resources_Form> arr;
+	UINT length = GetData<UINT>(pointer) / 2;
+	size_t count = length / sizeof(ETAG);
+	ETAG* tags = new ETAG[count];
+	for (size_t i = 0; i < count; i++) tags[i] = GetData<ETAG>(pointer);
+	pointer += length;
+	for (size_t i = 0; i < count; i++)
+	{
+		ESection_Resources_Form srf;
+		srf.Tag = tags[i];
+		pointer += 8;
+		srf.Class = GetData<ETAG>(pointer);
+		srf.Name = GetString(pointer);
+		srf.Remark = GetString(pointer);
+		srf.Elements = GetElements(pointer);
+		arr.push_back(srf);
+	}
+	delete tags;
+	return arr;
+}
+
 ESection_UserInfo GetUserInfo(byte* pointer)
 {
 	ESection_UserInfo sui;
@@ -415,4 +480,14 @@ ESection_ECList GetECList(byte* pointer)
 		if (info.Name != DoNETRefer) list.List.push_back(info);
 	}
 	return list;
+}
+
+INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
+
+ESection_Resources GetResources(byte* pointer)
+{
+	ESection_Resources resource;
+	resource.Forms = GetForms(pointer);
+
+	return resource;
 }

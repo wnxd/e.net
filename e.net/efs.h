@@ -86,7 +86,9 @@ enum ETYPE : byte
 	Variable = 0x25,
 	Field = 0x15,
 	GlobalField = 0x05,
-	Method = 0x04
+	Method = 0x04,
+	Form = 0x52,
+	Element = 0x06
 };
 
 enum EMethodAttr : UINT
@@ -111,6 +113,33 @@ enum ETagStatus : UINT
 	C_None = 0x00,
 	C_Public = 0x01,
 	C_Extern = 0x02
+};
+
+enum Cursor : UINT
+{
+	ARROW = (UINT)IDC_ARROW,
+	IBEAM = (UINT)IDC_IBEAM,
+	WAIT = (UINT)IDC_WAIT,
+	CROSS = (UINT)IDC_CROSS,
+	UPARROW = (UINT)IDC_UPARROW,
+	SIZE = (UINT)IDC_SIZE,
+	ICON = (UINT)IDC_ICON,
+	SIZENWSE = (UINT)IDC_SIZENWSE,
+	SIZENESW = (UINT)IDC_SIZENESW,
+	SIZEWE = (UINT)IDC_SIZEWE,
+	SIZENS = (UINT)IDC_SIZENS,
+	SIZEALL = (UINT)IDC_SIZEALL,
+	NO = (UINT)IDC_NO,
+	HAND = (UINT)IDC_HAND,
+	APPSTARTING = (UINT)IDC_APPSTARTING,
+	HELP = (UINT)IDC_HELP
+};
+
+enum EElementStatus : UINT
+{
+	E_None = 0x00,
+	E_Visible = 0x01,
+	E_Disable = 0x02
 };
 
 struct ETAG
@@ -139,12 +168,12 @@ struct LIBCONST
 	operator UINT();
 };
 
-struct EFieldInfo
+struct EKeyValPair
 {
-	ETAG Field;
-	ETAG Class;
-	EFieldInfo();
-	EFieldInfo(UINT64 uint);
+	ETAG Key;
+	ETAG Value;
+	EKeyValPair();
+	EKeyValPair(UINT64 uint);
 	operator UINT64();
 };
 
@@ -315,6 +344,39 @@ struct ESection_ECList
 	vector<ESection_ECList_Info> List;
 };
 
+struct ESection_Resources_FormElement :EBase
+{
+	UINT Left;
+	UINT Top;
+	UINT Width;
+	UINT Height;
+	vector<byte> Cursor;
+	string Mark;
+	EElementStatus Status;
+	vector<EKeyValPair> Events;
+	LPBYTE Data;
+	UINT DataSize;
+};
+
+struct ESection_Resources_Form : EBase
+{
+	string Name;
+	string Remark;
+	ETAG Class;
+	vector<ESection_Resources_FormElement> Elements;
+};
+
+struct ESection_Resources_Const
+{
+
+};
+
+struct ESection_Resources
+{
+	vector<ESection_Resources_Form> Forms;
+	vector<ESection_Resources_Const> Constants;
+};
+
 const byte Magic1[4] = { 'C', 'N', 'W', 'T' };
 const byte Magic2[4] = { 'E', 'P', 'R', 'G' };
 const byte Magic_Section[4] = { 0x19, 0x73, 0x11, 0x15 };
@@ -326,7 +388,7 @@ const byte KEY[4] = { 25, 115, 0, 7 };
 #define DONET_NAMESPACE "@namespace"
 #define DONET_CLASS "@class"
 #define DONET_ENUM "@enum"
-#define REMAKE -1
+#define REMARK -1
 #define CUSTOM -2
 #define DLL -3
 #define ETAG2UINT(etag) (UINT)MAKELONG(etag.ID, MAKEWORD(etag.Type1, etag.Type2))
@@ -335,3 +397,4 @@ void Decode_Str(byte data[], const byte key[]);
 ESection_UserInfo GetUserInfo(byte* pointer);
 ESection_Program GetLibraries(byte* pointer, vector<ESection_TagStatus> tagstatus);
 ESection_ECList GetECList(byte* pointer);
+ESection_Resources GetResources(byte* pointer);

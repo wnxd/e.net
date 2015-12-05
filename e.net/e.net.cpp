@@ -719,7 +719,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 	UINT etag = GetData<UINT>(Code);
 	short LibID = GetData<short>(Code);
 	UINT len;
-	if (LibID == -1)
+	if (LibID == REMARK)
 	{
 		if ((GetData<USHORT>(Code) & 64) == 64)
 		{
@@ -1661,7 +1661,7 @@ EVariableData^ ECompile::CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ I
 		case ECode_Type::Field:
 			vi = gcnew EVariableIndex();
 			vi->IndexType = EIndexType::Field;
-			vi->IndexData = (UINT64)GetData<EFieldInfo>(Code);
+			vi->IndexData = (UINT64)GetData<EKeyValPair>(Code);
 			varindex->Add(vi);
 			break;
 		default:
@@ -1772,11 +1772,11 @@ varend:
 		if (donetnp && varindex->Count > 0)
 		{
 			EVariableIndex^ lastitem = varindex[varindex->Count - 1];
-			EFieldInfo fi = (UINT64)lastitem->IndexData;
-			assembly = this->_CodeProcess->FindReferStruct(fi.Class);
+			EKeyValPair fi = (UINT64)lastitem->IndexData;
+			assembly = this->_CodeProcess->FindReferStruct(fi.Value);
 			if (assembly == NULL) return nullptr;
 			{
-				ESection_Variable var = assembly.FindField(fi.Field);
+				ESection_Variable var = assembly.FindField(fi.Key);
 				if (var == NULL) return nullptr;
 				vector<string> arr = split(assembly.Remark, SP);
 				if (arr[0] == DONET_ENUM)
@@ -1893,18 +1893,18 @@ varend:
 			}
 			case EIndexType::Field:
 			{
-				EFieldInfo fi = (UINT64)item->IndexData;
+				EKeyValPair fi = (UINT64)item->IndexData;
 				FieldDefinition^ fd;
 				PropertyDefinition^ pd;
-				fd = this->_CodeRefer->FindField(fi.Field);
-				if (fd == nullptr) pd = this->_CodeRefer->FindProperty(fi.Field);
+				fd = this->_CodeRefer->FindField(fi.Key);
+				if (fd == nullptr) pd = this->_CodeRefer->FindProperty(fi.Key);
 				if (fd == nullptr && pd == nullptr)
 				{
-					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Class);
+					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Value);
 					if (assembly == NULL) return nullptr;
-					ESection_Variable var = assembly.FindField(fi.Field);
+					ESection_Variable var = assembly.FindField(fi.Value);
 					if (var == NULL) return nullptr;
-					TypeDefinition^ type = this->FindTypeDefinition(fi.Class);
+					TypeDefinition^ type = this->FindTypeDefinition(fi.Value);
 					if (type == nullptr) return nullptr;
 					String^ varname = CStr2String(var.Name);
 					fd = FindField(type, varname);

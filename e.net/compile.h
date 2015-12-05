@@ -9,6 +9,7 @@ struct EInfo
 	ESection_Program Program;
 	ESection_AuxiliaryInfo2 TagStatus;
 	ESection_ECList ECList;
+	ESection_Resources Resources;
 };
 
 class CodeProcess

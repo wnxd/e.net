@@ -29,10 +29,7 @@ EInfo* ParseEcode(byte* code)
 				einfo->SystemInfo = ssi;
 			}
 			else if (strcmp(Block_Name, "用户信息段") == 0) einfo->UserInfo = GetUserInfo(code + offset);
-			else if (strcmp(Block_Name, "程序资源段") == 0)
-			{
-
-			}
+			else if (strcmp(Block_Name, "程序资源段") == 0) einfo->Resources = GetResources(code + offset);
 			else if (strcmp(Block_Name, "程序段") == 0)
 			{
 				if (isai) einfo->Program = GetLibraries(code + offset, einfo->TagStatus.Tags);
