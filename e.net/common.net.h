@@ -52,8 +52,8 @@ generic<typename T> IList<T>^ ToList(...array<T>^ args);
 bool operator==(TypeReference^ type1, TypeReference^ type2);
 bool operator!=(TypeReference^ type1, TypeReference^ type2);
 TypeReference^ GetElementType(TypeReference^ type, bool workarr = true);
-bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2);
-bool IsInherit(TypeReference^ type1, TypeReference^ type2, bool assignable = true);
+bool IsAssignableFrom(TypeReference^ base, TypeReference^ type);
+bool IsInherit(TypeReference^ srctype, TypeReference^ dsttype, bool assignable = true);
 generic<typename T> void AddList(ICollection<T>^ list1, T item);
 generic<typename T> void AddList(ICollection<T>^ list1, ICollection<T>^ list2);
 generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2);
@@ -65,4 +65,4 @@ ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, Paramete
 GenericInstanceType^ CreateGenericType(TypeReference^ type, IList<TypeReference^>^ generics);
 TypeReference^ CreateNullable(TypeReference^ type);
 MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeReference^ returntype, bool isstatic, IList<TypeReference^>^ params);
-TypeReference^ GenericHandle(GenericInstanceType^ type1, TypeReference^ type2);
+TypeReference^ GenericHandle(GenericInstanceType^ generictype, TypeReference^ type);

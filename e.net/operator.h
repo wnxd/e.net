@@ -17,8 +17,8 @@ ref class Operator
 {
 public:
 	Operator(ModuleDefinition^ module);
-	bool IsConvert(TypeReference^ type1, TypeReference^ type2);
-	IList<Instruction^>^ Convert(TypeReference^ type1, TypeReference^ type2, bool conv);
+	bool IsConvert(TypeReference^ srctype, TypeReference^ dsttype);
+	IList<Instruction^>^ Convert(TypeReference^ srctype, TypeReference^ dsttype, bool conv);
 	TypeReference^ GetConvertType(IList<Instruction^>^ list);
 private:
 	ModuleDefinition^ _module;

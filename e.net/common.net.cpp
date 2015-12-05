@@ -63,23 +63,23 @@ TypeReference^ GetElementType(TypeReference^ type, bool workarr)
 	return type;
 }
 
-bool IsAssignableFrom(TypeReference^ type1, TypeReference^ type2)
+bool IsAssignableFrom(TypeReference^ base, TypeReference^ type)
 {
-	if (Object::Equals(type1, nullptr) || Object::Equals(type2, nullptr)) return false;
-	else if (type1 == type2) return true;
+	if (Object::Equals(base, nullptr) || Object::Equals(type, nullptr)) return false;
+	else if (base == type) return true;
 	else
 	{
-		if (type2->IsByReference)
+		if (type->IsByReference)
 		{
-			type2 = dynamic_cast<ByReferenceType^>(type2)->ElementType;
-			if (type1 == type2) return true;
+			type = dynamic_cast<ByReferenceType^>(type)->ElementType;
+			if (base == type) return true;
 		}
-		TypeDefinition^ type = type2->Resolve();
-		for each (TypeReference^ t in type->Interfaces) if (IsAssignableFrom(type1, t)) return true;
-		if (type2->IsArray) type2 = type2->Module->ImportReference(typeof(Array));
-		else type2 = type->BaseType;
-		if (type2 == nullptr) return false;
-		return IsAssignableFrom(type1, type2);
+		TypeDefinition^ td = type->Resolve();
+		for each (TypeReference^ t in td->Interfaces) if (IsAssignableFrom(base, t)) return true;
+		if (type->IsArray) type = type->Module->ImportReference(typeof(Array));
+		else type = td->BaseType;
+		if (type == nullptr) return false;
+		return IsAssignableFrom(base, type);
 	}
 }
 
@@ -146,20 +146,20 @@ Linked<TypeReference^>^ FindLinked(TypeReference^ type)
 	return nullptr;
 }
 
-bool IsInherit(TypeReference^ type1, TypeReference^ type2, bool assignable)
+bool IsInherit(TypeReference^ srctype, TypeReference^ dsttype, bool assignable)
 {
-	if (type1->IsValueType && type2->IsValueType)
+	if (srctype->IsValueType && dsttype->IsValueType)
 	{
-		if (type1 == type2) return true;
-		Linked<TypeReference^>^ link = FindLinked(type2);
+		if (srctype == dsttype) return true;
+		Linked<TypeReference^>^ link = FindLinked(dsttype);
 		if (link != nullptr)
 		{
 			if (link->Next == nullptr) return false;
-			for each (Linked<TypeReference^>^ item in link->Next) if (IsInherit(type1, item->Value)) return true;
+			for each (Linked<TypeReference^>^ item in link->Next) if (IsInherit(srctype, item->Value, assignable)) return true;
 			return false;
 		}
 	}
-	return assignable ? IsAssignableFrom(type2, type1) : false;
+	return assignable ? IsAssignableFrom(dsttype, srctype) : false;
 }
 
 generic<typename T> void AddList(ICollection<T>^ list1, T item)
@@ -248,23 +248,23 @@ MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeRe
 	return method;
 }
 
-TypeReference^ GenericHandle(GenericInstanceType^ type1, TypeReference^ type2)
+TypeReference^ GenericHandle(GenericInstanceType^ generictype, TypeReference^ type)
 {
-	if (type1 != nullptr && type2 != nullptr)
+	if (generictype != nullptr && type != nullptr)
 	{
-		if (type2->IsGenericParameter)
+		if (type->IsGenericParameter)
 		{
-			GenericParameter^ g = dynamic_cast<GenericParameter^>(type2);
+			GenericParameter^ g = dynamic_cast<GenericParameter^>(type);
 			int index = g->DeclaringType->GenericParameters->IndexOf(g);
-			type2 = type1->GenericArguments[index];
+			type = generictype->GenericArguments[index];
 		}
-		else if (type2->IsGenericInstance)
+		else if (type->IsGenericInstance)
 		{
-			GenericInstanceType^ g = dynamic_cast<GenericInstanceType^>(type2);
+			GenericInstanceType^ g = dynamic_cast<GenericInstanceType^>(type);
 			IList<TypeReference^>^ list = gcnew List<TypeReference^>();
-			for (int i = 0; i < g->GenericArguments->Count; i++) list->Add(GenericHandle(type1, g->GenericArguments[i]));
-			type2 = CreateGenericType(g->GetElementType(), list);
+			for (int i = 0; i < g->GenericArguments->Count; i++) list->Add(GenericHandle(generictype, g->GenericArguments[i]));
+			type = CreateGenericType(g->GetElementType(), list);
 		}
 	}
-	return type2;
+	return type;
 }
