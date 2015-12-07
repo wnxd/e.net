@@ -60,6 +60,7 @@ generic<typename T> void DelList(ICollection<T>^ list1, ICollection<T>^ list2);
 generic<typename T1, typename T2> T2 GetDictionary(IDictionary<T1, T2>^ dictionary, T1 key);
 generic<typename T1, typename T2> void AddDictionary(IDictionary<T1, IList<T2>^>^ dictionary, T1 key, T2 item);
 generic<typename T1, typename T2> void AddItem(IDictionary<T1, T2>^ dictionary, T1 key, T2 item);
+generic<typename T1, typename T2> void RemoveItem(IDictionary<T1, T2>^ dictionary, T1 key);
 MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params = nullptr, MethodAttributes attr = MethodAttributes::HideBySig);
 ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 GenericInstanceType^ CreateGenericType(TypeReference^ type, IList<TypeReference^>^ generics);

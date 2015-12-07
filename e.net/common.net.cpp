@@ -201,6 +201,11 @@ generic<typename T1, typename T2> void AddItem(IDictionary<T1, T2>^ dictionary, 
 	if (key != nullptr && item != nullptr && !dictionary->ContainsKey(key)) dictionary->Add(key, item);
 }
 
+generic<typename T1, typename T2> void RemoveItem(IDictionary<T1, T2>^ dictionary, T1 key)
+{
+	if (key != nullptr && !dictionary->ContainsKey(key)) dictionary->Remove(key);
+}
+
 MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<ParameterDefinition^>^ params, MethodAttributes attr)
 {
 	MethodDefinition^ method = gcnew MethodDefinition(name, attr, returntype);

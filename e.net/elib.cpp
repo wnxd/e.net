@@ -16,16 +16,24 @@ INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2)
 	else return 0;
 }
 
+const char* GetToolsPath()
+{
+	if (epath.empty())
+	{
+		char path[MAX_PATH];
+		NotifySys(NAS_GET_PATH, 1002, D(path));
+		epath = path;
+	}
+	return epath.c_str();
+}
+
 INT WINAPI notify_lib(INT nMsg, DWORD dwParam1, DWORD dwParam2)
 {
 	switch (nMsg)
 	{
 	case NL_SYS_NOTIFY_FUNCTION:
 		g_fnNotifySys = (PFN_NOTIFY_SYS)dwParam1;
-		ehwnd = (HWND)g_fnNotifySys(NES_GET_MAIN_HWND, 0, 0);
-		char path[MAX_PATH];
-		g_fnNotifySys(NAS_GET_PATH, 1002, D(path));
-		epath = path;
+		ehwnd = (HWND)NotifySys(NES_GET_MAIN_HWND, 0, 0);
 		return NR_OK;
 	default:
 		return NR_ERR;

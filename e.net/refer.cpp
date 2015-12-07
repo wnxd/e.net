@@ -10,6 +10,7 @@
 using namespace System::IO;
 
 extern INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
+extern const char* GetToolsPath();
 extern EInfo* ParseEcode(byte* code);
 extern array<byte>^ ReadFile(String^ path);
 
@@ -86,6 +87,7 @@ CodeRefer::CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list)
 	this->_elibinfo = gcnew List<PluginInfo^>();
 	this->LoadKrnln();
 	this->LoadE_Net();
+	this->LoadPlugins();
 }
 
 CodeRefer::~CodeRefer()
@@ -339,9 +341,9 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 	ELibInfo^ libinfo = this->_elib[index];
 	for each (PluginInfo^ info in this->_elibinfo)
 	{
-		if (String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->Packages->ContainsKey(tag))
+		if (info->MethodPackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->MethodPackages->ContainsKey(tag))
 		{
-			for each (Package^ package in info->Packages[tag])
+			for each (MethodPackage^ package in info->MethodPackages[tag])
 			{
 				EMethodData^ data = gcnew EMethodData(package->Methods[0], package->Mode);
 				this->AddMethodRefer(index, tag, data);
@@ -370,4 +372,11 @@ void CodeRefer::LoadE_Net()
 {
 	PluginInfo^ info = this->_plugins->Load(typeof(E_Net));
 	AddList(this->_elibinfo, info);
+}
+
+void CodeRefer::LoadPlugins()
+{
+	String^ path = LPSTR2String(GetToolsPath()) + "/E.NET/";
+	if (!Directory::Exists(path)) Directory::CreateDirectory(path);
+	AddList(this->_elibinfo, this->_plugins->Load(path));
 }

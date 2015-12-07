@@ -49,22 +49,44 @@ namespace wnxd
 		internal:
 			Object^ _val;
 		};
+
+		[AttributeUsage(AttributeTargets::Class, AllowMultiple = false)]
+		public ref class LibTypeAttribute :Attribute
+		{
+		public:
+			LibTypeAttribute();
+		};
+
+		public ref class LibTypeTagAttribute :Attribute
+		{
+		public:
+			LibTypeTagAttribute(UINT Tag);
+		};
 	}
 }
 
 using namespace wnxd::E_NET;
 
-ref struct Package
+ref struct MethodPackage
 {
 	EMethodMode Mode;
 	IList<MethodDefinition^>^ Methods;
 	IList<TypeDefinition^>^ Types;
 };
 
+ref struct TypePackage
+{
+	TypeDefinition^ Type;
+	IDictionary<UINT, PropertyDefinition^>^ Properties;
+	IDictionary<UINT, MethodDefinition^>^ Methods;
+	IDictionary<UINT, EventDefinition^>^ Events;
+};
+
 ref struct PluginInfo
 {
 	String^ Lib;
-	IDictionary<UINT, IList<Package^>^>^ Packages;
+	IDictionary<UINT, IList<MethodPackage^>^>^ MethodPackages;
+	TypePackage^ TypePackages;
 };
 
 ref class Plugins
@@ -75,6 +97,7 @@ public:
 	IList<PluginInfo^>^ Load(System::Reflection::Assembly^ assembly);
 	PluginInfo^ Load(Type^ type);
 	PluginInfo^ Load(Plugin^ plugin);
+	PluginInfo^ LoadType(Type^ type);
 private:
 	ModuleDefinition^ _module;
 	IList<MethodDefinition^>^ _refer;
@@ -82,10 +105,11 @@ private:
 	IDictionary<MethodReference^, MethodDefinition^>^ _method;
 	IDictionary<MethodDefinition^, IList<MethodReference^>^>^ _refermethod;
 	IDictionary<MethodDefinition^, IList<TypeDefinition^>^>^ _refermethodtype;
+	IDictionary<TypeDefinition^, TypePackage^>^ _typepackages;
 	MethodDefinition^ MethodClone(ModuleDefinition^ M, MethodDefinition^ method);
 	TypeDefinition^ TypeClone(MethodDefinition^ method, ModuleDefinition^ M, TypeDefinition^ type);
 	void CustomClone(IList<CustomAttribute^>^ newarr, IList<CustomAttribute^>^ oldarr);
 	TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ M, TypeReference^ type);
 	MethodReference^ GetMethodReference(MethodDefinition^ method, ModuleDefinition^ M, MethodReference^ m);
-	IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method, IDictionary<MethodReference^, MethodDefinition^>^ chart);
+	IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method);
 };

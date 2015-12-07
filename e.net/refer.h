@@ -80,4 +80,5 @@ private:
 	List<PluginInfo^>^ _elibinfo;
 	void LoadKrnln();
 	void LoadE_Net();
+	void LoadPlugins();
 };

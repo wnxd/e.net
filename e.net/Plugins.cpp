@@ -17,7 +17,7 @@ String^ GetMethodFullName(MethodReference^ method)
 {
 	TypeReference^ type = method->DeclaringType;
 	String^ fullname;
-	if (type == nullptr) fullname = "<module>";
+	if (type == nullptr || !method->HasThis) fullname = "<module>";
 	else fullname = GetTypeFullName(type);
 	fullname += (method->HasThis ? "" : "") + method->Name;
 	for each (ParameterDefinition^ param in method->Parameters) fullname += "," + GetTypeFullName(param->ParameterType);
@@ -62,6 +62,17 @@ DefaultValueAttribute::DefaultValueAttribute(Object^ val)
 {
 	this->_val = val;
 }
+
+LibTypeAttribute::LibTypeAttribute()
+{
+
+}
+
+LibTypeTagAttribute::LibTypeTagAttribute(UINT Tag)
+{
+
+}
+
 Plugins::Plugins(ModuleDefinition^ module)
 {
 	this->_module = module;
@@ -105,7 +116,10 @@ PluginInfo^ Plugins::Load(Type^ type)
 {
 	if (typeof(Plugin)->IsAssignableFrom(type))
 	{
-		PluginInfo^ info = this->Load(dynamic_cast<Plugin^>(Activator::CreateInstance(type)));
+		PluginInfo^ info;
+		array<Object^>^ arr = type->GetCustomAttributes(typeof(LibTypeAttribute), false);
+		if (arr != nullptr && arr->Length == 1) info = this->LoadType(type);
+		else info = this->Load(dynamic_cast<Plugin^>(Activator::CreateInstance(type)));
 		return info;
 	}
 	return nullptr;
@@ -119,7 +133,7 @@ PluginInfo^ Plugins::Load(Plugin^ plugin)
 	{
 		PluginInfo^ info = gcnew PluginInfo();
 		info->Lib = dynamic_cast<LibGuidAttribute^>(arr[0])->_libguid->ToLower();
-		info->Packages = gcnew Dictionary<UINT, IList<Package^>^>();
+		info->MethodPackages = gcnew Dictionary<UINT, IList<MethodPackage^>^>();
 		for each (System::Reflection::MethodInfo^ method in type->GetMethods(BINDING_ALLINSTANCE))
 		{
 			array<Object^>^ arr2 = method->GetCustomAttributes(typeof(LibMethodAttribute), false);
@@ -127,23 +141,25 @@ PluginInfo^ Plugins::Load(Plugin^ plugin)
 			{
 				LibMethodAttribute^ attr = dynamic_cast<LibMethodAttribute^>(arr2[0]);
 				UINT tag = attr->_tag;
-				Package^ package = gcnew Package();
+				MethodPackage^ package = gcnew MethodPackage();
 				package->Mode = attr->_mode;
 				package->Methods = gcnew List<MethodDefinition^>();
 				package->Methods->Add(dynamic_cast<MethodDefinition^>(method->Invoke(plugin, gcnew array < Object^ > { this->_module })));
-				AddDictionary(info->Packages, tag, package);
+				AddDictionary(info->MethodPackages, tag, package);
 			}
 		}
 		ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
 		TypeDefinition^ T = M->GetType(type->FullName);
 		IDictionary<UINT, IList<MethodDefinition^>^>^ methods = gcnew Dictionary<UINT, IList<MethodDefinition^>^>();
+		TypeReference^ libmethod1 = M->ImportReference(typeof(LibMethodAttribute));
+		TypeReference^ libmethod2 = M->ImportReference(typeof(LibTypeTagAttribute));
 		for each (MethodDefinition^ method in T->Methods)
 		{
 			if (method->IsStatic)
 			{
 				for each (CustomAttribute^ ca in method->CustomAttributes)
 				{
-					if (ca->AttributeType == M->ImportReference(typeof(LibMethodAttribute)))
+					if (ca->AttributeType == libmethod1 || ca->AttributeType == libmethod2)
 					{
 						UINT tag = (UINT)ca->ConstructorArguments[0].Value;
 						method->CustomAttributes->Remove(ca);
@@ -159,13 +175,13 @@ PluginInfo^ Plugins::Load(Plugin^ plugin)
 		{
 			for each (MethodDefinition^ method in item->Value)
 			{
-				Package^ package = gcnew Package();
+				MethodPackage^ package = gcnew MethodPackage();
 				package->Mode = EMethodMode::Call;
 				package->Methods = gcnew List<MethodDefinition^>();
 				package->Methods->Add(method);
-				AddList(package->Methods, this->GetMethodList(method, this->_method));
+				AddList(package->Methods, this->GetMethodList(method));
 				package->Types = GetDictionary(this->_refermethodtype, method);
-				AddDictionary(info->Packages, item->Key, package);
+				AddDictionary(info->MethodPackages, item->Key, package);
 			}
 		}
 		return info;
@@ -173,7 +189,34 @@ PluginInfo^ Plugins::Load(Plugin^ plugin)
 	return nullptr;
 }
 
-IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method, IDictionary<MethodReference^, MethodDefinition^>^ chart)
+PluginInfo^ Plugins::LoadType(Type^ type)
+{
+	PluginInfo^ info = gcnew PluginInfo();
+	array<Object^>^ arr = type->GetCustomAttributes(typeof(LibGuidAttribute), false);
+	ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
+	TypeDefinition^ T = M->GetType(type->FullName);
+	TypeReference^ libguid = M->ImportReference(typeof(LibGuidAttribute));
+	TypeReference^ libtype = M->ImportReference(typeof(LibTypeAttribute));
+	for (int i = 0; i < T->CustomAttributes->Count;)
+	{
+		CustomAttribute^ ca = T->CustomAttributes[i];
+		if (ca->AttributeType == libguid)
+		{
+			info->Lib = (String^)ca->ConstructorArguments[0].Value;
+			T->CustomAttributes->Remove(ca);
+		}
+		else if (ca->AttributeType == libtype) T->CustomAttributes->Remove(ca);
+		else i++;
+	}
+	MethodDefinition^ method = CreateMethod("test", this->_module->TypeSystem->Void);
+	T = this->TypeClone(method, M, T);
+	info->TypePackages = GetDictionary(this->_typepackages, T);
+	RemoveItem(this->_refermethod, method);
+	RemoveItem(this->_refermethodtype, method);
+	return info;
+}
+
+IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method)
 {
 	List<MethodDefinition^>^ list = gcnew List<MethodDefinition^>();
 	IList<MethodReference^>^ refer = GetDictionary(this->_refermethod, method);
@@ -181,10 +224,10 @@ IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method, IDict
 	{
 		for each (MethodReference^ item in refer)
 		{
-			MethodDefinition^ m = GetDictionary(chart, item);
+			MethodDefinition^ m = GetDictionary(this->_method, item);
 			if (m == nullptr) m = item->Resolve();
 			AddList(list, m);
-			AddList(list, this->GetMethodList(m, chart));
+			AddList(list, this->GetMethodList(m));
 		}
 	}
 	return list;
@@ -237,18 +280,24 @@ MethodReference^ Plugins::GetMethodReference(MethodDefinition^ method, ModuleDef
 		if (type->Scope == nullptr) AddDictionary(this->_refermethodtype, method, type->Resolve());
 		else if (type->Scope == M)
 		{
+			MethodDefinition^ mm;
 			if (m->HasThis)
 			{
 				type = this->GetTypeReference(method, M, type);
-				m = FindMethod(type->Resolve(), GetMethodFullName(m));
+				mm = FindMethod(type->Resolve(), GetMethodFullName(m));
+				if (mm == nullptr)
+				{
+					mm = this->MethodClone(M, m->Resolve());
+					AddList(type->Resolve()->Methods, mm);
+				}
 			}
 			else
 			{
-				MethodDefinition^ mm = this->MethodClone(M, m->Resolve());
+				mm = this->MethodClone(M, m->Resolve());
 				AddItem<MethodReference^, MethodDefinition^>(this->_method, m, mm);
 				AddDictionary(this->_refermethod, method, m);
-				m = mm;
 			}
+			m = mm;
 		}
 		else m = this->_module->ImportReference(m);
 	}
@@ -271,7 +320,12 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 	if (t == nullptr)
 	{
 		t = gcnew TypeDefinition(type->Namespace, type->Name, type->Attributes);
-		this->_refertype->Add(t);
+		AddList(this->_refertype, t);
+		TypePackage^ package = gcnew TypePackage();
+		package->Methods = gcnew Dictionary<UINT, MethodDefinition^>();
+		package->Properties = gcnew Dictionary<UINT, PropertyDefinition^>();
+		package->Events = gcnew Dictionary<UINT, EventDefinition^>();
+		AddItem(this->_typepackages, t, package);
 		if (type->HasCustomAttributes) CustomClone(t->CustomAttributes, type->CustomAttributes);
 		t->BaseType = this->GetTypeReference(method, M, type->BaseType);
 		if (type->HasInterfaces) for each (TypeReference^ inter in type->Interfaces) t->Interfaces->Add(this->GetTypeReference(method, M, inter));
@@ -281,10 +335,70 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 			{
 				FieldDefinition^ f = gcnew FieldDefinition(field->Name, field->Attributes, this->GetTypeReference(method, M, field->FieldType));
 				if (field->HasCustomAttributes) this->CustomClone(f->CustomAttributes, field->CustomAttributes);
+				if (field->HasConstant) f->Constant = field->Constant;
+				f->HasDefault = field->HasDefault;
 				t->Fields->Add(f);
 			}
 		}
-		if (type->HasMethods) for each (MethodDefinition^ mm in type->Methods) if (mm->HasThis) AddList(t->Methods, this->MethodClone(M, mm));
+		TypeReference^ typetag = M->ImportReference(typeof(LibTypeTagAttribute));
+		if (type->HasMethods)
+		{
+			TypeReference^ libmethod1 = M->ImportReference(typeof(LibMethodAttribute));
+			for each (MethodDefinition^ mm in type->Methods)
+			{
+				UINT tag = -1;
+				for each (CustomAttribute^ ca in mm->CustomAttributes)
+				{
+					if (ca->AttributeType == libmethod1 || ca->AttributeType == typetag)
+					{
+						tag = (UINT)ca->ConstructorArguments[0].Value;
+						mm->CustomAttributes->Remove(ca);
+						break;
+					}
+				}
+				MethodDefinition^ cm = this->MethodClone(M, mm);
+				AddList(t->Methods, cm);
+				if (tag != -1) AddItem(package->Methods, tag, cm);
+			}
+		}
+		if (type->HasProperties)
+		{
+			for each (PropertyDefinition^ property in type->Properties)
+			{
+				PropertyDefinition^ p = gcnew PropertyDefinition(property->Name, property->Attributes, this->GetTypeReference(method, M, property->PropertyType));
+				if (property->SetMethod != nullptr)
+				{
+					p->SetMethod = this->MethodClone(M, property->SetMethod);
+					AddList(t->Methods, p->SetMethod);
+				}
+				if (property->GetMethod != nullptr)
+				{
+					p->GetMethod = this->MethodClone(M, property->GetMethod);
+					AddList(t->Methods, p->GetMethod);
+				}
+				if (property->HasCustomAttributes)
+				{
+					CustomAttribute^ ca = FindCustom(property->CustomAttributes, typetag);
+					if (ca != nullptr)
+					{
+						UINT tag = (UINT)ca->ConstructorArguments[0].Value;
+						AddItem(package->Properties, tag, p);
+						property->CustomAttributes->Remove(ca);
+					}
+					this->CustomClone(p->CustomAttributes, property->CustomAttributes);
+				}
+				if (property->HasConstant) p->Constant = property->Constant;
+				p->HasDefault = property->HasDefault;
+				t->Properties->Add(p);
+			}
+		}
+		if (type->HasEvents)
+		{
+			for each (EventDefinition^ event in type->Events)
+			{
+
+			}
+		}
 		t->PackingSize = type->PackingSize;
 		t->ClassSize = type->ClassSize;
 	}
@@ -305,13 +419,14 @@ MethodDefinition^ Plugins::MethodClone(ModuleDefinition^ M, MethodDefinition^ me
 		Dictionary<ParameterDefinition^, ParameterDefinition^>^ params = gcnew Dictionary<ParameterDefinition^, ParameterDefinition^>();
 		if (method->HasParameters)
 		{
+			TypeReference^ ct = M->ImportReference(typeof(DefaultValueAttribute));
 			for each (ParameterDefinition^ param in method->Parameters)
 			{
 				ParameterDefinition^ p = gcnew ParameterDefinition(param->Name, param->Attributes, this->GetTypeReference(m, M, param->ParameterType));
 				if (param->HasConstant) p->Constant = param->Constant;
 				if (param->HasCustomAttributes)
 				{
-					CustomAttribute^ custom = FindCustom(param->CustomAttributes, M->ImportReference(typeof(DefaultValueAttribute)));
+					CustomAttribute^ custom = FindCustom(param->CustomAttributes, ct);
 					if (custom != nullptr)
 					{
 						CustomAttributeArgument^ caa = dynamic_cast<CustomAttributeArgument^>(custom->ConstructorArguments[0].Value);
