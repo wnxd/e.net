@@ -63,6 +63,7 @@ public:
 	EMethodData^ FindLibMethod(short index, ETAG tag);
 private:
 	ModuleDefinition^ _module;
+	Plugins^ _plugins;
 	Dictionary<String^, TypeDefinition^>^ _type;
 	Dictionary<UINT, String^>^ _typename;
 	Dictionary<String^, TypeReference^>^ _typerefer;

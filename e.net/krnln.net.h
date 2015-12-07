@@ -131,6 +131,13 @@ enum krnln_method : UINT
 	¶þ½øÖÆ = 0x029B,
 };
 
+ref class testclass
+{
+public:
+	testclass();
+	void test();
+};
+
 [LibGuid(KRNLN)]
 ref class Krnln : Plugin
 {

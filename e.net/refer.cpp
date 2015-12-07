@@ -69,6 +69,7 @@ EMethodData::operator MethodDefinition ^ ()
 CodeRefer::CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list)
 {
 	this->_module = module;
+	this->_plugins = gcnew Plugins(module);
 	this->_type = gcnew Dictionary<String^, TypeDefinition^>();
 	this->_typename = gcnew Dictionary<UINT, String^>();
 	this->_typerefer = gcnew Dictionary<String^, TypeReference^>();
@@ -361,12 +362,12 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 
 void CodeRefer::LoadKrnln()
 {
-	PluginInfo^ info = Plugins::Load(this->_module, typeof(Krnln));
+	PluginInfo^ info = this->_plugins->Load(typeof(Krnln));
 	AddList(this->_elibinfo, info);
 }
 
 void CodeRefer::LoadE_Net()
 {
-	PluginInfo^ info = Plugins::Load(this->_module, typeof(E_Net));
+	PluginInfo^ info = this->_plugins->Load(typeof(E_Net));
 	AddList(this->_elibinfo, info);
 }

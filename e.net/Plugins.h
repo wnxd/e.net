@@ -70,13 +70,22 @@ ref struct PluginInfo
 ref class Plugins
 {
 public:
-	static IList<PluginInfo^>^ Load(ModuleDefinition^ module, String^ path);
-	static IList<PluginInfo^>^ Load(ModuleDefinition^ module, System::Reflection::Assembly^ assembly);
-	static PluginInfo^ Load(ModuleDefinition^ module, Type^ type);
-	static PluginInfo^ Load(ModuleDefinition^ module, Plugin^ plugin);
-internal:
-	static IDictionary<MethodReference^, IList<Instruction^>^>^ _refer;
-	static IList<TypeDefinition^>^ _refertype;
-	static IDictionary<MethodDefinition^, IList<MethodReference^>^>^ _refermethod;
-	static IDictionary<MethodDefinition^, IList<TypeDefinition^>^>^ _refermethodtype;
+	Plugins(ModuleDefinition^ module);
+	IList<PluginInfo^>^ Load(String^ path);
+	IList<PluginInfo^>^ Load(System::Reflection::Assembly^ assembly);
+	PluginInfo^ Load(Type^ type);
+	PluginInfo^ Load(Plugin^ plugin);
+private:
+	ModuleDefinition^ _module;
+	IList<MethodDefinition^>^ _refer;
+	IList<TypeDefinition^>^ _refertype;
+	IDictionary<MethodReference^, MethodDefinition^>^ _method;
+	IDictionary<MethodDefinition^, IList<MethodReference^>^>^ _refermethod;
+	IDictionary<MethodDefinition^, IList<TypeDefinition^>^>^ _refermethodtype;
+	MethodDefinition^ MethodClone(ModuleDefinition^ M, MethodDefinition^ method);
+	TypeDefinition^ TypeClone(MethodDefinition^ method, ModuleDefinition^ M, TypeDefinition^ type);
+	void CustomClone(IList<CustomAttribute^>^ newarr, IList<CustomAttribute^>^ oldarr);
+	TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ M, TypeReference^ type);
+	MethodReference^ GetMethodReference(MethodDefinition^ method, ModuleDefinition^ M, MethodReference^ m);
+	IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method, IDictionary<MethodReference^, MethodDefinition^>^ chart);
 };

@@ -1996,8 +1996,20 @@ void Krnln::标准输出(int 输出方向, ...array<Object^>^ 欲输出内容)
 	}
 }
 
+testclass::testclass()
+{
+
+}
+
+void testclass::test()
+{
+
+}
+
 String^ Krnln::标准输入(bool 是否回显)
 {
+	//testclass^ t = gcnew testclass();
+	//t->test();
 	是否回显 = !是否回显;
 	String^ str;
 	do
