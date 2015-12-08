@@ -81,6 +81,7 @@ Plugins::Plugins(ModuleDefinition^ module)
 	this->_method = gcnew Dictionary<MethodReference^, MethodDefinition^>();
 	this->_refermethod = gcnew Dictionary<MethodDefinition^, IList<MethodReference^>^>();
 	this->_refermethodtype = gcnew Dictionary<MethodDefinition^, IList<TypeDefinition^>^>();
+	this->_typepackages = gcnew Dictionary<TypeDefinition^, TypePackage^>();
 }
 
 IList<PluginInfo^>^ Plugins::Load(String^ path)
@@ -396,7 +397,29 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 		{
 			for each (EventDefinition^ event in type->Events)
 			{
-
+				EventDefinition^ e = gcnew EventDefinition(event->Name, event->Attributes, this->GetTypeReference(method, M, event->EventType));
+				if (event->AddMethod != nullptr)
+				{
+					e->AddMethod = this->MethodClone(M, event->AddMethod);
+					AddList(t->Methods, e->AddMethod);
+				}
+				if (event->RemoveMethod != nullptr)
+				{
+					e->RemoveMethod = this->MethodClone(M, event->RemoveMethod);
+					AddList(t->Methods, e->RemoveMethod);
+				}
+				if (event->HasCustomAttributes)
+				{
+					CustomAttribute^ ca = FindCustom(event->CustomAttributes, typetag);
+					if (ca != nullptr)
+					{
+						UINT tag = (UINT)ca->ConstructorArguments[0].Value;
+						AddItem(package->Events, tag, e);
+						event->CustomAttributes->Remove(ca);
+					}
+					this->CustomClone(e->CustomAttributes, event->CustomAttributes);
+				}
+				t->Events->Add(e);
 			}
 		}
 		t->PackingSize = type->PackingSize;
