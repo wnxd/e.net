@@ -11,7 +11,7 @@ namespace krnln.plugin
 {
     [LibGuid("d09f2340818511d396f6aaf844c7e325")]
     [LibType(0)]
-    public class 窗口 : Form, Base, Plugin
+    class 窗口 : Form, Base, Plugin
     {
         public 窗口()
         {
@@ -361,7 +361,7 @@ namespace krnln.plugin
         public string 窗口类名 { get; set; }
         //-属性-
         //-方法-
-        [LibTypeTag(0xD7)]
+        [LibTypeTag((uint)krnln_method.取窗口句柄)]
         public int 取窗口句柄()
         {
             return this.Handle.ToInt32();

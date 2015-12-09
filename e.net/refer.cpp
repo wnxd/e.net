@@ -358,13 +358,19 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 				}
 				return this->FindMethodRefer(index, tag);
 			}
-			else if (info->TypePackages != nullptr && info->TypePackages->Methods->ContainsKey(tag))
+			else if (info->TypePackages != nullptr)
 			{
-				TypePackage^ package = info->TypePackages;
-				if (!this->_libtype->ContainsValue(package)) this->LoadLibType(MAKELONG(index + 1, package->Tag + 1), package);
-				EMethodData^ data = gcnew EMethodData(package->Methods[tag], EMethodMode::Call);
-				this->AddMethodRefer(index, tag, data);
-				return data;
+				for each (KeyValuePair<UINT, TypePackage^>^ item in info->TypePackages)
+				{
+					TypePackage^ package = item->Value;
+					if (package->Methods->ContainsKey(tag))
+					{
+						if (!this->_libtype->ContainsValue(package)) this->LoadLibType(MAKELONG(index + 1, item->Key + 1), package);
+						EMethodData^ data = gcnew EMethodData(package->Methods[tag], EMethodMode::Call);
+						this->AddMethodRefer(index, tag, data);
+						return data;
+					}
+				}
 			}
 		}
 	}
@@ -390,9 +396,9 @@ TypeDefinition^ CodeRefer::FindLibType(ETAG tag)
 				ELibInfo^ libinfo = this->_elib[index];
 				for each (PluginInfo^ info in this->_elibinfo)
 				{
-					package = info->TypePackages;
-					if (package != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && package->Tag == index)
+					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(index))
 					{
+						package = info->TypePackages[index];
 						this->LoadLibType(tag, package);
 						return package->Type;
 					}

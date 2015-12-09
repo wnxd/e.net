@@ -90,7 +90,7 @@ Plugins::Plugins(ModuleDefinition^ module)
 	this->_method = gcnew Dictionary<MethodReference^, MethodDefinition^>();
 	this->_refermethod = gcnew Dictionary<MethodDefinition^, IList<MethodReference^>^>();
 	this->_refermethodtype = gcnew Dictionary<MethodDefinition^, IList<TypeDefinition^>^>();
-	this->_typepackages = gcnew Dictionary<TypeDefinition^, TypePackage^>();
+	this->_typepackages = gcnew Dictionary<TypeDefinition^, TypePackageInfo^>();
 }
 
 IList<PluginInfo^>^ Plugins::Load(String^ path)
@@ -206,35 +206,22 @@ PluginInfo^ Plugins::LoadType(Type^ type)
 	array<Object^>^ arr = type->GetCustomAttributes(typeof(LibGuidAttribute), false);
 	ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
 	TypeDefinition^ T = M->GetType(type->FullName);
-	UINT Tag;
-	TypeReference^ libguid = M->ImportReference(typeof(LibGuidAttribute));
-	TypeReference^ libtype = M->ImportReference(typeof(LibTypeAttribute));
-	for (int i = 0; i < T->CustomAttributes->Count;)
-	{
-		CustomAttribute^ ca = T->CustomAttributes[i];
-		if (ca->AttributeType == libguid)
-		{
-			info->Lib = (String^)ca->ConstructorArguments[0].Value;
-			T->CustomAttributes->Remove(ca);
-		}
-		else if (ca->AttributeType == libtype)
-		{
-			Tag = (UINT)ca->ConstructorArguments[0].Value;
-			T->CustomAttributes->Remove(ca);
-		}
-		else i++;
-	}
 	MethodDefinition^ method = CreateMethod("test", this->_module->TypeSystem->Void);
 	T = this->TypeClone(method, M, T);
-	info->TypePackages = GetDictionary(this->_typepackages, T);
-	if (info->TypePackages != nullptr)
+	TypePackageInfo^ packageinfo = GetDictionary(this->_typepackages, T);
+	if (packageinfo != nullptr)
 	{
-		info->TypePackages->Tag = Tag;
-		info->TypePackages->ReferMethods = gcnew List<MethodDefinition^>();
-		AddList(info->TypePackages->ReferMethods, this->GetMethodList(method));
-		info->TypePackages->ReferTypes = gcnew List<TypeDefinition^>();
-		AddList(info->TypePackages->ReferTypes, GetDictionary(this->_refermethodtype, method));
-		for each (MethodDefinition^ m in info->TypePackages->ReferMethods) AddList(info->TypePackages->ReferTypes, GetDictionary(this->_refermethodtype, m));
+		info->Lib = packageinfo->Lib;
+		info->TypePackages = gcnew Dictionary<UINT, TypePackage^>();
+		TypePackage^ package = packageinfo->Package;
+		info->TypePackages->Add(packageinfo->Tag, package);
+		package->ReferMethods = gcnew List<MethodDefinition^>();
+		AddList(package->ReferMethods, this->GetMethodList(method));
+		package->ReferTypes = gcnew List<TypeDefinition^>();
+		IList<TypeDefinition^>^ list = GetDictionary(this->_refermethodtype, method);
+		AddList(package->ReferTypes, list);
+		for each (MethodDefinition^ m in package->ReferMethods) AddList(package->ReferTypes, GetDictionary(this->_refermethodtype, m));
+		this->AddLibTypeList(info, list);
 	}
 	RemoveItem(this->_refermethod, method);
 	RemoveItem(this->_refermethodtype, method);
@@ -258,8 +245,18 @@ IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method)
 	return list;
 }
 
+void Plugins::AddLibTypeList(PluginInfo^ info, IList<TypeDefinition^>^ list)
+{
+	for each (TypeDefinition^ type in list)
+	{
+		TypePackageInfo^ packageinfo = GetDictionary(this->_typepackages, type);
+		if (packageinfo != nullptr) AddItem(info->TypePackages, packageinfo->Tag, packageinfo->Package);
+	}
+}
+
 TypeReference^ Plugins::GetTypeReference(MethodDefinition^ method, ModuleDefinition^ M, TypeReference^ type)
 {
+	if (type == nullptr) return nullptr;
 	if (type->Scope == M)
 	{
 		IList<int>^ list = gcnew List<int>();
@@ -298,6 +295,7 @@ TypeReference^ Plugins::GetTypeReference(MethodDefinition^ method, ModuleDefinit
 
 MethodReference^ Plugins::GetMethodReference(MethodDefinition^ method, ModuleDefinition^ M, MethodReference^ m)
 {
+	if (m == nullptr) return nullptr;
 	TypeReference^ type = m->DeclaringType;
 	if (type == nullptr) AddDictionary(this->_refermethod, method, m);
 	else
@@ -346,14 +344,44 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 	{
 		t = gcnew TypeDefinition(type->Namespace, type->Name, type->Attributes);
 		AddList(this->_refertype, t);
-		TypePackage^ package = gcnew TypePackage();
-		package->Type = t;
-		package->Methods = gcnew Dictionary<UINT, MethodDefinition^>();
-		package->Properties = gcnew Dictionary<UINT, PropertyDefinition^>();
-		package->Events = gcnew Dictionary<UINT, EventDefinition^>();
-		AddItem(this->_typepackages, t, package);
-		if (type->HasCustomAttributes) CustomClone(t->CustomAttributes, type->CustomAttributes);
-		if (type->BaseType != nullptr) t->BaseType = this->GetTypeReference(method, M, type->BaseType);
+		TypePackage^ package;
+		if (type->HasCustomAttributes)
+		{
+			TypeReference^ libguid = M->ImportReference(typeof(LibGuidAttribute));
+			TypeReference^ libtype = M->ImportReference(typeof(LibTypeAttribute));
+			String^ lib;
+			UINT tag = -1;
+			for (int i = 0; i < type->CustomAttributes->Count;)
+			{
+				CustomAttribute^ ca = type->CustomAttributes[i];
+				if (ca->AttributeType == libguid)
+				{
+					lib = (String^)ca->ConstructorArguments[0].Value;
+					type->CustomAttributes->Remove(ca);
+				}
+				else if (ca->AttributeType == libtype)
+				{
+					tag = (UINT)ca->ConstructorArguments[0].Value;
+					type->CustomAttributes->Remove(ca);
+				}
+				else i++;
+			}
+			if (!String::IsNullOrEmpty(lib) && tag != -1)
+			{
+				package = gcnew TypePackage();
+				package->Type = t;
+				package->Methods = gcnew Dictionary<UINT, MethodDefinition^>();
+				package->Properties = gcnew Dictionary<UINT, PropertyDefinition^>();
+				package->Events = gcnew Dictionary<UINT, EventDefinition^>();
+				TypePackageInfo^ info = gcnew TypePackageInfo();
+				info->Lib = lib;
+				info->Tag = tag;
+				info->Package = package;
+				AddItem(this->_typepackages, t, info);
+			}
+			CustomClone(t->CustomAttributes, type->CustomAttributes);
+		}
+		t->BaseType = this->GetTypeReference(method, M, type->BaseType);
 		TypeReference^ plugin = M->ImportReference(typeof(Plugin));
 		if (type->HasInterfaces) for each (TypeReference^ inter in type->Interfaces) if (inter != plugin) t->Interfaces->Add(this->GetTypeReference(method, M, inter));
 		if (type->HasFields)
@@ -385,7 +413,7 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 				}
 				MethodDefinition^ cm = this->MethodClone(M, mm);
 				AddList(t->Methods, cm);
-				if (tag != -1) AddItem(package->Methods, tag, cm);
+				if (package != nullptr && tag != -1) AddItem(package->Methods, tag, cm);
 			}
 		}
 		if (type->HasProperties)
@@ -409,7 +437,7 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 					if (ca != nullptr)
 					{
 						UINT tag = (UINT)ca->ConstructorArguments[0].Value;
-						AddItem(package->Properties, tag, p);
+						if (package != nullptr) AddItem(package->Properties, tag, p);
 						property->CustomAttributes->Remove(ca);
 					}
 					this->CustomClone(p->CustomAttributes, property->CustomAttributes);
@@ -440,7 +468,7 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 					if (ca != nullptr)
 					{
 						UINT tag = (UINT)ca->ConstructorArguments[0].Value;
-						AddItem(package->Events, tag, e);
+						if (package != nullptr) AddItem(package->Events, tag, e);
 						event->CustomAttributes->Remove(ca);
 					}
 					this->CustomClone(e->CustomAttributes, event->CustomAttributes);
@@ -511,11 +539,25 @@ MethodDefinition^ Plugins::MethodClone(ModuleDefinition^ M, MethodDefinition^ me
 				{
 					FieldReference^ f = dynamic_cast<FieldReference^>(ins->Operand);
 					TypeReference^ t = this->GetTypeReference(m, M, f->DeclaringType);
-					if (t != f->DeclaringType) ins->Operand = FindField(t->Resolve(), f->Name);
+					if (t->Scope == nullptr) ins->Operand = FindField(t->Resolve(), f->Name);
 					else ins->Operand = this->_module->ImportReference(f);
 				}
 				else if (ins->OpCode == OpCodes::Castclass || ins->OpCode == OpCodes::Box || ins->OpCode == OpCodes::Unbox || ins->OpCode == OpCodes::Unbox_Any || ins->OpCode == OpCodes::Newarr || ins->OpCode == OpCodes::Ldelema || ins->OpCode == OpCodes::Initobj || ins->OpCode == OpCodes::Isinst || ins->OpCode == OpCodes::Ldobj || ins->OpCode == OpCodes::Stobj) ins->Operand = this->GetTypeReference(m, M, dynamic_cast<TypeReference^>(ins->Operand));
 				m->Body->Instructions->Add(ins);
+			}
+			if (method->Body->HasExceptionHandlers)
+			{
+				for each (ExceptionHandler^ handler in method->Body->ExceptionHandlers)
+				{
+					ExceptionHandler^ h = gcnew ExceptionHandler(handler->HandlerType);
+					h->HandlerStart = handler->HandlerStart;
+					h->HandlerEnd = handler->HandlerEnd;
+					h->TryStart = handler->TryStart;
+					h->TryEnd = handler->TryEnd;
+					h->FilterStart = handler->FilterStart;
+					h->CatchType = this->GetTypeReference(m, M, handler->CatchType);
+					m->Body->ExceptionHandlers->Add(h);
+				}
 			}
 		}
 		if (method->HasPInvokeInfo) m->PInvokeInfo = gcnew PInvokeInfo(method->PInvokeInfo->Attributes, method->PInvokeInfo->EntryPoint, method->PInvokeInfo->Module);

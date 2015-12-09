@@ -76,7 +76,6 @@ public ref struct MethodPackage
 
 public ref struct TypePackage
 {
-	UINT Tag;
 	TypeDefinition^ Type;
 	IDictionary<UINT, PropertyDefinition^>^ Properties;
 	IDictionary<UINT, MethodDefinition^>^ Methods;
@@ -89,7 +88,14 @@ public ref struct PluginInfo
 {
 	String^ Lib;
 	IDictionary<UINT, IList<MethodPackage^>^>^ MethodPackages;
-	TypePackage^ TypePackages;
+	IDictionary<UINT, TypePackage^>^ TypePackages;
+};
+
+ref struct TypePackageInfo
+{
+	String^ Lib;
+	UINT Tag;
+	TypePackage^ Package;
 };
 
 public ref class Plugins
@@ -108,11 +114,12 @@ private:
 	IDictionary<MethodReference^, MethodDefinition^>^ _method;
 	IDictionary<MethodDefinition^, IList<MethodReference^>^>^ _refermethod;
 	IDictionary<MethodDefinition^, IList<TypeDefinition^>^>^ _refermethodtype;
-	IDictionary<TypeDefinition^, TypePackage^>^ _typepackages;
+	IDictionary<TypeDefinition^, TypePackageInfo^>^ _typepackages;
 	MethodDefinition^ MethodClone(ModuleDefinition^ M, MethodDefinition^ method);
 	TypeDefinition^ TypeClone(MethodDefinition^ method, ModuleDefinition^ M, TypeDefinition^ type);
 	void CustomClone(IList<CustomAttribute^>^ newarr, IList<CustomAttribute^>^ oldarr);
 	TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ M, TypeReference^ type);
 	MethodReference^ GetMethodReference(MethodDefinition^ method, ModuleDefinition^ M, MethodReference^ m);
 	IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method);
+	void AddLibTypeList(PluginInfo^ info, IList<TypeDefinition^>^ list);
 };
