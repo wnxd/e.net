@@ -219,9 +219,9 @@ PluginInfo^ Plugins::LoadType(Type^ type)
 		AddList(package->ReferMethods, this->GetMethodList(method));
 		package->ReferTypes = gcnew List<TypeDefinition^>();
 		IList<TypeDefinition^>^ list = GetDictionary(this->_refermethodtype, method);
-		AddList(package->ReferTypes, list);
+		if (list == nullptr) this->AddAllRefer(package, T);
+		else AddList(package->ReferTypes, list);
 		for each (MethodDefinition^ m in package->ReferMethods) AddList(package->ReferTypes, GetDictionary(this->_refermethodtype, m));
-		this->AddLibTypeList(info, list);
 	}
 	RemoveItem(this->_refermethod, method);
 	RemoveItem(this->_refermethodtype, method);
@@ -245,12 +245,63 @@ IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method)
 	return list;
 }
 
-void Plugins::AddLibTypeList(PluginInfo^ info, IList<TypeDefinition^>^ list)
+void Plugins::AddAllRefer(TypePackage^ package, TypeDefinition^ type)
 {
-	for each (TypeDefinition^ type in list)
+	if (type->BaseType != nullptr && type != package->Type && type->Scope == nullptr)
 	{
-		TypePackageInfo^ packageinfo = GetDictionary(this->_typepackages, type);
-		if (packageinfo != nullptr) AddItem(info->TypePackages, packageinfo->Tag, packageinfo->Package);
+		TypeDefinition^ T = type->BaseType->Resolve();
+		if (!package->ReferTypes->Contains(T))
+		{
+			package->ReferTypes->Add(T);
+			this->AddAllRefer(package, T);
+		}
+	}
+	if (type->HasInterfaces)
+	{
+		for each (TypeReference^ t in type->Interfaces)
+		{
+			if (t != package->Type && t->Scope == nullptr)
+			{
+				TypeDefinition^ T = t->Resolve();
+				if (!package->ReferTypes->Contains(T))
+				{
+					package->ReferTypes->Add(T);
+					this->AddAllRefer(package, T);
+				}
+			}
+		}
+	}
+	IList<MethodDefinition^>^ list = gcnew List<MethodDefinition^>();
+	if (type->HasMethods)
+	{
+		for each (MethodDefinition^ method in type->Methods)
+		{
+			AddList(list, method);
+			IList<MethodDefinition^>^ l = this->GetMethodList(method);
+			if (l != nullptr && l->Count > 0)
+			{
+				for each (MethodDefinition^ m in l)
+				{
+					AddList(list, m);
+					if (m->IsStatic && !package->Type->Methods->Contains(m)) AddList(package->ReferMethods, m);
+				}
+			}
+		}
+	}
+	for each (MethodDefinition^ method in list)
+	{
+		IList<TypeDefinition^>^ list = GetDictionary(this->_refermethodtype, method);
+		if (list != nullptr && list->Count > 0)
+		{
+			for each (TypeDefinition^ T in list)
+			{
+				if (T != package->Type && !package->ReferTypes->Contains(T))
+				{
+					package->ReferTypes->Add(T);
+					this->AddAllRefer(package, T);
+				}
+			}
+		}
 	}
 }
 

@@ -121,5 +121,5 @@ private:
 	TypeReference^ GetTypeReference(MethodDefinition^ method, ModuleDefinition^ M, TypeReference^ type);
 	MethodReference^ GetMethodReference(MethodDefinition^ method, ModuleDefinition^ M, MethodReference^ m);
 	IList<MethodDefinition^>^ GetMethodList(MethodDefinition^ method);
-	void AddLibTypeList(PluginInfo^ info, IList<TypeDefinition^>^ list);
+	void AddAllRefer(TypePackage^ package, TypeDefinition^ type);
 };

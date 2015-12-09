@@ -441,7 +441,7 @@ void CodeRefer::LoadLibType(UINT tag, TypePackage^ package)
 	AddItem(this->_libtype, tag, package);
 	this->AddType(tag, package->Type);
 	AddList(this->_module->Types, package->Type);
-	if (package->Methods->Count > 0)
+	if (package->ReferMethods->Count > 0)
 	{
 		TypeDefinition^ global = this->_module->GetType("<Module>");
 		for each (MethodDefinition^ method in package->ReferMethods) AddList(global->Methods, method);
