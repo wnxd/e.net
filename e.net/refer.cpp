@@ -379,26 +379,23 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 	return nullptr;
 }
 
-TypeDefinition^ CodeRefer::FindLibType(ETAG tag)
+TypeDefinition^ CodeRefer::FindLibType(LIBTAG tag)
 {
-	UINT t = tag;
-	TypePackage^ package = GetDictionary(this->_libtype, t);
+	TypePackage^ package = GetDictionary<UINT, TypePackage^>(this->_libtype, tag);
 	if (package == nullptr)
 	{
-		short libid = t & 0xFF;
-		short index = t >> 16;
-		if (libid > 0 && index > 0)
+		if (tag.LibID > 0 && tag.ID > 0)
 		{
-			libid--;
-			if (libid < this->_elib->Count)
+			tag.LibID--;
+			if (tag.LibID < this->_elib->Count)
 			{
-				index--;
-				ELibInfo^ libinfo = this->_elib[index];
+				tag.ID--;
+				ELibInfo^ libinfo = this->_elib[tag.ID];
 				for each (PluginInfo^ info in this->_elibinfo)
 				{
-					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(index))
+					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(tag.ID))
 					{
-						package = info->TypePackages[index];
+						package = info->TypePackages[tag.ID];
 						this->LoadLibType(tag, package);
 						return package->Type;
 					}

@@ -61,7 +61,7 @@ public:
 	FieldDefinition^ FindGlobalVariable(ETAG tag);
 	PropertyDefinition^ FindProperty(ETAG tag);
 	EMethodData^ FindLibMethod(short index, ETAG tag);
-	TypeDefinition^ FindLibType(ETAG tag);
+	TypeDefinition^ FindLibType(LIBTAG tag);
 	PropertyDefinition^ FindLibTypeProperty(ETAG tag, UINT index);
 private:
 	ModuleDefinition^ _module;

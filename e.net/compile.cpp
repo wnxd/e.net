@@ -140,11 +140,16 @@ vector<ESection_ECList_Info> CodeProcess::GetECList()
 	return this->_einfo->ECList.List;
 }
 
-ESection_Library CodeProcess::FindLibrary(string name, short& i)
+vector<ESection_Resources_Form> CodeProcess::GetFormList()
+{
+	return this->_einfo->Resources.Forms;
+}
+
+ESection_Library CodeProcess::FindLibrary(string guid, short& i)
 {
 	vector<ESection_Library> libraries = this->GetLibraries();
 	size_t len = libraries.size();
-	for (i = 0; i < len; i++) if (stricmp(libraries[i].Guid.c_str(), name.c_str())) return libraries[i];
+	for (i = 0; i < len; i++) if (stricmp(libraries[i].Guid.c_str(), guid.c_str())) return libraries[i];
 	i = -1;
 	return NULL;
 }
@@ -189,4 +194,24 @@ ESection_Program_Assembly CodeProcess::FindStruct(ETAG tag)
 ESection_Program_Assembly CodeProcess::FindReferStruct(ETAG tag)
 {
 	return FindInfo(this->GetReferStructs(), tag);
+}
+
+PLIB_INFO CodeProcess::FindLibInfo(UINT index)
+{
+	return this->FindLibInfo(this->GetLibraries()[index]);
+}
+
+PLIB_INFO CodeProcess::FindLibInfo(ESection_Library lib)
+{
+	if (lib != NULL)
+	{
+		string libname = lib.FileName + ".fne";
+		HMODULE module = GetModuleHandle(libname.c_str());
+		if (module != NULL)
+		{
+			PFN_GET_LIB_INFO GetNewInf = (PFN_GET_LIB_INFO)GetProcAddress(module, FUNCNAME_GET_LIB_INFO);
+			if (GetNewInf != NULL) return GetNewInf();
+		}
+	}
+	return NULL;
 }

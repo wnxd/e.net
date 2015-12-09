@@ -87,8 +87,9 @@ enum ETYPE : byte
 	Field = 0x15,
 	GlobalField = 0x05,
 	Method = 0x04,
-	Form = 0x52,
-	Element = 0x06
+	Window = 0x52,
+	Form = 0x06,
+	Element = 0x16
 };
 
 enum EMethodAttr : UINT
@@ -158,20 +159,20 @@ struct ETAG
 	operator UINT();
 };
 
-struct LIBCONST
+struct LIBTAG
 {
 	USHORT LibID;
 	USHORT ID;
-	LIBCONST();
-	LIBCONST(UINT uint);
-	LIBCONST* operator=(UINT uint);
+	LIBTAG();
+	LIBTAG(UINT uint);
+	LIBTAG* operator=(UINT uint);
 	operator UINT();
 };
 
 struct EKeyValPair
 {
-	ETAG Key;
 	ETAG Value;
+	ETAG Key;
 	EKeyValPair();
 	EKeyValPair(UINT64 uint);
 	operator UINT64();
@@ -346,6 +347,7 @@ struct ESection_ECList
 
 struct ESection_Resources_FormElement :EBase
 {
+	ETAG Type;
 	UINT Left;
 	UINT Top;
 	UINT Width;

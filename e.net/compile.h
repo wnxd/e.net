@@ -30,7 +30,8 @@ public:
 	vector<ESection_Variable> GetGlobalVariables();
 	vector<ESection_Program_Dll> GetDllList();
 	vector<ESection_ECList_Info> GetECList();
-	ESection_Library FindLibrary(string name, short& i);
+	vector<ESection_Resources_Form> GetFormList();
+	ESection_Library FindLibrary(string guid, short& i);
 	ETagStatus GetTagStatus(ETAG tag);
 	ESection_Program_Method FindMethod(ETAG tag);
 	ESection_Program_Method FindReferMethod(ETAG tag);
@@ -39,6 +40,8 @@ public:
 	ESection_Program_Assembly FindReferAssembly(ETAG tag);
 	ESection_Program_Assembly FindStruct(ETAG tag);
 	ESection_Program_Assembly FindReferStruct(ETAG tag);
+	PLIB_INFO FindLibInfo(UINT index);
+	PLIB_INFO FindLibInfo(ESection_Library lib);
 private:
 	EInfo* _einfo;
 };

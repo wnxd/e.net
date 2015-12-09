@@ -132,11 +132,12 @@ private:
 	bool CompileRefer();
 	bool CompileClass();
 	bool CompileMethod(TypeDefinition^ type, ESection_Program_Assembly assembly, bool isstatic);
+	bool CompileWindow();
 	bool CompileCode();
 	bool CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset);
 	TypeReference^ CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);
 	EVariableData^ CompileCode_Var(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);
-	ELibConstData^ CompileCode_LibConst(LIBCONST libconst);
+	ELibConstData^ CompileCode_LibConst(LIBTAG libconst);
 	void CompileCode_Proc(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset, size_t& Index);
 	EMethodReference^ GetMethodReference(short index, ETAG tag);
 	EMethodReference^ GetMethodReference(EMethodData^ methoddata, short index, ETAG tag);

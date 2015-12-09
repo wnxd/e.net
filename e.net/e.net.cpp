@@ -587,13 +587,48 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 	}
 }
 
-bool ECompile::CompileCode()
+bool ECompile::CompileWindow()
 {
 	try
 	{
 		ModuleDefinition^ module = this->_assembly->MainModule;
 		TypeDefinition^ global = module->GetType("<Module>");
 		global->Attributes = global->Attributes | STATICCLASS;
+		for each (ESection_Resources_Form form in this->_CodeProcess->GetFormList())
+		{
+			if (form.Elements.size() > 0)
+			{
+				ESection_Resources_FormElement window = form.Elements[0];
+				TypeReference^ t = module->ImportReference(this->FindTypeDefinition(window.Type));
+				String^ name = CStr2String(form.Name);
+				FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, t);
+				global->Fields->Add(f);
+				this->_CodeRefer->AddGlobalVariable(form.Tag, f);
+				this->_CodeRefer->AddGlobalVariable(window.Tag, f);
+				TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
+				MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
+				ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+
+
+				AddILCode(ILProcessor, OpCodes::Ret);
+				forms->Methods->Add(method);
+				module->Types->Add(forms);
+			}
+		}
+	}
+	catch (Exception^ ex)
+	{
+		MessageBox::Show(ex->Message);
+		return false;
+	}
+}
+
+bool ECompile::CompileCode()
+{
+	try
+	{
+		ModuleDefinition^ module = this->_assembly->MainModule;
+		TypeDefinition^ global = module->GetType("<Module>");
 		for each (ESection_Variable var in this->_CodeProcess->GetGlobalVariables())
 		{
 			if ((var.Attributes & EVariableAttr::V_Extern) == EVariableAttr::V_Extern)
@@ -675,40 +710,32 @@ bool ECompile::CompileCode()
 
 bool ECompile::CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset)
 {
-	try
+	ModuleDefinition^ module = this->_assembly->MainModule;
+	size_t count = Offset.size();
+	size_t i = 0;
+	while (i < count)
 	{
-		ModuleDefinition^ module = this->_assembly->MainModule;
-		size_t count = Offset.size();
-		size_t i = 0;
-		while (i < count)
+		byte* current = Code + Offset[i];
+		size_t size;
+		if (count == i + 1) size = Length - Offset[i];
+		else size = Offset[i + 1] - Offset[i];
+		switch (GetData<ECode_Head>(current))
 		{
-			byte* current = Code + Offset[i];
-			size_t size;
-			if (count == i + 1) size = Length - Offset[i];
-			else size = Offset[i + 1] - Offset[i];
-			switch (GetData<ECode_Head>(current))
-			{
-			case Call:
-				if (this->CompileCode_Call(MethodInfo, ILProcessor, current, current + size) != module->TypeSystem->Void) AddILCode(ILProcessor, OpCodes::Pop);
-				i++;
-				break;
-			case Ife:
-			case If:
-			case Switch:
-			case LoopBegin:
-				this->CompileCode_Proc(MethodInfo, ILProcessor, Code, Length, Offset, i);
-				break;
-			default:
-				return false;
-			}
+		case Call:
+			if (this->CompileCode_Call(MethodInfo, ILProcessor, current, current + size) != module->TypeSystem->Void) AddILCode(ILProcessor, OpCodes::Pop);
+			i++;
+			break;
+		case Ife:
+		case If:
+		case Switch:
+		case LoopBegin:
+			this->CompileCode_Proc(MethodInfo, ILProcessor, Code, Length, Offset, i);
+			break;
+		default:
+			return false;
 		}
-		return true;
 	}
-	catch (Exception^ ex)
-	{
-		MessageBox::Show(ex->Message);
-		return false;
-	}
+	return true;
 }
 
 TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End)
@@ -977,7 +1004,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						break;
 					case ECode_Type::LibConst:
 					{
-						ELibConstData^ constdata = this->CompileCode_LibConst(GetData<LIBCONST>(Code));
+						ELibConstData^ constdata = this->CompileCode_LibConst(GetData<LIBTAG>(Code));
 						if (constdata == nullptr) throw Error(mr->Name, "使用了未支持的支持库常量");
 						param->Type = constdata->Type;
 						param->Data = constdata->Data;
@@ -1768,10 +1795,10 @@ varend:
 		{
 			EVariableIndex^ lastitem = varindex[varindex->Count - 1];
 			EKeyValPair fi = (UINT64)lastitem->IndexData;
-			assembly = this->_CodeProcess->FindReferStruct(fi.Value);
+			assembly = this->_CodeProcess->FindReferStruct(fi.Key);
 			if (assembly == NULL) return nullptr;
 			{
-				ESection_Variable var = assembly.FindField(fi.Key);
+				ESection_Variable var = assembly.FindField(fi.Value);
 				if (var == NULL) return nullptr;
 				vector<string> arr = split(assembly.Remark, SP);
 				if (arr[0] == DONET_ENUM)
@@ -1891,17 +1918,17 @@ varend:
 				EKeyValPair fi = (UINT64)item->IndexData;
 				FieldDefinition^ fd;
 				PropertyDefinition^ pd;
-				fd = this->_CodeRefer->FindField(fi.Key);
-				if (fd == nullptr) pd = this->_CodeRefer->FindProperty(fi.Key);
+				fd = this->_CodeRefer->FindField(fi.Value);
+				if (fd == nullptr) pd = this->_CodeRefer->FindProperty(fi.Value);
 				if (fd == nullptr && pd == nullptr)
 				{
-					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Value);
-					if (assembly == NULL) pd = this->_CodeRefer->FindLibTypeProperty(fi.Value, fi.Key);
+					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Key);
+					if (assembly == NULL) pd = this->_CodeRefer->FindLibTypeProperty(fi.Key, fi.Value);
 					else
 					{
 						ESection_Variable var = assembly.FindField(fi.Value);
 						if (var == NULL) return nullptr;
-						TypeDefinition^ type = this->FindTypeDefinition(fi.Value);
+						TypeDefinition^ type = this->FindTypeDefinition(fi.Key);
 						if (type == nullptr) return nullptr;
 						String^ varname = CStr2String(var.Name);
 						fd = FindField(type, varname);
@@ -1938,22 +1965,14 @@ varend:
 	return vardata;
 }
 
-ELibConstData^ ECompile::CompileCode_LibConst(LIBCONST libconst)
+ELibConstData^ ECompile::CompileCode_LibConst(LIBTAG libconst)
 {
 	libconst.ID--;
 	libconst.LibID--;
 	if (libconst.ID < 0 || libconst.LibID < 0) return nullptr;
 	PLIB_INFO info = NULL;
 	if (libconst.LibID == this->e_net_id) info = GetNewInf();
-	else
-	{
-		ESection_Library libinfo = this->_CodeProcess->GetLibraries()[libconst.LibID];
-		string libname = libinfo.FileName + ".fne";
-		HMODULE module = GetModuleHandle(libname.c_str());
-		if (module == NULL) return nullptr;
-		PFN_GET_LIB_INFO GetNewInf = (PFN_GET_LIB_INFO)GetProcAddress(module, FUNCNAME_GET_LIB_INFO);
-		info = GetNewInf();
-	}
+	else info = this->_CodeProcess->FindLibInfo(libconst.LibID);
 	if (info == NULL) return nullptr;
 	ModuleDefinition^ module = this->_assembly->MainModule;
 	LIB_CONST_INFO constinfo = info->m_pLibConst[libconst.ID];
