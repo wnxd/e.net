@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "common.h"
 #include "common.net.h"
-#include "Plugins.h"
 #include "compile.h"
 #include "krnln.net.h"
 #include "refer.h"
@@ -529,7 +528,6 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 				if (pm.Variables.size() > 0)
 				{
 					method->Body->InitLocals = true;
-					ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 					for each (ESection_Variable var in pm.Variables)
 					{
 						TypeReference^ t = this->EDT2Type(var.DataType);
@@ -1016,513 +1014,509 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					params->Insert(0, param);
 				}
 				EMethodData^ md;
-				if (mr->Params->Length == 0 && params->Count == 0) md = mr->MethodData;
+				String^ tagName = GetMethodName(mr->MethodData);
+				IList<EMethodData^>^ mdlist = nullptr;
+				if (!(LibID == this->krnln_id && (etag == krnln_method::赋值 || etag == krnln_method::返回))) mdlist = this->_CodeRefer->FindMethodList(tagName);
+				IList<EMethodReference^>^ conform = gcnew List<EMethodReference^>();
+				if (mdlist != nullptr)
+				{
+					mr = nullptr;
+					TypeReference^ paatr = module->ImportReference(typeof(ParamArrayAttribute));
+					TypeReference^ oatr = module->ImportReference(typeof(OptionalAttribute));
+					for each (EMethodData^ item in mdlist)
+					{
+						if (item->Method->Parameters->Count == params->Count)
+						{
+							mr = this->GetMethodReference(item, LibID, etag);
+							conform->Add(mr);
+						}
+						else if (item->Method->Parameters->Count > 0)
+						{
+							int ii = item->Method->Parameters->Count - 1;
+							ParameterDefinition^ pd = item->Method->Parameters[ii];
+							if (FindCustom(pd->CustomAttributes, paatr) != nullptr)
+							{
+								if (params->Count >= ii)
+								{
+									mr = this->GetMethodReference(item, LibID, etag);
+									conform->Add(mr);
+								}
+							}
+							else if (params->Count < item->Method->Parameters->Count)
+							{
+								int i;
+								for (i = item->Method->Parameters->Count - params->Count; i > 0; i--)
+								{
+									ParameterDefinition^ pd = item->Method->Parameters[item->Method->Parameters->Count - i];
+									if (!pd->IsOptional && FindCustom(pd->CustomAttributes, oatr) == nullptr) break;
+								}
+								if (i == 0)
+								{
+									mr = this->GetMethodReference(item, LibID, etag);
+									conform->Add(mr);
+								}
+							}
+						}
+					}
+					if (mr == nullptr) throw Error(tagName, "参数不符");
+				}
+				else conform->Add(mr);
+				IDictionary<EMethodReference^, float>^ similar = gcnew Dictionary<EMethodReference^, float>();
+				mr = nullptr;
+				for each (EMethodReference^ item in conform)
+				{
+					int satisfy = 0;
+					float similarity = 0;
+					array<EParamInfo^>^ mrparams = item->Params;
+					IList<EParamData^>^ tparams = gcnew List<EParamData^>(params);
+					if (mrparams->Length > tparams->Count)
+					{
+						for (int i = mrparams->Length - tparams->Count; i > 0; i--)
+						{
+							if (mrparams[mrparams->Length - i]->IsOptional)
+							{
+								EParamData^ param = gcnew EParamData();
+								param->Type = module->TypeSystem->Void;
+								param->Data = nullptr;
+								param->DataType = EParamDataType::Null;
+								tparams->Add(param);
+							}
+							else break;
+						}
+					}
+					for (size_t i = 0; i < tparams->Count; i++)
+					{
+						if (i < mrparams->Length)
+						{
+							if (mrparams[i]->Type == tparams[i]->Type)
+							{
+								similarity++;
+								satisfy++;
+							}
+							else if (tparams[i]->Type == module->TypeSystem->Void && mrparams[i]->IsOptional)
+							{
+								similarity++;
+								satisfy++;
+							}
+							else if (this->_Operator->IsConvert(tparams[i]->Type, mrparams[i]->Type))
+							{
+								similarity += 0.5;
+								satisfy++;
+							}
+							else if (mrparams[i]->IsVariable && (i + 1) == mrparams->Length) goto isvar;
+						}
+						else
+						{
+						isvar:
+							EParamInfo^ pi = mrparams[mrparams->Length - 1];
+							if (pi->IsVariable)
+							{
+								ArrayType^ arrtype = dynamic_cast<ArrayType^>(pi->Type);
+								if (arrtype != nullptr)
+								{
+									if (arrtype->ElementType == tparams[i]->Type)
+									{
+										similarity++;
+										satisfy++;
+									}
+									else if (this->_Operator->IsConvert(tparams[i]->Type, arrtype->ElementType))
+									{
+										similarity += 0.5;
+										satisfy++;
+									}
+								}
+							}
+						}
+					}
+					if (similarity == tparams->Count)
+					{
+						mr = item;
+						params = tparams;
+						break;
+					}
+					else if (satisfy == tparams->Count) similar->Add(item, similarity);
+				}
+				if (mr == nullptr)
+				{
+					float similarity = 0;
+					for each (KeyValuePair<EMethodReference^, float>^ item in similar)
+					{
+						if (similarity < item->Value)
+						{
+							similarity = item->Value;
+							mr = item->Key;
+						}
+					}
+					if (mr == nullptr) throw Error(tagName, "参数不符");
+					if (mr->Params->Length > params->Count)
+					{
+						for (int i = mr->Params->Length - params->Count; i > 0; i--)
+						{
+							if (mr->Params[mr->Params->Length - i]->IsOptional)
+							{
+								EParamData^ param = gcnew EParamData();
+								param->Type = module->TypeSystem->Void;
+								param->Data = nullptr;
+								param->DataType = EParamDataType::Null;
+								params->Add(param);
+							}
+							else break;
+						}
+					}
+				}
+				md = mr->MethodData;
+				if (LibID == this->krnln_id && mr->Tag == krnln_method::赋值)
+				{
+					EParamInfo^ item = mr->Params[1];
+					EParamData^ param = params[1];
+					IList<Instruction^>^ list = this->_Operator->Convert(param->Type, item->Type, false);
+					if (list != nullptr && list->Count > 0) item->Type = this->_Operator->GetConvertType(list);
+					switch (param->DataType)
+					{
+					case EParamDataType::Null:
+						if (item->Defualt == nullptr)
+						{
+							if (item->Type->IsValueType)
+							{
+								if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
+								else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
+								else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
+								else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+							}
+							else AddILCode(ILProcessor, OpCodes::Ldnull);
+						}
+						else
+						{
+							if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
+							else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
+							else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
+							else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
+							else if (item->Type == module->TypeSystem->String) AddILCode(ILProcessor, OpCodes::Ldstr, (String^)item->Defualt);
+							else AddILCode(ILProcessor, OpCodes::Ldnull);
+						}
+						break;
+					case EParamDataType::Number:
+					{
+						if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32)
+						{
+							item->Type = module->TypeSystem->Int32;
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
+						}
+						else if (item->Type == module->TypeSystem->Int64)
+						{
+							param->Type = module->TypeSystem->Int64;
+							AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
+						}
+						else if (item->Type == module->TypeSystem->Single)
+						{
+							param->Type = module->TypeSystem->Single;
+							AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
+						}
+						else if (item->Type == module->TypeSystem->Double)
+						{
+							param->Type = module->TypeSystem->Double;
+							AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
+						}
+						else
+						{
+							if (param->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
+							else if (param->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
+							else AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
+						}
+						break;
+					}
+					case EParamDataType::Bool:
+					{
+						if ((USHORT)param->Data == 0) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+						else AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+						break;
+					}
+					case EParamDataType::Time:
+					{
+						AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
+						AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
+						break;
+					}
+					case EParamDataType::String:
+					{
+						AddILCode(ILProcessor, OpCodes::Ldstr, (String^)param->Data);
+						break;
+					}
+					case EParamDataType::Bin:
+					{
+						IList<int>^ bin = (IList<int>^)param->Data;
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
+						AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+						for (int i = 0; i < bin->Count; i++)
+						{
+							AddILCode(ILProcessor, OpCodes::Dup);
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, bin[i]);
+							AddILCode(ILProcessor, OpCodes::Stelem_I1);
+						}
+						break;
+					}
+					case EParamDataType::Param:
+					case EParamDataType::Var:
+					case EParamDataType::Field:
+					case EParamDataType::Property:
+					case EParamDataType::GlobalField:
+					case EParamDataType::Array:
+					{
+						IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
+						if (item->IsAddress)
+						{
+							if (param->DataType == EParamDataType::Property) throw Error(item->Name, "属性不能传址");
+							Instruction^ lastins = code[code->Count - 1];
+							switch (param->DataType)
+							{
+							case EParamDataType::Param:
+								lastins->OpCode = OpCodes::Ldarga_S;
+								break;
+							case EParamDataType::Var:
+								lastins->OpCode = OpCodes::Ldloca_S;
+								break;
+							case EParamDataType::Field:
+							{
+								if (lastins->OpCode == OpCodes::Ldfld) lastins->OpCode = OpCodes::Ldflda;
+								else lastins->OpCode = OpCodes::Ldsflda;
+								break;
+							}
+							case EParamDataType::GlobalField:
+								lastins->OpCode = OpCodes::Ldsflda;
+								break;
+							case EParamDataType::Array:
+								lastins->OpCode = OpCodes::Ldelema;
+								break;
+							}
+						}
+						for each (Instruction^ item in code) ILProcessor->Append(item);
+						break;
+					}
+					case EParamDataType::IL:
+					{
+						IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
+						for each (Instruction^ item in code) ILProcessor->Append(item);
+						break;
+					}
+					}
+					if (param->Type->IsValueType)
+					{
+						if (item->Type != param->Type)
+						{
+							if (item->Type == module->TypeSystem->Int64 || item->Type == module->TypeSystem->UInt64) AddILCode(ILProcessor, OpCodes::Conv_I8);
+							else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Conv_R4);
+							else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Conv_R8);
+							else if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->ImportReference(param->Type));
+						}
+					}
+					if (list != nullptr) for each (Instruction^ ins in list) ILProcessor->Append(ins);
+					item = mr->Params[0];
+					param = params[0];
+					switch (param->DataType)
+					{
+					case EParamDataType::Param:
+					case EParamDataType::Var:
+					case EParamDataType::Field:
+					case EParamDataType::Property:
+					case EParamDataType::GlobalField:
+					case EParamDataType::Array:
+					case EParamDataType::IL:
+					{
+						IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
+						for each (Instruction^ item in code) ILProcessor->Append(item);
+						break;
+					}
+					}
+				}
 				else
 				{
-					String^ tagName = GetMethodName(mr->MethodData);
-					IList<EMethodData^>^ mdlist = nullptr;
-					if (!(LibID == this->krnln_id && (etag == krnln_method::赋值 || etag == krnln_method::返回))) mdlist = this->_CodeRefer->FindMethodList(tagName);
-					IList<EMethodReference^>^ conform = gcnew List<EMethodReference^>();
-					if (mdlist != nullptr)
+					if (headcode != nullptr && md->Mode != EMethodMode::Newobj) for each (Instruction^ item in headcode) ILProcessor->Append(item);
+					int i = 0;
+					for each (EParamInfo^ item in  mr->Params)
 					{
-						mr = nullptr;
-						TypeReference^ paatr = module->ImportReference(typeof(ParamArrayAttribute));
-						TypeReference^ oatr = module->ImportReference(typeof(OptionalAttribute));
-						for each (EMethodData^ item in mdlist)
+						int ii = 0;
+						if (item->IsVariable)
 						{
-							if (item->Method->Parameters->Count == params->Count)
-							{
-								mr = this->GetMethodReference(item, LibID, etag);
-								conform->Add(mr);
-							}
-							else if (item->Method->Parameters->Count > 0)
-							{
-								int ii = item->Method->Parameters->Count - 1;
-								ParameterDefinition^ pd = item->Method->Parameters[ii];
-								if (FindCustom(pd->CustomAttributes, paatr) != nullptr)
-								{
-									if (params->Count >= ii)
-									{
-										mr = this->GetMethodReference(item, LibID, etag);
-										conform->Add(mr);
-									}
-								}
-								else if (params->Count < item->Method->Parameters->Count)
-								{
-									int i;
-									for (i = item->Method->Parameters->Count - params->Count; i > 0; i--)
-									{
-										ParameterDefinition^ pd = item->Method->Parameters[item->Method->Parameters->Count - i];
-										if (!pd->IsOptional && FindCustom(pd->CustomAttributes, oatr) == nullptr) break;
-									}
-									if (i == 0)
-									{
-										mr = this->GetMethodReference(item, LibID, etag);
-										conform->Add(mr);
-									}
-								}
-							}
+							item->Type = GetElementType(item->Type);
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, params->Count - i);
+							AddILCode(ILProcessor, OpCodes::Newarr, module->ImportReference(item->Type));
 						}
-						if (mr == nullptr) throw Error(tagName, "参数不符");
-					}
-					else conform->Add(mr);
-					IDictionary<EMethodReference^, float>^ similar = gcnew Dictionary<EMethodReference^, float>();
-					mr = nullptr;
-					for each (EMethodReference^ item in conform)
-					{
-						int satisfy = 0;
-						float similarity = 0;
-						array<EParamInfo^>^ mrparams = item->Params;
-						IList<EParamData^>^ tparams = gcnew List<EParamData^>(params);
-						if (mrparams->Length > tparams->Count)
+						TypeReference^ oldtype = item->Type;
+						while (i < params->Count)
 						{
-							for (int i = mrparams->Length - tparams->Count; i > 0; i--)
-							{
-								if (mrparams[mrparams->Length - i]->IsOptional)
-								{
-									EParamData^ param = gcnew EParamData();
-									param->Type = module->TypeSystem->Void;
-									param->Data = nullptr;
-									param->DataType = EParamDataType::Null;
-									tparams->Add(param);
-								}
-								else break;
-							}
-						}
-						for (size_t i = 0; i < tparams->Count; i++)
-						{
-							if (i < mrparams->Length)
-							{
-								if (mrparams[i]->Type == tparams[i]->Type)
-								{
-									similarity++;
-									satisfy++;
-								}
-								else if (tparams[i]->Type == module->TypeSystem->Void && mrparams[i]->IsOptional)
-								{
-									similarity++;
-									satisfy++;
-								}
-								else if (this->_Operator->IsConvert(tparams[i]->Type, mrparams[i]->Type))
-								{
-									similarity += 0.5;
-									satisfy++;
-								}
-								else if (mrparams[i]->IsVariable && (i + 1) == mrparams->Length) goto isvar;
-							}
-							else
-							{
-							isvar:
-								EParamInfo^ pi = mrparams[mrparams->Length - 1];
-								if (pi->IsVariable)
-								{
-									ArrayType^ arrtype = dynamic_cast<ArrayType^>(pi->Type);
-									if (arrtype != nullptr)
-									{
-										if (arrtype->ElementType == tparams[i]->Type)
-										{
-											similarity++;
-											satisfy++;
-										}
-										else if (this->_Operator->IsConvert(tparams[i]->Type, arrtype->ElementType))
-										{
-											similarity += 0.5;
-											satisfy++;
-										}
-									}
-								}
-							}
-						}
-						if (similarity == tparams->Count)
-						{
-							mr = item;
-							params = tparams;
-							break;
-						}
-						else if (satisfy == tparams->Count) similar->Add(item, similarity);
-					}
-					if (mr == nullptr)
-					{
-						float similarity = 0;
-						for each (KeyValuePair<EMethodReference^, float>^ item in similar)
-						{
-							if (similarity < item->Value)
-							{
-								similarity = item->Value;
-								mr = item->Key;
-							}
-						}
-						if (mr == nullptr) throw Error(tagName, "参数不符");
-						if (mr->Params->Length > params->Count)
-						{
-							for (int i = mr->Params->Length - params->Count; i > 0; i--)
-							{
-								if (mr->Params[mr->Params->Length - i]->IsOptional)
-								{
-									EParamData^ param = gcnew EParamData();
-									param->Type = module->TypeSystem->Void;
-									param->Data = nullptr;
-									param->DataType = EParamDataType::Null;
-									params->Add(param);
-								}
-								else break;
-							}
-						}
-					}
-					md = mr->MethodData;
-					if (LibID == this->krnln_id && mr->Tag == krnln_method::赋值)
-					{
-						EParamInfo^ item = mr->Params[1];
-						EParamData^ param = params[1];
-						IList<Instruction^>^ list = this->_Operator->Convert(param->Type, item->Type, false);
-						if (list != nullptr && list->Count > 0) item->Type = this->_Operator->GetConvertType(list);
-						switch (param->DataType)
-						{
-						case EParamDataType::Null:
-							if (item->Defualt == nullptr)
-							{
-								if (item->Type->IsValueType)
-								{
-									if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-									else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-									else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-									else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-								}
-								else AddILCode(ILProcessor, OpCodes::Ldnull);
-							}
-							else
-							{
-								if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32 || item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
-								else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
-								else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
-								else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
-								else if (item->Type == module->TypeSystem->String) AddILCode(ILProcessor, OpCodes::Ldstr, (String^)item->Defualt);
-								else AddILCode(ILProcessor, OpCodes::Ldnull);
-							}
-							break;
-						case EParamDataType::Number:
-						{
-							if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32)
-							{
-								item->Type = module->TypeSystem->Int32;
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-							}
-							else if (item->Type == module->TypeSystem->Int64)
-							{
-								param->Type = module->TypeSystem->Int64;
-								AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
-							}
-							else if (item->Type == module->TypeSystem->Single)
-							{
-								param->Type = module->TypeSystem->Single;
-								AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
-							}
-							else if (item->Type == module->TypeSystem->Double)
-							{
-								param->Type = module->TypeSystem->Double;
-								AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-							}
-							else
-							{
-								if (param->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
-								else if (param->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-								else AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-							}
-							break;
-						}
-						case EParamDataType::Bool:
-						{
-							if ((USHORT)param->Data == 0) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-							else AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-							break;
-						}
-						case EParamDataType::Time:
-						{
-							AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-							AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
-							break;
-						}
-						case EParamDataType::String:
-						{
-							AddILCode(ILProcessor, OpCodes::Ldstr, (String^)param->Data);
-							break;
-						}
-						case EParamDataType::Bin:
-						{
-							IList<int>^ bin = (IList<int>^)param->Data;
-							AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
-							AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
-							for (int i = 0; i < bin->Count; i++)
-							{
-								AddILCode(ILProcessor, OpCodes::Dup);
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, bin[i]);
-								AddILCode(ILProcessor, OpCodes::Stelem_I1);
-							}
-							break;
-						}
-						case EParamDataType::Param:
-						case EParamDataType::Var:
-						case EParamDataType::Field:
-						case EParamDataType::Property:
-						case EParamDataType::GlobalField:
-						case EParamDataType::Array:
-						{
-							IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
-							if (item->IsAddress)
-							{
-								if (param->DataType == EParamDataType::Property) throw Error(item->Name, "属性不能传址");
-								Instruction^ lastins = code[code->Count - 1];
-								switch (param->DataType)
-								{
-								case EParamDataType::Param:
-									lastins->OpCode = OpCodes::Ldarga_S;
-									break;
-								case EParamDataType::Var:
-									lastins->OpCode = OpCodes::Ldloca_S;
-									break;
-								case EParamDataType::Field:
-								{
-									if (lastins->OpCode == OpCodes::Ldfld) lastins->OpCode = OpCodes::Ldflda;
-									else lastins->OpCode = OpCodes::Ldsflda;
-									break;
-								}
-								case EParamDataType::GlobalField:
-									lastins->OpCode = OpCodes::Ldsflda;
-									break;
-								case EParamDataType::Array:
-									lastins->OpCode = OpCodes::Ldelema;
-									break;
-								}
-							}
-							for each (Instruction^ item in code) ILProcessor->Append(item);
-							break;
-						}
-						case EParamDataType::IL:
-						{
-							IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
-							for each (Instruction^ item in code) ILProcessor->Append(item);
-							break;
-						}
-						}
-						if (param->Type->IsValueType)
-						{
-							if (item->Type != param->Type)
-							{
-								if (item->Type == module->TypeSystem->Int64 || item->Type == module->TypeSystem->UInt64) AddILCode(ILProcessor, OpCodes::Conv_I8);
-								else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Conv_R4);
-								else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Conv_R8);
-								else if (!item->IsAddress && param->Type->IsValueType && item->Type == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->ImportReference(param->Type));
-							}
-						}
-						if (list != nullptr) for each (Instruction^ ins in list) ILProcessor->Append(ins);
-						item = mr->Params[0];
-						param = params[0];
-						switch (param->DataType)
-						{
-						case EParamDataType::Param:
-						case EParamDataType::Var:
-						case EParamDataType::Field:
-						case EParamDataType::Property:
-						case EParamDataType::GlobalField:
-						case EParamDataType::Array:
-						case EParamDataType::IL:
-						{
-							IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
-							for each (Instruction^ item in code) ILProcessor->Append(item);
-							break;
-						}
-						}
-					}
-					else
-					{
-						if (headcode != nullptr && md->Mode != EMethodMode::Newobj) for each (Instruction^ item in headcode) ILProcessor->Append(item);
-						int i = 0;
-						for each (EParamInfo^ item in  mr->Params)
-						{
-							int ii = 0;
 							if (item->IsVariable)
 							{
-								item->Type = GetElementType(item->Type);
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, params->Count - i);
-								AddILCode(ILProcessor, OpCodes::Newarr, module->ImportReference(item->Type));
+								AddILCode(ILProcessor, OpCodes::Dup);
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, ii);
+								if (oldtype->IsValueType && oldtype != module->TypeSystem->Byte && oldtype != module->TypeSystem->Int16 && oldtype != module->TypeSystem->Int32 && oldtype != module->TypeSystem->Int64 && oldtype != module->TypeSystem->Single && oldtype != module->TypeSystem->Double && oldtype != module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldelema, module->ImportReference(oldtype));
 							}
-							TypeReference^ oldtype = item->Type;
-							while (i < params->Count)
+							else if (ii > 0) goto end;
+							item->Type = oldtype;
+							EParamData^ param = params[i];
+							IList<Instruction^>^ list = this->_Operator->Convert(param->Type, item->Type, false);
+							if (list != nullptr && list->Count > 0) item->Type = this->_Operator->GetConvertType(list);
+							switch (param->DataType)
 							{
-								if (item->IsVariable)
+							case EParamDataType::Null:
+								if (item->Defualt == nullptr)
+								{
+									if (item->Type->IsValueType)
+									{
+										if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
+										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
+										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
+										else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+									}
+									else AddILCode(ILProcessor, OpCodes::Ldnull);
+								}
+								else
+								{
+									if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
+									else if (item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (bool)item->Defualt);
+									else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
+									else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
+									else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
+									else if (item->Type == module->TypeSystem->String) AddILCode(ILProcessor, OpCodes::Ldstr, (String^)item->Defualt);
+									else AddILCode(ILProcessor, OpCodes::Ldnull);
+								}
+								break;
+							case EParamDataType::Number:
+							{
+								if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32)
+								{
+									item->Type = module->TypeSystem->Int32;
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
+								}
+								else if (item->Type == module->TypeSystem->Int64)
+								{
+									param->Type = module->TypeSystem->Int64;
+									AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
+								}
+								else if (item->Type == module->TypeSystem->Single)
+								{
+									param->Type = module->TypeSystem->Single;
+									AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
+								}
+								else if (item->Type == module->TypeSystem->Double)
+								{
+									param->Type = module->TypeSystem->Double;
+									AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
+								}
+								else
+								{
+									if (param->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
+									else if (param->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
+									else AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
+								}
+								break;
+							}
+							case EParamDataType::Bool:
+							{
+								if ((USHORT)param->Data == 0) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+								else AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
+								break;
+							}
+							case EParamDataType::Time:
+							{
+								AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
+								AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
+								break;
+							}
+							case EParamDataType::String:
+							{
+								AddILCode(ILProcessor, OpCodes::Ldstr, (String^)param->Data);
+								break;
+							}
+							case EParamDataType::Bin:
+							{
+								IList<int>^ bin = (IList<int>^)param->Data;
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
+								AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+								for (int i = 0; i < bin->Count; i++)
 								{
 									AddILCode(ILProcessor, OpCodes::Dup);
-									AddILCode(ILProcessor, OpCodes::Ldc_I4, ii);
-									if (oldtype->IsValueType && oldtype != module->TypeSystem->Byte && oldtype != module->TypeSystem->Int16 && oldtype != module->TypeSystem->Int32 && oldtype != module->TypeSystem->Int64 && oldtype != module->TypeSystem->Single && oldtype != module->TypeSystem->Double && oldtype != module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Ldelema, module->ImportReference(oldtype));
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, bin[i]);
+									AddILCode(ILProcessor, OpCodes::Stelem_I1);
 								}
-								else if (ii > 0) goto end;
-								item->Type = oldtype;
-								EParamData^ param = params[i];
-								IList<Instruction^>^ list = this->_Operator->Convert(param->Type, item->Type, false);
-								if (list != nullptr && list->Count > 0) item->Type = this->_Operator->GetConvertType(list);
-								switch (param->DataType)
+								break;
+							}
+							case EParamDataType::Param:
+							case EParamDataType::Var:
+							case EParamDataType::Field:
+							case EParamDataType::Property:
+							case EParamDataType::GlobalField:
+							case EParamDataType::Array:
+							{
+								IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
+								if (item->IsAddress)
 								{
-								case EParamDataType::Null:
-									if (item->Defualt == nullptr)
+									if (param->DataType == EParamDataType::Property) throw Error(item->Name, "属性不能传址");
+									Instruction^ lastins = code[code->Count - 1];
+									switch (param->DataType)
 									{
-										if (item->Type->IsValueType)
-										{
-											if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-											else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-											else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-											else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-										}
-										else AddILCode(ILProcessor, OpCodes::Ldnull);
+									case EParamDataType::Param:
+										lastins->OpCode = OpCodes::Ldarga_S;
+										break;
+									case EParamDataType::Var:
+										lastins->OpCode = OpCodes::Ldloca_S;
+										break;
+									case EParamDataType::Field:
+									{
+										if (lastins->OpCode == OpCodes::Ldfld) lastins->OpCode = OpCodes::Ldflda;
+										else lastins->OpCode = OpCodes::Ldsflda;
+										break;
 									}
-									else
-									{
-										if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)item->Defualt);
-										else if (item->Type == module->TypeSystem->Boolean) AddILCode(ILProcessor, OpCodes::Ldc_I4, (bool)item->Defualt);
-										else if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)item->Defualt);
-										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)item->Defualt);
-										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)item->Defualt);
-										else if (item->Type == module->TypeSystem->String) AddILCode(ILProcessor, OpCodes::Ldstr, (String^)item->Defualt);
-										else AddILCode(ILProcessor, OpCodes::Ldnull);
-									}
-									break;
-								case EParamDataType::Number:
-								{
-									if (item->Type == module->TypeSystem->Byte || item->Type == module->TypeSystem->Int16 || item->Type == module->TypeSystem->Int32)
-									{
-										item->Type = module->TypeSystem->Int32;
-										AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-									}
-									else if (item->Type == module->TypeSystem->Int64)
-									{
-										param->Type = module->TypeSystem->Int64;
-										AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)Convert::ChangeType(param->Data, typeof(Int64)));
-									}
-									else if (item->Type == module->TypeSystem->Single)
-									{
-										param->Type = module->TypeSystem->Single;
-										AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
-									}
-									else if (item->Type == module->TypeSystem->Double)
-									{
-										param->Type = module->TypeSystem->Double;
-										AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-									}
-									else
-									{
-										if (param->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, (float)Convert::ChangeType(param->Data, typeof(float)));
-										else if (param->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, (double)param->Data);
-										else AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)Convert::ChangeType(param->Data, typeof(int)));
-									}
-									break;
-								}
-								case EParamDataType::Bool:
-								{
-									if ((USHORT)param->Data == 0) AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-									else AddILCode(ILProcessor, OpCodes::Ldc_I4_1);
-									break;
-								}
-								case EParamDataType::Time:
-								{
-									AddILCode(ILProcessor, OpCodes::Ldc_I8, (Int64)param->Data);
-									AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(GetCtor(DateTime, typeof(Int64))));
-									break;
-								}
-								case EParamDataType::String:
-								{
-									AddILCode(ILProcessor, OpCodes::Ldstr, (String^)param->Data);
-									break;
-								}
-								case EParamDataType::Bin:
-								{
-									IList<int>^ bin = (IList<int>^)param->Data;
-									AddILCode(ILProcessor, OpCodes::Ldc_I4, bin->Count);
-									AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
-									for (int i = 0; i < bin->Count; i++)
-									{
-										AddILCode(ILProcessor, OpCodes::Dup);
-										AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
-										AddILCode(ILProcessor, OpCodes::Ldc_I4, bin[i]);
-										AddILCode(ILProcessor, OpCodes::Stelem_I1);
-									}
-									break;
-								}
-								case EParamDataType::Param:
-								case EParamDataType::Var:
-								case EParamDataType::Field:
-								case EParamDataType::Property:
-								case EParamDataType::GlobalField:
-								case EParamDataType::Array:
-								{
-									IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
-									if (item->IsAddress)
-									{
-										if (param->DataType == EParamDataType::Property) throw Error(item->Name, "属性不能传址");
-										Instruction^ lastins = code[code->Count - 1];
-										switch (param->DataType)
-										{
-										case EParamDataType::Param:
-											lastins->OpCode = OpCodes::Ldarga_S;
-											break;
-										case EParamDataType::Var:
-											lastins->OpCode = OpCodes::Ldloca_S;
-											break;
-										case EParamDataType::Field:
-										{
-											if (lastins->OpCode == OpCodes::Ldfld) lastins->OpCode = OpCodes::Ldflda;
-											else lastins->OpCode = OpCodes::Ldsflda;
-											break;
-										}
-										case EParamDataType::GlobalField:
-											lastins->OpCode = OpCodes::Ldsflda;
-											break;
-										case EParamDataType::Array:
-											lastins->OpCode = OpCodes::Ldelema;
-											break;
-										}
-									}
-									for each (Instruction^ item in code) ILProcessor->Append(item);
-									break;
-								}
-								case EParamDataType::IL:
-								{
-									IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
-									for each (Instruction^ item in code) ILProcessor->Append(item);
-									break;
-								}
-								}
-								if (param->Type->IsValueType)
-								{
-									if (item->Type != param->Type)
-									{
-										if (item->Type == module->TypeSystem->Int64 || item->Type == module->TypeSystem->UInt64) AddILCode(ILProcessor, OpCodes::Conv_I8);
-										else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Conv_R4);
-										else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Conv_R8);
-										else if (!item->IsAddress && param->Type->IsValueType && oldtype == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->ImportReference(param->Type));
+									case EParamDataType::GlobalField:
+										lastins->OpCode = OpCodes::Ldsflda;
+										break;
+									case EParamDataType::Array:
+										lastins->OpCode = OpCodes::Ldelema;
+										break;
 									}
 								}
-								if (list != nullptr) for each (Instruction^ ins in list) ILProcessor->Append(ins);
-								i++;
-								ii++;
-								if (item->IsVariable)
+								for each (Instruction^ item in code) ILProcessor->Append(item);
+								break;
+							}
+							case EParamDataType::IL:
+							{
+								IList<Instruction^>^ code = (IList<Instruction^>^)param->Data;
+								for each (Instruction^ item in code) ILProcessor->Append(item);
+								break;
+							}
+							}
+							if (param->Type->IsValueType)
+							{
+								if (item->Type != param->Type)
 								{
-									if (oldtype->IsValueType)
-									{
-										if (oldtype == module->TypeSystem->Byte) AddILCode(ILProcessor, OpCodes::Stelem_I1);
-										else if (oldtype == module->TypeSystem->Int16) AddILCode(ILProcessor, OpCodes::Stelem_I2);
-										else if (oldtype == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Stelem_I4);
-										else if (oldtype == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Stelem_I8);
-										else if (oldtype == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Stelem_R4);
-										else if (oldtype == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Stelem_R8);
-										else if (oldtype == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Stelem_I);
-										else AddILCode(ILProcessor, OpCodes::Stobj, module->ImportReference(oldtype));
-									}
-									else AddILCode(ILProcessor, OpCodes::Stelem_Ref);
+									if (item->Type == module->TypeSystem->Int64 || item->Type == module->TypeSystem->UInt64) AddILCode(ILProcessor, OpCodes::Conv_I8);
+									else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Conv_R4);
+									else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Conv_R8);
+									else if (!item->IsAddress && param->Type->IsValueType && oldtype == module->TypeSystem->Object) AddILCode(ILProcessor, OpCodes::Box, module->ImportReference(param->Type));
 								}
 							}
-							break;
-						end:;
+							if (list != nullptr) for each (Instruction^ ins in list) ILProcessor->Append(ins);
+							i++;
+							ii++;
+							if (item->IsVariable)
+							{
+								if (oldtype->IsValueType)
+								{
+									if (oldtype == module->TypeSystem->Byte) AddILCode(ILProcessor, OpCodes::Stelem_I1);
+									else if (oldtype == module->TypeSystem->Int16) AddILCode(ILProcessor, OpCodes::Stelem_I2);
+									else if (oldtype == module->TypeSystem->Int32) AddILCode(ILProcessor, OpCodes::Stelem_I4);
+									else if (oldtype == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Stelem_I8);
+									else if (oldtype == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Stelem_R4);
+									else if (oldtype == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Stelem_R8);
+									else if (oldtype == module->TypeSystem->IntPtr) AddILCode(ILProcessor, OpCodes::Stelem_I);
+									else AddILCode(ILProcessor, OpCodes::Stobj, module->ImportReference(oldtype));
+								}
+								else AddILCode(ILProcessor, OpCodes::Stelem_Ref);
+							}
 						}
+						break;
+					end:;
 					}
 				}
 				switch (md->Mode)
@@ -1902,22 +1896,25 @@ varend:
 				if (fd == nullptr && pd == nullptr)
 				{
 					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Value);
-					if (assembly == NULL) return nullptr;
-					ESection_Variable var = assembly.FindField(fi.Value);
-					if (var == NULL) return nullptr;
-					TypeDefinition^ type = this->FindTypeDefinition(fi.Value);
-					if (type == nullptr) return nullptr;
-					String^ varname = CStr2String(var.Name);
-					fd = FindField(type, varname);
-					if (fd == nullptr)
+					if (assembly == NULL) pd = this->_CodeRefer->FindLibTypeProperty(fi.Value, fi.Key);
+					else
 					{
-						pd = FindProperty(type, varname);
-						if (pd == nullptr) return nullptr;
-						this->_CodeRefer->AddProperty(var.Tag, pd);
+						ESection_Variable var = assembly.FindField(fi.Value);
+						if (var == NULL) return nullptr;
+						TypeDefinition^ type = this->FindTypeDefinition(fi.Value);
+						if (type == nullptr) return nullptr;
+						String^ varname = CStr2String(var.Name);
+						fd = FindField(type, varname);
+						if (fd == nullptr)
+						{
+							pd = FindProperty(type, varname);
+							if (pd == nullptr) return nullptr;
+							this->_CodeRefer->AddProperty(var.Tag, pd);
+						}
+						else this->_CodeRefer->AddField(var.Tag, fd);
 					}
-					else this->_CodeRefer->AddField(var.Tag, fd);
 				}
-				if (pd == nullptr)
+				if (fd != nullptr)
 				{
 					vardata->VariableType = EVariableType::Field;
 					vardata->Type = fd->FieldType;
@@ -1925,13 +1922,14 @@ varend:
 					if (fd->IsStatic) AddILCode(ILProcessor, OpCodes::Ldsfld, fd);
 					else AddILCode(ILProcessor, OpCodes::Ldfld, fd);
 				}
-				else
+				else if (pd != nullptr)
 				{
 					vardata->VariableType = EVariableType::Property;
 					vardata->Type = pd->PropertyType;
 					vardata->Data = pd;
 					AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->GetMethod));
 				}
+				else throw Error("使用了未支持的类属性");
 				break;
 			}
 			}
@@ -2282,7 +2280,8 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 		ESection_Program_Assembly assembly;
 		for each (assembly in this->_CodeProcess->GetReferAssemblies()) if (assembly.Tag == tag) goto add;
 		for each (assembly in this->_CodeProcess->GetReferStructs()) if (assembly.Tag == tag) goto add;
-		return nullptr;
+		type = this->_CodeRefer->FindLibType(tag);
+		return type;
 	add:
 		vector<string> arr = split(assembly.Remark, SP);
 		String^ classname;
@@ -2293,7 +2292,7 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 		{
 
 		}
-		this->_CodeRefer->AddTypeRefer(assembly.Tag, classname);
+		else this->_CodeRefer->AddTypeRefer(assembly.Tag, classname);
 	}
 	return type;
 }

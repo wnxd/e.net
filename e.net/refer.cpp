@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "efs.h"
 #include "common.net.h"
-#include "Plugins.h"
 #include "compile.h"
 #include "krnln.net.h"
 #include "e_net.net.h"
@@ -82,6 +81,7 @@ CodeRefer::CodeRefer(ModuleDefinition^ module, IEnumerable<ELibInfo^>^ list)
 	this->_field = gcnew Dictionary<UINT, FieldDefinition^>();
 	this->_globalvar = gcnew Dictionary<UINT, FieldDefinition^>();
 	this->_prop = gcnew Dictionary<UINT, PropertyDefinition^>();
+	this->_libtype = gcnew Dictionary<UINT, TypePackage^>();
 	this->_eclist = gcnew List<ECListInfo^>();
 	this->_elib = gcnew List<ELibInfo^>(list);
 	this->_elibinfo = gcnew List<PluginInfo^>();
@@ -341,24 +341,73 @@ EMethodData^ CodeRefer::FindLibMethod(short index, ETAG tag)
 	ELibInfo^ libinfo = this->_elib[index];
 	for each (PluginInfo^ info in this->_elibinfo)
 	{
-		if (info->MethodPackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->MethodPackages->ContainsKey(tag))
+		if (String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase))
 		{
-			for each (MethodPackage^ package in info->MethodPackages[tag])
+			if (info->MethodPackages != nullptr && info->MethodPackages->ContainsKey(tag))
 			{
-				EMethodData^ data = gcnew EMethodData(package->Methods[0], package->Mode);
-				this->AddMethodRefer(index, tag, data);
-				if (package->Mode != EMethodMode::Embed)
+				for each (MethodPackage^ package in info->MethodPackages[tag])
 				{
-					TypeDefinition^ global = this->_module->GetType("<Module>");
-					for each (MethodDefinition^ method in package->Methods) AddList(global->Methods, method);
-					if (package->Types != nullptr) for each (TypeDefinition^ type in package->Types) AddList(this->_module->Types, type);
+					EMethodData^ data = gcnew EMethodData(package->Methods[0], package->Mode);
+					this->AddMethodRefer(index, tag, data);
+					if (package->Mode != EMethodMode::Embed)
+					{
+						TypeDefinition^ global = this->_module->GetType("<Module>");
+						for each (MethodDefinition^ method in package->Methods) AddList(global->Methods, method);
+						if (package->Types != nullptr) for each (TypeDefinition^ type in package->Types) AddList(this->_module->Types, type);
+					}
 				}
+				return this->FindMethodRefer(index, tag);
 			}
-			return this->FindMethodRefer(index, tag);
+			else if (info->TypePackages != nullptr && info->TypePackages->Methods->ContainsKey(tag))
+			{
+				TypePackage^ package = info->TypePackages;
+				if (!this->_libtype->ContainsValue(package)) this->LoadLibType(MAKELONG(index + 1, package->Tag + 1), package);
+				EMethodData^ data = gcnew EMethodData(package->Methods[tag], EMethodMode::Call);
+				this->AddMethodRefer(index, tag, data);
+				return data;
+			}
 		}
 	}
 
 
+	return nullptr;
+}
+
+TypeDefinition^ CodeRefer::FindLibType(ETAG tag)
+{
+	UINT t = tag;
+	TypePackage^ package = GetDictionary(this->_libtype, t);
+	if (package == nullptr)
+	{
+		short libid = t & 0xFF;
+		short index = t >> 16;
+		if (libid > 0 && index > 0)
+		{
+			libid--;
+			if (libid < this->_elib->Count)
+			{
+				index--;
+				ELibInfo^ libinfo = this->_elib[index];
+				for each (PluginInfo^ info in this->_elibinfo)
+				{
+					package = info->TypePackages;
+					if (package != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && package->Tag == index)
+					{
+						this->LoadLibType(tag, package);
+						return package->Type;
+					}
+				}
+			}
+		}
+		return nullptr;
+	}
+	return package->Type;
+}
+
+PropertyDefinition^ CodeRefer::FindLibTypeProperty(ETAG tag, UINT index)
+{
+	TypePackage^ package = GetDictionary<UINT, TypePackage^>(this->_libtype, tag);
+	if (package != nullptr) return GetDictionary(package->Properties, index - 1);
 	return nullptr;
 }
 
@@ -379,4 +428,17 @@ void CodeRefer::LoadPlugins()
 	String^ path = LPSTR2String(GetToolsPath()) + "/E.NET/";
 	if (!Directory::Exists(path)) Directory::CreateDirectory(path);
 	AddList(this->_elibinfo, this->_plugins->Load(path));
+}
+
+void CodeRefer::LoadLibType(UINT tag, TypePackage^ package)
+{
+	AddItem(this->_libtype, tag, package);
+	this->AddType(tag, package->Type);
+	AddList(this->_module->Types, package->Type);
+	if (package->Methods->Count > 0)
+	{
+		TypeDefinition^ global = this->_module->GetType("<Module>");
+		for each (MethodDefinition^ method in package->ReferMethods) AddList(global->Methods, method);
+	}
+	for each (TypeDefinition^ type in package->ReferTypes) AddList(this->_module->Types, type);
 }

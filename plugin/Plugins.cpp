@@ -4,8 +4,17 @@
 
 using namespace System::IO;
 
-extern CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type);
-extern FieldDefinition^ FindField(TypeDefinition^ type, String^ name);
+CustomAttribute^ FindCustom(IList<CustomAttribute^>^ list, TypeReference^ type)
+{
+	for each (CustomAttribute^ custom in list) if (custom->AttributeType == type) return custom;
+	return nullptr;
+}
+
+FieldDefinition^ FindField(TypeDefinition^ type, String^ name)
+{
+	for each (FieldDefinition^ field in type->Fields) if (field->Name == name) return field;
+	return nullptr;
+}
 
 String^ GetTypeFullName(TypeReference^ type)
 {
@@ -63,7 +72,7 @@ DefaultValueAttribute::DefaultValueAttribute(Object^ val)
 	this->_val = val;
 }
 
-LibTypeAttribute::LibTypeAttribute()
+LibTypeAttribute::LibTypeAttribute(UINT Tag)
 {
 
 }
@@ -94,7 +103,7 @@ IList<PluginInfo^>^ Plugins::Load(String^ path)
 			System::Reflection::Assembly^ assembly = System::Reflection::Assembly::LoadFrom(file);
 			list->AddRange(this->Load(assembly));
 		}
-		catch (...)
+		catch (Exception^ ex)
 		{
 
 		}
@@ -181,7 +190,8 @@ PluginInfo^ Plugins::Load(Plugin^ plugin)
 				package->Methods = gcnew List<MethodDefinition^>();
 				package->Methods->Add(method);
 				AddList(package->Methods, this->GetMethodList(method));
-				package->Types = GetDictionary(this->_refermethodtype, method);
+				package->Types = gcnew List<TypeDefinition^>();
+				for each (MethodDefinition^ m in package->Methods) AddList(package->Types, GetDictionary(this->_refermethodtype, m));
 				AddDictionary(info->MethodPackages, item->Key, package);
 			}
 		}
@@ -196,6 +206,7 @@ PluginInfo^ Plugins::LoadType(Type^ type)
 	array<Object^>^ arr = type->GetCustomAttributes(typeof(LibGuidAttribute), false);
 	ModuleDefinition^ M = ModuleDefinition::ReadModule(type->Assembly->Location);
 	TypeDefinition^ T = M->GetType(type->FullName);
+	UINT Tag;
 	TypeReference^ libguid = M->ImportReference(typeof(LibGuidAttribute));
 	TypeReference^ libtype = M->ImportReference(typeof(LibTypeAttribute));
 	for (int i = 0; i < T->CustomAttributes->Count;)
@@ -206,12 +217,25 @@ PluginInfo^ Plugins::LoadType(Type^ type)
 			info->Lib = (String^)ca->ConstructorArguments[0].Value;
 			T->CustomAttributes->Remove(ca);
 		}
-		else if (ca->AttributeType == libtype) T->CustomAttributes->Remove(ca);
+		else if (ca->AttributeType == libtype)
+		{
+			Tag = (UINT)ca->ConstructorArguments[0].Value;
+			T->CustomAttributes->Remove(ca);
+		}
 		else i++;
 	}
 	MethodDefinition^ method = CreateMethod("test", this->_module->TypeSystem->Void);
 	T = this->TypeClone(method, M, T);
 	info->TypePackages = GetDictionary(this->_typepackages, T);
+	if (info->TypePackages != nullptr)
+	{
+		info->TypePackages->Tag = Tag;
+		info->TypePackages->ReferMethods = gcnew List<MethodDefinition^>();
+		AddList(info->TypePackages->ReferMethods, this->GetMethodList(method));
+		info->TypePackages->ReferTypes = gcnew List<TypeDefinition^>();
+		AddList(info->TypePackages->ReferTypes, GetDictionary(this->_refermethodtype, method));
+		for each (MethodDefinition^ m in info->TypePackages->ReferMethods) AddList(info->TypePackages->ReferTypes, GetDictionary(this->_refermethodtype, m));
+	}
 	RemoveItem(this->_refermethod, method);
 	RemoveItem(this->_refermethodtype, method);
 	return info;
@@ -323,13 +347,15 @@ TypeDefinition^ Plugins::TypeClone(MethodDefinition^ method, ModuleDefinition^ M
 		t = gcnew TypeDefinition(type->Namespace, type->Name, type->Attributes);
 		AddList(this->_refertype, t);
 		TypePackage^ package = gcnew TypePackage();
+		package->Type = t;
 		package->Methods = gcnew Dictionary<UINT, MethodDefinition^>();
 		package->Properties = gcnew Dictionary<UINT, PropertyDefinition^>();
 		package->Events = gcnew Dictionary<UINT, EventDefinition^>();
 		AddItem(this->_typepackages, t, package);
 		if (type->HasCustomAttributes) CustomClone(t->CustomAttributes, type->CustomAttributes);
-		t->BaseType = this->GetTypeReference(method, M, type->BaseType);
-		if (type->HasInterfaces) for each (TypeReference^ inter in type->Interfaces) t->Interfaces->Add(this->GetTypeReference(method, M, inter));
+		if (type->BaseType != nullptr) t->BaseType = this->GetTypeReference(method, M, type->BaseType);
+		TypeReference^ plugin = M->ImportReference(typeof(Plugin));
+		if (type->HasInterfaces) for each (TypeReference^ inter in type->Interfaces) if (inter != plugin) t->Interfaces->Add(this->GetTypeReference(method, M, inter));
 		if (type->HasFields)
 		{
 			for each (FieldDefinition^ field in type->Fields)

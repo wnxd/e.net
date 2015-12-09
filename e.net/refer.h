@@ -61,6 +61,8 @@ public:
 	FieldDefinition^ FindGlobalVariable(ETAG tag);
 	PropertyDefinition^ FindProperty(ETAG tag);
 	EMethodData^ FindLibMethod(short index, ETAG tag);
+	TypeDefinition^ FindLibType(ETAG tag);
+	PropertyDefinition^ FindLibTypeProperty(ETAG tag, UINT index);
 private:
 	ModuleDefinition^ _module;
 	Plugins^ _plugins;
@@ -75,10 +77,12 @@ private:
 	Dictionary<UINT, FieldDefinition^>^ _field;
 	Dictionary<UINT, FieldDefinition^>^ _globalvar;
 	Dictionary<UINT, PropertyDefinition^>^ _prop;
+	Dictionary<UINT, TypePackage^>^ _libtype;
 	List<ECListInfo^>^ _eclist;
 	List<ELibInfo^>^ _elib;
 	List<PluginInfo^>^ _elibinfo;
 	void LoadKrnln();
 	void LoadE_Net();
 	void LoadPlugins();
+	void LoadLibType(UINT tag, TypePackage^ package);
 };

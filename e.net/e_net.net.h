@@ -1,9 +1,10 @@
 #pragma once
 
-#define E_NET LI_LIB_GUID_STR
-
 using namespace System;
 using namespace Mono::Cecil;
+using namespace wnxd::E_NET;
+
+#define E_NET LI_LIB_GUID_STR
 
 enum e_net_method : UINT
 {

@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -48,9 +49,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\e.net\e.net.vcxproj">
-      <Project>{e3b371a7-0221-467d-bed5-b83eb78d42db}</Project>
-      <Name>e.net</Name>
+    <ProjectReference Include="..\plugin\plugin.vcxproj">
+      <Project>{b2e512e7-22d6-40b4-8335-d35c250be848}</Project>
+      <Name>plugin</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

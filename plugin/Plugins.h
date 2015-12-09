@@ -54,7 +54,7 @@ namespace wnxd
 		public ref class LibTypeAttribute :Attribute
 		{
 		public:
-			LibTypeAttribute();
+			LibTypeAttribute(UINT Tag);
 		};
 
 		public ref class LibTypeTagAttribute :Attribute
@@ -67,29 +67,32 @@ namespace wnxd
 
 using namespace wnxd::E_NET;
 
-ref struct MethodPackage
+public ref struct MethodPackage
 {
 	EMethodMode Mode;
 	IList<MethodDefinition^>^ Methods;
 	IList<TypeDefinition^>^ Types;
 };
 
-ref struct TypePackage
+public ref struct TypePackage
 {
+	UINT Tag;
 	TypeDefinition^ Type;
 	IDictionary<UINT, PropertyDefinition^>^ Properties;
 	IDictionary<UINT, MethodDefinition^>^ Methods;
 	IDictionary<UINT, EventDefinition^>^ Events;
+	IList<MethodDefinition^>^ ReferMethods;
+	IList<TypeDefinition^>^ ReferTypes;
 };
 
-ref struct PluginInfo
+public ref struct PluginInfo
 {
 	String^ Lib;
 	IDictionary<UINT, IList<MethodPackage^>^>^ MethodPackages;
 	TypePackage^ TypePackages;
 };
 
-ref class Plugins
+public ref class Plugins
 {
 public:
 	Plugins(ModuleDefinition^ module);

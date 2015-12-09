@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace krnln.plugin
 {
-    public interface Base
+    interface Base
     {
         int 左边 { get; set; }
         int 顶边 { get; set; }
