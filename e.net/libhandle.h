@@ -64,8 +64,8 @@ public:
 	~UnitHandle();
 	bool LoadData(LPBYTE data, UINT size);
 	vector<UNIT_PROPERTY> GetAllProperty();
-	WindowProperty GetProperty(UINT index);
-	void FreeProperty(WindowProperty prop);
+	WindowProperty* GetProperty(UINT index);
+	void FreeProperty(WindowProperty* prop);
 private:
 	LIB_DATA_TYPE_INFO _info;
 	PFN_CREATE_UNIT _create;

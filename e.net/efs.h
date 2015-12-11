@@ -88,7 +88,7 @@ enum ETYPE : byte
 	GlobalField = 0x05,
 	Method = 0x04,
 	Window = 0x52,
-	Form = 0x06,
+	Unit = 0x06,
 	Element = 0x16
 };
 

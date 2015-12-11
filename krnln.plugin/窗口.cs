@@ -181,7 +181,11 @@ namespace krnln.plugin
             }
             set
             {
-                this.BackColor = Color.FromArgb(value);
+                if (value != -16777216)
+                {
+                    if ((value & 0xFF000000) == 0) value = (int)(value + 0xFF000000);
+                    this.BackColor = Color.FromArgb(value);
+                }
             }
         }
         [LibTypeTag(11)]
@@ -200,9 +204,12 @@ namespace krnln.plugin
             }
             set
             {
-                MemoryStream ms = new MemoryStream(value);
-                this.BackgroundImage.Dispose();
-                this.BackgroundImage = Image.FromStream(ms);
+                if (value != null && value.Length > 0)
+                {
+                    MemoryStream ms = new MemoryStream(value);
+                    this.BackgroundImage.Dispose();
+                    this.BackgroundImage = Image.FromStream(ms);
+                }
             }
         }
         [LibTypeTag(12)]
@@ -310,10 +317,13 @@ namespace krnln.plugin
             }
             set
             {
-                using (MemoryStream ms = new MemoryStream(value))
+                if (value != null && value.Length > 0)
                 {
-                    this.Icon.Dispose();
-                    this.Icon = Icon.FromHandle(new Bitmap(ms).GetHicon());
+                    using (MemoryStream ms = new MemoryStream(value))
+                    {
+                        this.Icon.Dispose();
+                        this.Icon = Icon.FromHandle(new Bitmap(ms).GetHicon());
+                    }
                 }
             }
         }

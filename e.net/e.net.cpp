@@ -608,38 +608,67 @@ bool ECompile::CompileWindow()
 				{
 					TypeReference^ t = module->ImportReference(this->_CodeRefer->FindLibType(tag));
 					String^ name = CStr2String(form.Name);
-					FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, t);
+					TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
+					FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, forms);
 					global->Fields->Add(f);
 					this->_CodeRefer->AddGlobalVariable(form.Tag, f);
 					this->_CodeRefer->AddGlobalVariable(unit.Tag, f);
-					TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
 					MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
 					ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-					int len = handle.GetAllProperty().size();
-					for (int i = 0; i < len; i++)
+					PropertyDefinition^ pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 1);
+					if (pd != nullptr)
 					{
-						PropertyDefinition^ pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i + 1);
+						AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Left);
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+					}
+					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 2);
+					if (pd != nullptr)
+					{
+						AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Top);
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+					}
+					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 3);
+					if (pd != nullptr)
+					{
+						AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Width);
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+					}
+					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 4);
+					if (pd != nullptr)
+					{
+						AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Height);
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+					}
+
+					int len = handle.GetAllProperty().size();
+					for (int i = 8; i < len; i++)
+					{
+						pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i + 1);
 						if (pd != nullptr)
 						{
 							AddILCode(ILProcessor, OpCodes::Ldarg_0);
-							WindowProperty wp = handle.GetProperty(i);
-							switch (wp.Type)
+							WindowProperty* wp = handle.GetProperty(i);
+							switch (wp->Type)
 							{
 							case WPT_INT:
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(&wp)->value);
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(wp)->value);
 								break;
 							case WPT_DOUBLE:
-								AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(&wp)->value);
+								AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(wp)->value);
 								break;
 							case WPT_DWORD:
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(&wp)->value);
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(wp)->value);
 								break;
 							case WPT_LPTSTR:
-								AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(&wp)->value));
+								AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(wp)->value));
 								break;
 							case WPT_LPBYTE:
 							{
-								LPBYTE_Property* p = static_cast<LPBYTE_Property*>(&wp);
+								LPBYTE_Property* p = static_cast<LPBYTE_Property*>(wp);
 								LPBYTE data = p->value;
 								AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
 								AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
@@ -663,6 +692,7 @@ bool ECompile::CompileWindow()
 				}
 			}
 		}
+		return true;
 	}
 	catch (Exception^ ex)
 	{
@@ -1078,15 +1108,18 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					params->Add(param);
 				} while (Code < End);
 			paramend:
-				if (LibID == this->krnln_id && mr->Tag == krnln_method::重定义数组 && params->Count >= 3)
+				if (LibID == this->krnln_id)
 				{
-					EParamData^ param = gcnew EParamData();
-					param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
-					IList<Instruction^>^ codes = gcnew List<Instruction^>();
-					codes->Add(Instruction::Create(OpCodes::Ldtoken, params[0]->Type));
-					param->Data = codes;
-					param->DataType = EParamDataType::IL;
-					params->Insert(0, param);
+					if ((mr->Tag == krnln_method::重定义数组 && params->Count >= 3) || (mr->Tag == krnln_method::载入 &&  params->Count >= 1))
+					{
+						EParamData^ param = gcnew EParamData();
+						param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
+						IList<Instruction^>^ codes = gcnew List<Instruction^>();
+						codes->Add(Instruction::Create(OpCodes::Ldtoken, params[0]->Type));
+						param->Data = codes;
+						param->DataType = EParamDataType::IL;
+						params->Insert(0, param);
+					}
 				}
 				EMethodData^ md;
 				String^ tagName = GetMethodName(mr->MethodData);
@@ -1749,14 +1782,16 @@ varend:
 	bool chain = false;
 	switch (tag.Type2)
 	{
-	case Variable:
+	case ETYPE::Variable:
 		v = this->_CodeRefer->FindVariable(tag);
 		if (v == nullptr) p = this->_CodeRefer->FindParameter(tag);
 		break;
-	case Field:
+	case ETYPE::Field:
 		f = this->_CodeRefer->FindField(tag);
 		break;
-	case GlobalField:
+	case ETYPE::GlobalField:
+	case ETYPE::Window:
+	case ETYPE::Unit:
 		g = this->_CodeRefer->FindGlobalVariable(tag);
 		if (g == nullptr)
 		{

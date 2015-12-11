@@ -100,40 +100,40 @@ vector<UNIT_PROPERTY> UnitHandle::GetAllProperty()
 	return arr;
 }
 
-WindowProperty UnitHandle::GetProperty(UINT index)
+WindowProperty* UnitHandle::GetProperty(UINT index)
 {
 	if (this->_hUnit != NULL)
 	{
 		UNIT_PROPERTY_VALUE value;
-		this->_get(this->_hUnit, index, &value);
-		WindowProperty ret = NULL;
+		this->_get(this->_hUnit, index - 8, &value);
+		WindowProperty* ret = NULL;
 		switch (this->_info.m_pPropertyBegin[index].m_shtType)
 		{
 		case UD_INT:
 		case UD_PICK_INT:
 		case UD_PICK_SPEC_INT:
-			ret = INT_Property(value.m_int);
+			ret = new INT_Property(value.m_int);
 			break;
 		case UD_DOUBLE:
-			ret = DOUBLE_Property(value.m_double);
+			ret = new DOUBLE_Property(value.m_double);
 			break;
 		case UD_BOOL:
-			ret = INT_Property(value.m_bool);
+			ret = new INT_Property(value.m_bool);
 			break;
 		case UD_DATE_TIME:
-			ret = DOUBLE_Property(value.m_dtDateTime);
+			ret = new DOUBLE_Property(value.m_dtDateTime);
 		case UD_COLOR:
 		case UD_COLOR_TRANS:
 		case UD_COLOR_BACK:
-			ret = DWORD_Property(value.m_clr);
+			ret = new DWORD_Property(value.m_clr);
 			break;
 		case UD_TEXT:
 		case UD_PICK_TEXT:
 		case UD_EDIT_PICK_TEXT:
-			ret = LPTSTR_Property(value.m_szText);
+			ret = new LPTSTR_Property(value.m_szText);
 			break;
 		case UD_FILE_NAME:
-			ret = LPTSTR_Property(value.m_szFileName);
+			ret = new LPTSTR_Property(value.m_szFileName);
 			break;
 		case UD_PIC:
 		case UD_ICON:
@@ -142,7 +142,7 @@ WindowProperty UnitHandle::GetProperty(UINT index)
 		case UD_FONT:
 		case UD_CUSTOMIZE:
 		case UD_IMAGE_LIST:
-			ret = LPBYTE_Property(value.m_data.m_pData, value.m_data.m_nDataSize);
+			ret = new LPBYTE_Property(value.m_data.m_pData, value.m_data.m_nDataSize);
 			break;
 		}
 		return ret;
@@ -150,16 +150,20 @@ WindowProperty UnitHandle::GetProperty(UINT index)
 	return NULL;
 }
 
-void UnitHandle::FreeProperty(WindowProperty prop)
+void UnitHandle::FreeProperty(WindowProperty* prop)
 {
-	switch (prop.Type)
+	if (prop != NULL)
 	{
-	case WindowPropertyType::WPT_LPTSTR:
-		delete static_cast<LPTSTR_Property*>(&prop)->value;
-		break;
-	case WindowPropertyType::WPT_LPBYTE:
-		delete static_cast<LPBYTE_Property*>(&prop)->value;
-		break;
+		switch (prop->Type)
+		{
+		case WindowPropertyType::WPT_LPTSTR:
+			delete static_cast<LPTSTR_Property*>(prop)->value;
+			break;
+		case WindowPropertyType::WPT_LPBYTE:
+			delete static_cast<LPBYTE_Property*>(prop)->value;
+			break;
+		}
+		delete prop;
 	}
 }
 
