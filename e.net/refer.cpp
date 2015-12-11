@@ -410,7 +410,11 @@ TypeDefinition^ CodeRefer::FindLibType(LIBTAG tag)
 PropertyDefinition^ CodeRefer::FindLibTypeProperty(ETAG tag, UINT index)
 {
 	TypePackage^ package = GetDictionary<UINT, TypePackage^>(this->_libtype, tag);
-	if (package != nullptr) return GetDictionary(package->Properties, index - 1);
+	if (package == nullptr)
+	{
+
+	}
+	else return GetDictionary(package->Properties, index - 1);
 	return nullptr;
 }
 
