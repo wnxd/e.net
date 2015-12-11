@@ -345,7 +345,7 @@ struct ESection_ECList
 	vector<ESection_ECList_Info> List;
 };
 
-struct ESection_Resources_FormElement :EBase
+struct ESection_Resources_FormElement : EBase
 {
 	ETAG Type;
 	UINT Left;

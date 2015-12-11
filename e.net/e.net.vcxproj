@@ -101,6 +101,7 @@
     <ClInclude Include="elib.h" />
     <ClInclude Include="e_net.net.h" />
     <ClInclude Include="krnln.net.h" />
+    <ClInclude Include="libhandle.h" />
     <ClInclude Include="operator.h" />
     <ClInclude Include="refer.h" />
     <ClInclude Include="stdafx.h" />
@@ -136,6 +137,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsManaged>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="libhandle.cpp">
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
     <ClCompile Include="operator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

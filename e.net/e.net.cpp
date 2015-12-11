@@ -2,6 +2,7 @@
 #include "common.h"
 #include "common.net.h"
 #include "compile.h"
+#include "libhandle.h"
 #include "krnln.net.h"
 #include "refer.h"
 #include "operator.h"
@@ -254,7 +255,7 @@ ECompile::~ECompile()
 
 bool ECompile::Compile()
 {
-	return this->CompileHead() && this->CompileRefer() && this->CompileClass() && this->CompileCode();
+	return this->CompileHead() && this->CompileRefer() && this->CompileClass() && this->CompileWindow() && this->CompileCode();
 }
 
 void ECompile::Write(String^ path)
@@ -594,25 +595,72 @@ bool ECompile::CompileWindow()
 		ModuleDefinition^ module = this->_assembly->MainModule;
 		TypeDefinition^ global = module->GetType("<Module>");
 		global->Attributes = global->Attributes | STATICCLASS;
+		vector<LibHandle> list;
+		for each (ESection_Library lib in this->_CodeProcess->GetLibraries()) list.push_back(LibHandle(this->_CodeProcess->FindLibInfo(lib)));
 		for each (ESection_Resources_Form form in this->_CodeProcess->GetFormList())
 		{
 			if (form.Elements.size() > 0)
 			{
-				ESection_Resources_FormElement window = form.Elements[0];
-				TypeReference^ t = module->ImportReference(this->FindTypeDefinition(window.Type));
-				String^ name = CStr2String(form.Name);
-				FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, t);
-				global->Fields->Add(f);
-				this->_CodeRefer->AddGlobalVariable(form.Tag, f);
-				this->_CodeRefer->AddGlobalVariable(window.Tag, f);
-				TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
-				MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
-				ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-
-
-				AddILCode(ILProcessor, OpCodes::Ret);
-				forms->Methods->Add(method);
-				module->Types->Add(forms);
+				ESection_Resources_FormElement unit = form.Elements[0];
+				LIBTAG tag = unit.Type;
+				UnitHandle handle = list[tag.LibID - 1].GetUnitInfo(tag.ID - 1);
+				if (handle.LoadData(unit.Data, unit.DataSize))
+				{
+					TypeReference^ t = module->ImportReference(this->_CodeRefer->FindLibType(tag));
+					String^ name = CStr2String(form.Name);
+					FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, t);
+					global->Fields->Add(f);
+					this->_CodeRefer->AddGlobalVariable(form.Tag, f);
+					this->_CodeRefer->AddGlobalVariable(unit.Tag, f);
+					TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
+					MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
+					ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+					int len = handle.GetAllProperty().size();
+					for (int i = 0; i < len; i++)
+					{
+						PropertyDefinition^ pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i + 1);
+						if (pd != nullptr)
+						{
+							AddILCode(ILProcessor, OpCodes::Ldarg_0);
+							WindowProperty wp = handle.GetProperty(i);
+							switch (wp.Type)
+							{
+							case WPT_INT:
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(&wp)->value);
+								break;
+							case WPT_DOUBLE:
+								AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(&wp)->value);
+								break;
+							case WPT_DWORD:
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(&wp)->value);
+								break;
+							case WPT_LPTSTR:
+								AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(&wp)->value));
+								break;
+							case WPT_LPBYTE:
+							{
+								LPBYTE_Property* p = static_cast<LPBYTE_Property*>(&wp);
+								LPBYTE data = p->value;
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
+								AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+								for (int i = 0; i < p->size; i++, data++)
+								{
+									AddILCode(ILProcessor, OpCodes::Dup);
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<int>(*data));
+									AddILCode(ILProcessor, OpCodes::Stelem_I1);
+								}
+								break;
+							}
+							}
+							handle.FreeProperty(wp);
+							AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+						}
+					}
+					AddILCode(ILProcessor, OpCodes::Ret);
+					forms->Methods->Add(method);
+					module->Types->Add(forms);
+				}
 			}
 		}
 	}
@@ -1954,7 +2002,7 @@ varend:
 					vardata->VariableType = EVariableType::Property;
 					vardata->Type = pd->PropertyType;
 					vardata->Data = pd;
-					AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->GetMethod));
+					AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(pd->GetMethod));
 				}
 				else throw Error("使用了未支持的类属性");
 				break;
@@ -1975,7 +2023,7 @@ ELibConstData^ ECompile::CompileCode_LibConst(LIBTAG libconst)
 	else info = this->_CodeProcess->FindLibInfo(libconst.LibID);
 	if (info == NULL) return nullptr;
 	ModuleDefinition^ module = this->_assembly->MainModule;
-	LIB_CONST_INFO constinfo = info->m_pLibConst[libconst.ID];
+	LIB_CONST_INFO constinfo = LibHandle(info).GetConstInfo(libconst.ID);
 	ELibConstData^ data = gcnew ELibConstData();
 	data->ConstType = (ELibConstType)constinfo.m_shtType;
 	switch (data->ConstType)

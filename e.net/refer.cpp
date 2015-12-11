@@ -386,16 +386,16 @@ TypeDefinition^ CodeRefer::FindLibType(LIBTAG tag)
 	{
 		if (tag.LibID > 0 && tag.ID > 0)
 		{
-			tag.LibID--;
-			if (tag.LibID < this->_elib->Count)
+			USHORT LibID = tag.LibID - 1;
+			if (LibID < this->_elib->Count)
 			{
-				tag.ID--;
-				ELibInfo^ libinfo = this->_elib[tag.ID];
+				USHORT ID = tag.ID - 1;
+				ELibInfo^ libinfo = this->_elib[ID];
 				for each (PluginInfo^ info in this->_elibinfo)
 				{
-					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(tag.ID))
+					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(ID))
 					{
-						package = info->TypePackages[tag.ID];
+						package = info->TypePackages[ID];
 						this->LoadLibType(tag, package);
 						return package->Type;
 					}

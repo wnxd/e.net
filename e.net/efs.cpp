@@ -399,7 +399,7 @@ vector<ESection_Resources_Form> GetForms(byte*& pointer)
 	{
 		ESection_Resources_Form srf;
 		srf.Tag = tags[i];
-		pointer += 8;
+		pointer += 4;
 		srf.Class = GetData<ETAG>(pointer);
 		srf.Name = GetString(pointer);
 		srf.Remark = GetString(pointer);
