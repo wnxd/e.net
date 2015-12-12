@@ -390,7 +390,7 @@ TypeDefinition^ CodeRefer::FindLibType(LIBTAG tag)
 			if (LibID < this->_elib->Count)
 			{
 				USHORT ID = tag.ID - 1;
-				ELibInfo^ libinfo = this->_elib[ID];
+				ELibInfo^ libinfo = this->_elib[LibID];
 				for each (PluginInfo^ info in this->_elibinfo)
 				{
 					if (info->TypePackages != nullptr && String::Equals(info->Lib, libinfo->Guid, StringComparison::CurrentCultureIgnoreCase) && info->TypePackages->ContainsKey(ID))

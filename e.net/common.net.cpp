@@ -249,7 +249,7 @@ MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeRe
 {
 	MethodReference^ method = gcnew MethodReference(name, returntype, type);
 	method->HasThis = !isstatic;
-	for each (TypeReference^ item in params) method->Parameters->Add(gcnew ParameterDefinition(item));
+	if (params != nullptr) for each (TypeReference^ item in params) method->Parameters->Add(gcnew ParameterDefinition(item));
 	return method;
 }
 

@@ -71,6 +71,29 @@ LIBTAG::operator UINT()
 	return type;
 }
 
+LIBCONST::LIBCONST()
+{
+
+}
+
+LIBCONST::LIBCONST(UINT uint)
+{
+	memcpy(this, &uint, sizeof(UINT));
+}
+
+LIBCONST* LIBCONST::operator=(UINT uint)
+{
+	memcpy(this, &uint, sizeof(UINT));
+	return this;
+}
+
+LIBCONST::operator UINT()
+{
+	UINT type;
+	memcpy(&type, this, sizeof(UINT));
+	return type;
+}
+
 EKeyValPair::EKeyValPair()
 {
 	this->Key = NULL;
@@ -371,7 +394,10 @@ vector<ESection_Resources_FormElement> GetElements(byte*& pointer)
 		byte* end = pointer + size;
 		sre.Tag = tags[i];
 		sre.Type = GetData<ETAG>(pointer);
-		pointer += 26;
+		pointer += 20;
+		sre.Name = GetAutoString(pointer);
+		sre.Remark = GetAutoString(pointer);
+		pointer += 4;
 		sre.Left = GetData<UINT>(pointer);
 		sre.Top = GetData<UINT>(pointer);
 		sre.Width = GetData<UINT>(pointer);

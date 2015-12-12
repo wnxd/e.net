@@ -65,5 +65,5 @@ MethodDefinition^ CreateMethod(String^ name, TypeReference^ returntype, IList<Pa
 ParameterDefinition^ CreateParameter(String^ name, TypeReference^ type, ParameterAttributes attr = ParameterAttributes::None);
 GenericInstanceType^ CreateGenericType(TypeReference^ type, IList<TypeReference^>^ generics);
 TypeReference^ CreateNullable(TypeReference^ type);
-MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeReference^ returntype, bool isstatic, IList<TypeReference^>^ params);
+MethodReference^ CreateMethodReference(TypeReference^ type, String^ name, TypeReference^ returntype, bool isstatic, IList<TypeReference^>^ params = nullptr);
 TypeReference^ GenericHandle(GenericInstanceType^ generictype, TypeReference^ type);

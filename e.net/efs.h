@@ -162,11 +162,21 @@ struct ETAG
 
 struct LIBTAG
 {
-	USHORT LibID;
 	USHORT ID;
+	USHORT LibID;
 	LIBTAG();
 	LIBTAG(UINT uint);
 	LIBTAG* operator=(UINT uint);
+	operator UINT();
+};
+
+struct LIBCONST
+{
+	USHORT LibID;
+	USHORT ID;
+	LIBCONST();
+	LIBCONST(UINT uint);
+	LIBCONST* operator=(UINT uint);
 	operator UINT();
 };
 
@@ -348,6 +358,8 @@ struct ESection_ECList
 
 struct ESection_Resources_FormElement : EBase
 {
+	string Name;
+	string Remark;
 	ETAG Type;
 	UINT Left;
 	UINT Top;
