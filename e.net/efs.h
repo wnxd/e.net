@@ -81,6 +81,7 @@ enum DataType : UINT
 enum ETYPE : byte
 {
 	StaticClass = 0x09,
+	WindowClass = 0x19,
 	Class = 0x49,
 	Struct = 0x41,
 	Variable = 0x25,
@@ -377,6 +378,19 @@ struct ESection_Resources
 {
 	vector<ESection_Resources_Form> Forms;
 	vector<ESection_Resources_Const> Constants;
+};
+
+struct ESection_UnitInfo
+{
+	ETAG Form;
+	ETAG Element;
+	UINT Index;
+	ETAG Method;
+};
+
+struct ESection_AuxiliaryInfo1
+{
+	vector<ESection_UnitInfo> UnitInfos;
 };
 
 const byte Magic1[4] = { 'C', 'N', 'W', 'T' };

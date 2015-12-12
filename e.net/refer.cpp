@@ -414,7 +414,18 @@ PropertyDefinition^ CodeRefer::FindLibTypeProperty(ETAG tag, UINT index)
 	{
 
 	}
-	else return GetDictionary(package->Properties, index - 1);
+	else return GetDictionary(package->Properties, index);
+	return nullptr;
+}
+
+EventDefinition^ CodeRefer::FindLibTypeEvent(ETAG tag, UINT index)
+{
+	TypePackage^ package = GetDictionary<UINT, TypePackage^>(this->_libtype, tag);
+	if (package == nullptr)
+	{
+
+	}
+	else return GetDictionary(package->Events, index);
 	return nullptr;
 }
 

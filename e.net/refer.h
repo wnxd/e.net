@@ -63,6 +63,7 @@ public:
 	EMethodData^ FindLibMethod(short index, ETAG tag);
 	TypeDefinition^ FindLibType(LIBTAG tag);
 	PropertyDefinition^ FindLibTypeProperty(ETAG tag, UINT index);
+	EventDefinition^ FindLibTypeEvent(ETAG tag, UINT index);
 private:
 	ModuleDefinition^ _module;
 	Plugins^ _plugins;

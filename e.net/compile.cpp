@@ -51,6 +51,15 @@ EInfo* ParseEcode(byte* code)
 				}
 			}
 			else if (strcmp(Block_Name, "易模块记录段") == 0) einfo->ECList = GetECList(code + offset);
+			else if (strcmp(Block_Name, "辅助信息段1") == 0)
+			{
+				ESection_AuxiliaryInfo1 sai;
+				UINT len = si.DataLength;
+				size_t count = len / sizeof(ESection_UnitInfo);
+				long long t = offset;
+				for (size_t i = 0; i < count; i++) sai.UnitInfos.push_back(GetData<ESection_UnitInfo>(code, t));
+				einfo->UnitInfo = sai;
+			}
 			offset += si.DataLength;
 		}
 		if (ptr != NULL) einfo->Program = GetLibraries(ptr, einfo->TagStatus.Tags);
@@ -194,6 +203,13 @@ ESection_Program_Assembly CodeProcess::FindStruct(ETAG tag)
 ESection_Program_Assembly CodeProcess::FindReferStruct(ETAG tag)
 {
 	return FindInfo(this->GetReferStructs(), tag);
+}
+
+vector<ESection_UnitInfo> CodeProcess::FindUnitInfo(ETAG element)
+{
+	vector<ESection_UnitInfo> arr;
+	for each (ESection_UnitInfo info in this->_einfo->UnitInfo.UnitInfos) if (info.Element == element) arr.push_back(info);
+	return arr;
 }
 
 PLIB_INFO CodeProcess::FindLibInfo(UINT index)

@@ -10,6 +10,7 @@ struct EInfo
 	ESection_AuxiliaryInfo2 TagStatus;
 	ESection_ECList ECList;
 	ESection_Resources Resources;
+	ESection_AuxiliaryInfo1 UnitInfo;
 };
 
 class CodeProcess
@@ -40,6 +41,7 @@ public:
 	ESection_Program_Assembly FindReferAssembly(ETAG tag);
 	ESection_Program_Assembly FindStruct(ETAG tag);
 	ESection_Program_Assembly FindReferStruct(ETAG tag);
+	vector<ESection_UnitInfo> FindUnitInfo(ETAG element);
 	PLIB_INFO FindLibInfo(UINT index);
 	PLIB_INFO FindLibInfo(ESection_Library lib);
 private:

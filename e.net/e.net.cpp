@@ -373,7 +373,7 @@ bool ECompile::CompileClass()
 		IDictionary<TypeDefinition^, UINT>^ typelist = gcnew Dictionary<TypeDefinition^, UINT>();
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
-			bool isstatic = assembly.Tag.Type2 == ETYPE::StaticClass;
+			bool isstatic = assembly.Tag.Type2 != ETYPE::Class;
 			String^ classname = GetTypeName(assembly);
 			TypeDefinition^ type = this->_CodeRefer->FindType(classname);
 			if (type == nullptr)
@@ -447,7 +447,7 @@ bool ECompile::CompileClass()
 		}
 		for each (ESection_Program_Assembly assembly in this->_CodeProcess->GetAssemblies())
 		{
-			bool isstatic = assembly.Tag.Type2 == ETYPE::StaticClass;
+			bool isstatic = assembly.Tag.Type2 != ETYPE::Class;
 			TypeDefinition^ type = this->_CodeRefer->FindType(assembly.Tag);
 			for each (ESection_Variable var in assembly.Variables)
 			{
@@ -494,7 +494,7 @@ bool ECompile::CompileMethod(TypeDefinition^ type, ESection_Program_Assembly ass
 				String^ name = CStr2String(pm.Name);
 				MethodDefinition^ method;
 				bool ctor = false;
-				MethodAttributes attr = ((pm.Attributes & EMethodAttr::M_Public) == EMethodAttr::M_Public) ? MethodAttributes::Public : MethodAttributes::Private;
+				MethodAttributes attr = ((pm.Attributes & EMethodAttr::M_Public) == EMethodAttr::M_Public) ? MethodAttributes::Public : MethodAttributes::CompilerControlled;
 				if (isstatic) attr = attr | MethodAttributes::Static;
 				if (name == type->Name && pm.ReturnType == DataType::EDT_VOID)
 				{
@@ -603,92 +603,133 @@ bool ECompile::CompileWindow()
 			{
 				ESection_Resources_FormElement unit = form.Elements[0];
 				LIBTAG tag = unit.Type;
+				TypeReference^ t = module->ImportReference(this->_CodeRefer->FindLibType(tag));
+				String^ name = CStr2String(form.Name);
+				TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
+				FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, forms);
+				global->Fields->Add(f);
+				this->_CodeRefer->AddGlobalVariable(form.Tag, f);
+				this->_CodeRefer->AddGlobalVariable(unit.Tag, f);
+				MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
+				ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 				UnitHandle handle = list[tag.LibID - 1].GetUnitInfo(tag.ID - 1);
-				if (handle.LoadData(unit.Data, unit.DataSize))
+				if (!this->CompileUnit(ILProcessor, nullptr, handle, unit)) return false;
+				int len = form.Elements.size();
+				for (int i = 1; i < len; i++)
 				{
-					TypeReference^ t = module->ImportReference(this->_CodeRefer->FindLibType(tag));
-					String^ name = CStr2String(form.Name);
-					TypeDefinition^ forms = gcnew TypeDefinition("", name, TypeAttributes::Class, t);
-					FieldDefinition^ f = gcnew FieldDefinition(name, FieldAttributes::Static, forms);
-					global->Fields->Add(f);
-					this->_CodeRefer->AddGlobalVariable(form.Tag, f);
-					this->_CodeRefer->AddGlobalVariable(unit.Tag, f);
-					MethodDefinition^ method = CreateConstructor(module, MethodAttributes::Public, nullptr, t->Resolve());
-					ILProcessor^ ILProcessor = method->Body->GetILProcessor();
-					PropertyDefinition^ pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 1);
-					if (pd != nullptr)
-					{
-						AddILCode(ILProcessor, OpCodes::Ldarg_0);
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Left);
-						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
-					}
-					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 2);
-					if (pd != nullptr)
-					{
-						AddILCode(ILProcessor, OpCodes::Ldarg_0);
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Top);
-						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
-					}
-					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 3);
-					if (pd != nullptr)
-					{
-						AddILCode(ILProcessor, OpCodes::Ldarg_0);
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Width);
-						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
-					}
-					pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 4);
-					if (pd != nullptr)
-					{
-						AddILCode(ILProcessor, OpCodes::Ldarg_0);
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Height);
-						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
-					}
 
-					int len = handle.GetAllProperty().size();
-					for (int i = 8; i < len; i++)
+				}
+				AddILCode(ILProcessor, OpCodes::Ret);
+				forms->Methods->Add(method);
+				module->Types->Add(forms);
+			}
+		}
+		return true;
+	}
+	catch (Exception^ ex)
+	{
+		MessageBox::Show(ex->Message);
+		return false;
+	}
+}
+
+bool ECompile::CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, UnitHandle handle, ESection_Resources_FormElement unit)
+{
+	try
+	{
+		if (handle.LoadData(unit.Data, unit.DataSize))
+		{
+			ModuleDefinition^ module = this->_assembly->MainModule;
+			PropertyDefinition^ pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 0);
+			if (pd != nullptr)
+			{
+				if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+				else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+				AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Left);
+				AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+			}
+			pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 1);
+			if (pd != nullptr)
+			{
+				if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+				else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+				AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Top);
+				AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+			}
+			pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 2);
+			if (pd != nullptr)
+			{
+				if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+				else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+				AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Width);
+				AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+			}
+			pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, 3);
+			if (pd != nullptr)
+			{
+				if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+				else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+				AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Height);
+				AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+			}
+			int len = handle.GetAllProperty().size();
+			for (int i = 8; i < len; i++)
+			{
+				pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i);
+				if (pd != nullptr)
+				{
+					if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+					else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+					WindowProperty* wp = handle.GetProperty(i);
+					switch (wp->Type)
 					{
-						pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i + 1);
-						if (pd != nullptr)
+					case WPT_INT:
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(wp)->value);
+						break;
+					case WPT_DOUBLE:
+						AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(wp)->value);
+						break;
+					case WPT_DWORD:
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(wp)->value);
+						break;
+					case WPT_LPTSTR:
+						AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(wp)->value));
+						break;
+					case WPT_LPBYTE:
+					{
+						LPBYTE_Property* p = static_cast<LPBYTE_Property*>(wp);
+						LPBYTE data = p->value;
+						AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
+						AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+						for (int i = 0; i < p->size; i++, data++)
 						{
-							AddILCode(ILProcessor, OpCodes::Ldarg_0);
-							WindowProperty* wp = handle.GetProperty(i);
-							switch (wp->Type)
-							{
-							case WPT_INT:
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(wp)->value);
-								break;
-							case WPT_DOUBLE:
-								AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(wp)->value);
-								break;
-							case WPT_DWORD:
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(wp)->value);
-								break;
-							case WPT_LPTSTR:
-								AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(wp)->value));
-								break;
-							case WPT_LPBYTE:
-							{
-								LPBYTE_Property* p = static_cast<LPBYTE_Property*>(wp);
-								LPBYTE data = p->value;
-								AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
-								AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
-								for (int i = 0; i < p->size; i++, data++)
-								{
-									AddILCode(ILProcessor, OpCodes::Dup);
-									AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
-									AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<int>(*data));
-									AddILCode(ILProcessor, OpCodes::Stelem_I1);
-								}
-								break;
-							}
-							}
-							handle.FreeProperty(wp);
-							AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+							AddILCode(ILProcessor, OpCodes::Dup);
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<int>(*data));
+							AddILCode(ILProcessor, OpCodes::Stelem_I1);
 						}
+						break;
 					}
-					AddILCode(ILProcessor, OpCodes::Ret);
-					forms->Methods->Add(method);
-					module->Types->Add(forms);
+					}
+					handle.FreeProperty(wp);
+					AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
+				}
+			}
+			for each (ESection_UnitInfo info in this->_CodeProcess->FindUnitInfo(unit.Tag))
+			{
+				EventDefinition^ event = this->_CodeRefer->FindLibTypeEvent(unit.Type, info.Index);
+				if (event != nullptr)
+				{
+					EMethodData^ method = this->_CodeRefer->FindMethodRefer(CUSTOM, info.Method);
+					if (method != nullptr)
+					{
+						if (field == nullptr) AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						else  AddILCode(ILProcessor, OpCodes::Ldfld, field);
+						AddILCode(ILProcessor, OpCodes::Ldnull);
+						AddILCode(ILProcessor, OpCodes::Ldftn, module->ImportReference(method));
+						AddILCode(ILProcessor, OpCodes::Newobj, module->ImportReference(CreateMethodReference(event->EventType, ".ctor", module->TypeSystem->Void, false, ToList(module->TypeSystem->Object, module->TypeSystem->IntPtr))));
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(event->AddMethod));
+					}
 				}
 			}
 		}
@@ -2006,7 +2047,7 @@ varend:
 				if (fd == nullptr && pd == nullptr)
 				{
 					ESection_Program_Assembly assembly = this->_CodeProcess->FindReferStruct(fi.Key);
-					if (assembly == NULL) pd = this->_CodeRefer->FindLibTypeProperty(fi.Key, fi.Value);
+					if (assembly == NULL) pd = this->_CodeRefer->FindLibTypeProperty(fi.Key, fi.Value - 1);
 					else
 					{
 						ESection_Variable var = assembly.FindField(fi.Value);

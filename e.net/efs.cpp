@@ -252,8 +252,16 @@ vector<ESection_Program_Assembly> GetAssemblies(byte*& pointer, vector<ESection_
 	{
 		ESection_Program_Assembly spa;
 		spa.Tag = tags[i];
-		spa.Status = GetData<ETagStatus>(pointer);
-		if (isclass) spa.Base = GetData<ETAG>(pointer);
+		if (spa.Tag.Type2 == ETYPE::WindowClass)
+		{
+			spa.Base = GetData<ETAG>(pointer);
+			pointer += 4;
+		}
+		else
+		{
+			spa.Status = GetData<ETagStatus>(pointer);
+			if (isclass) spa.Base = GetData<ETAG>(pointer);
+		}
 		spa.Name = GetString(pointer);
 		spa.Remark = GetString(pointer);
 		if (isclass)
