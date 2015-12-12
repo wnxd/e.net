@@ -21,14 +21,14 @@ namespace krnln.plugin
         void 按钮_ParentChanged(object sender, EventArgs e)
         {
             Control col = this.Parent;
-            Form form = null;
             do
             {
-                form = col as Form;
+                Form form = col as Form;
                 if (form != null)
                 {
                     if (this._类型 == 1) form.AcceptButton = this;
                     else if (form.AcceptButton == this) form.AcceptButton = null;
+                    break;
                 }
                 col = col.Parent;
             } while (col != null);

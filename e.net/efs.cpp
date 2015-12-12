@@ -517,8 +517,6 @@ ESection_ECList GetECList(byte* pointer)
 	return list;
 }
 
-INT WINAPI NotifySys(INT nMsg, DWORD dwParam1, DWORD dwParam2);
-
 ESection_Resources GetResources(byte* pointer)
 {
 	ESection_Resources resource;

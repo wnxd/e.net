@@ -133,7 +133,7 @@ private:
 	bool CompileClass();
 	bool CompileMethod(TypeDefinition^ type, ESection_Program_Assembly assembly, bool isstatic);
 	bool CompileWindow();
-	bool CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, UnitHandle handle, ESection_Resources_FormElement unit, HUNIT hUnit);
+	bool CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, UnitHandle& handle, ESection_Resources_FormElement unit, HWND hwnd);
 	bool CompileCode();
 	bool CompileCode_Begin(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte* Code, size_t Length, vector<UINT> Offset);
 	TypeReference^ CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ ILProcessor, byte*& Code, byte* End);

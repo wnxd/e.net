@@ -62,7 +62,7 @@ class UnitHandle
 public:
 	UnitHandle(LIB_DATA_TYPE_INFO info);
 	~UnitHandle();
-	bool LoadData(LPBYTE data, UINT size, HUNIT hUnit = NULL);
+	bool LoadData(LPBYTE data, UINT size, HWND hwnd = NULL);
 	vector<UNIT_PROPERTY> GetAllProperty();
 	WindowProperty* GetProperty(UINT index);
 	HUNIT hUnit();

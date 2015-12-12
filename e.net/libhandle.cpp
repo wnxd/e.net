@@ -82,15 +82,12 @@ UnitHandle::UnitHandle(LIB_DATA_TYPE_INFO info)
 
 UnitHandle::~UnitHandle()
 {
-	if (this->_hUnit != NULL) delete (HWND)this->_hUnit;
+	if (this->_hUnit != NULL) delete (void*)this->_hUnit;
 }
 
-bool UnitHandle::LoadData(LPBYTE data, UINT size, HUNIT hUnit)
+bool UnitHandle::LoadData(LPBYTE data, UINT size, HWND hwnd)
 {
-	if (this->_create != NULL)
-	{
-		this->_hUnit = this->_create(data, size, 0, (HWND)hUnit, 0, NULL, 0, 0, 0, 0, 0, 0, NULL, FALSE);
-	}
+	if (this->_create != NULL) this->_hUnit = this->_create(data, size, 0, hwnd, 0, NULL, 0, 0, 0, 0, 0, 0, NULL, FALSE);
 	return this->_hUnit != NULL;
 }
 

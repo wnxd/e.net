@@ -616,7 +616,8 @@ bool ECompile::CompileWindow()
 				ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 				UnitHandle handle = list[tag.LibID - 1].GetUnitInfo(tag.ID - 1);
 				if (!this->CompileUnit(ILProcessor, nullptr, handle, unit, NULL)) return false;
-				HUNIT parent = handle.hUnit();
+				HWND hWnd = (HWND)handle.hUnit();
+				hWnd = (HWND)(hWnd + 7)->unused;
 				int len = form.Elements.size();
 				for (int i = 1; i < len; i++)
 				{
@@ -635,11 +636,12 @@ bool ECompile::CompileWindow()
 					AddILCode(ILProcessor, OpCodes::Ldfld, f);
 					AddILCode(ILProcessor, OpCodes::Callvirt, module->ImportReference(CreateMethodReference(ControlCollection, "Add", module->TypeSystem->Void, false, ToList(Control))));
 					handle = list[tag.LibID - 1].GetUnitInfo(tag.ID - 1);
-					if (!this->CompileUnit(ILProcessor, f, handle, unit, parent)) return false;
+					if (!this->CompileUnit(ILProcessor, f, handle, unit, hWnd)) return false;
 				}
 				AddILCode(ILProcessor, OpCodes::Ret);
 				forms->Methods->Add(method);
 				module->Types->Add(forms);
+				DestroyWindow(hWnd);
 			}
 		}
 		return true;
@@ -651,7 +653,7 @@ bool ECompile::CompileWindow()
 	}
 }
 
-bool ECompile::CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, UnitHandle handle, ESection_Resources_FormElement unit, HUNIT hUnit)
+bool ECompile::CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, UnitHandle& handle, ESection_Resources_FormElement unit, HWND hwnd)
 {
 	try
 	{
@@ -688,7 +690,7 @@ bool ECompile::CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, Uni
 			AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)unit.Height);
 			AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
 		}
-		if (handle.LoadData(unit.Data, unit.DataSize))
+		if (handle.LoadData(unit.Data, unit.DataSize, hwnd))
 		{
 			int len = handle.GetAllProperty().size();
 			for (int i = 8; i < len; i++)
