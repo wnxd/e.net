@@ -371,6 +371,8 @@ struct ESection_Resources_FormElement : EBase
 	vector<EKeyValPair> Events;
 	LPBYTE Data;
 	UINT DataSize;
+	ESection_Resources_FormElement();
+	ESection_Resources_FormElement(nullptr_t);
 };
 
 struct ESection_Resources_Form : EBase
@@ -379,6 +381,8 @@ struct ESection_Resources_Form : EBase
 	string Remark;
 	ETAG Class;
 	vector<ESection_Resources_FormElement> Elements;
+	ESection_Resources_Form();
+	ESection_Resources_Form(nullptr_t);
 };
 
 struct ESection_Resources_Const

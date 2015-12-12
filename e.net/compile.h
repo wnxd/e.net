@@ -42,6 +42,7 @@ public:
 	ESection_Program_Assembly FindStruct(ETAG tag);
 	ESection_Program_Assembly FindReferStruct(ETAG tag);
 	vector<ESection_UnitInfo> FindUnitInfo(ETAG element);
+	ESection_Resources_Form FindForm(ETAG element);
 	PLIB_INFO FindLibInfo(UINT index);
 	PLIB_INFO FindLibInfo(ESection_Library lib);
 private:

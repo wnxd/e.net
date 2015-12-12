@@ -698,41 +698,52 @@ bool ECompile::CompileUnit(ILProcessor^ ILProcessor, FieldDefinition^ field, Uni
 				pd = this->_CodeRefer->FindLibTypeProperty(unit.Type, i);
 				if (pd != nullptr)
 				{
-					AddILCode(ILProcessor, OpCodes::Ldarg_0);
-					if (field != nullptr) AddILCode(ILProcessor, OpCodes::Ldfld, field);
 					WindowProperty* wp = handle.GetProperty(i);
-					switch (wp->Type)
+					if (wp != NULL)
 					{
-					case WPT_INT:
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(wp)->value);
-						break;
-					case WPT_DOUBLE:
-						AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(wp)->value);
-						break;
-					case WPT_DWORD:
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(wp)->value);
-						break;
-					case WPT_LPTSTR:
-						AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(static_cast<LPTSTR_Property*>(wp)->value));
-						break;
-					case WPT_LPBYTE:
-					{
-						LPBYTE_Property* p = static_cast<LPBYTE_Property*>(wp);
-						LPBYTE data = p->value;
-						AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
-						AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
-						for (int i = 0; i < p->size; i++, data++)
+						AddILCode(ILProcessor, OpCodes::Ldarg_0);
+						if (field != nullptr) AddILCode(ILProcessor, OpCodes::Ldfld, field);
+						switch (wp->Type)
 						{
-							AddILCode(ILProcessor, OpCodes::Dup);
-							AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
-							AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<int>(*data));
-							AddILCode(ILProcessor, OpCodes::Stelem_I1);
+						case WPT_INT:
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<INT_Property*>(wp)->value);
+							break;
+						case WPT_DOUBLE:
+							AddILCode(ILProcessor, OpCodes::Ldc_R8, static_cast<DOUBLE_Property*>(wp)->value);
+							break;
+						case WPT_DWORD:
+							AddILCode(ILProcessor, OpCodes::Ldc_I4, (int)static_cast<DWORD_Property*>(wp)->value);
+							break;
+						case WPT_LPTSTR:
+						{
+							LPTSTR_Property* p = static_cast<LPTSTR_Property*>(wp);
+							if (p->value == NULL) AddILCode(ILProcessor, OpCodes::Ldnull);
+							else AddILCode(ILProcessor, OpCodes::Ldstr, LPSTR2String(p->value));
+							break;
 						}
-						break;
+						case WPT_LPBYTE:
+						{
+							LPBYTE_Property* p = static_cast<LPBYTE_Property*>(wp);
+							if (p->size == 0) AddILCode(ILProcessor, OpCodes::Ldnull);
+							else
+							{
+								LPBYTE data = p->value;
+								AddILCode(ILProcessor, OpCodes::Ldc_I4, p->size);
+								AddILCode(ILProcessor, OpCodes::Newarr, module->TypeSystem->Byte);
+								for (int i = 0; i < p->size; i++, data++)
+								{
+									AddILCode(ILProcessor, OpCodes::Dup);
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, i);
+									AddILCode(ILProcessor, OpCodes::Ldc_I4, static_cast<int>(*data));
+									AddILCode(ILProcessor, OpCodes::Stelem_I1);
+								}
+							}
+							break;
+						}
+						}
+						handle.FreeProperty(wp);
+						AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
 					}
-					}
-					handle.FreeProperty(wp);
-					AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(pd->SetMethod));
 				}
 			}
 		}
@@ -1836,6 +1847,7 @@ varend:
 	VariableDefinition^ v;
 	ParameterDefinition^ p;
 	FieldDefinition^ f;
+	FieldDefinition^ wf;
 	FieldDefinition^ g;
 	PropertyDefinition^ pp;
 	ESection_Program_Assembly assembly = NULL;
@@ -1849,6 +1861,9 @@ varend:
 		break;
 	case ETYPE::Field:
 		f = this->_CodeRefer->FindField(tag);
+		break;
+	case ETYPE::Element:
+		wf = this->_CodeRefer->FindField(tag);
 		break;
 	case ETYPE::GlobalField:
 	case ETYPE::Window:
@@ -1921,6 +1936,18 @@ varend:
 		{
 			vardata->VariableType = EVariableType::Field;
 			vardata->Data = f;
+		}
+	}
+	else if (wf != nullptr)
+	{
+		ESection_Resources_Form form = this->_CodeProcess->FindForm(tag);
+		AddILCode(ILProcessor, OpCodes::Ldsfld, this->_CodeRefer->FindGlobalVariable(form.Tag));
+		AddILCode(ILProcessor, OpCodes::Ldfld, wf);
+		vardata->Type = wf->FieldType;
+		if (varindex->Count == 0)
+		{
+			vardata->VariableType = EVariableType::Field;
+			vardata->Data = wf;
 		}
 	}
 	else if (g != nullptr)
@@ -2366,7 +2393,7 @@ EMethodReference^ ECompile::GetMethodReference(EMethodData^ methoddata, short in
 		pi->Type = param->ParameterType;
 		if (gt != nullptr) pi->Type = GenericHandle(gt, pi->Type);
 		pi->OriginalType = pi->Type;
-		pi->IsAddress = param->IsOut;
+		pi->IsAddress = pi->Type->IsByReference;
 		if (pi->IsAddress) pi->Type = GetElementType(pi->Type);
 		pi->IsArray = pi->Type->IsArray;
 		pi->IsOptional = param->IsOptional;

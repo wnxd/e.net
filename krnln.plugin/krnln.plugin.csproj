@@ -48,8 +48,14 @@
     <Compile Include="按钮.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="标签.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="窗口.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="编辑框.cs">
+      <SubType>Component</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>

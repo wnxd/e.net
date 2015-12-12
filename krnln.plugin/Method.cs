@@ -16,7 +16,7 @@ namespace krnln.plugin
     class Method : Plugin
     {
         [LibMethod((uint)krnln_method.载入)]
-        static bool 载入(RuntimeTypeHandle 窗口类型, 窗口 欲载入的窗口, IWin32Window 父窗口 = null, bool 是否采用对话框方式 = true)
+        static bool 载入(RuntimeTypeHandle 窗口类型, ref 窗口 欲载入的窗口, IWin32Window 父窗口 = null, bool 是否采用对话框方式 = true)
         {
             Application.EnableVisualStyles();
             if (欲载入的窗口 == null) 欲载入的窗口 = (窗口)Activator.CreateInstance(Type.GetTypeFromHandle(窗口类型));

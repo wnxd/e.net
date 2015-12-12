@@ -183,7 +183,27 @@ ESection_TagStatus::ESection_TagStatus()
 	this->Tag = NULL;
 }
 
+ESection_Resources_FormElement::ESection_Resources_FormElement()
+{
+	this->Tag = NULL;
+}
+
+ESection_Resources_FormElement::ESection_Resources_FormElement(nullptr_t) : ESection_Resources_FormElement()
+{
+
+}
+
 ESection_TagStatus::ESection_TagStatus(nullptr_t) : ESection_TagStatus()
+{
+
+}
+
+ESection_Resources_Form::ESection_Resources_Form()
+{
+	this->Tag = NULL;
+}
+
+ESection_Resources_Form::ESection_Resources_Form(nullptr_t) : ESection_Resources_Form()
 {
 
 }

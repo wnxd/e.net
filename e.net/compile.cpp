@@ -212,6 +212,12 @@ vector<ESection_UnitInfo> CodeProcess::FindUnitInfo(ETAG element)
 	return arr;
 }
 
+ESection_Resources_Form CodeProcess::FindForm(ETAG element)
+{
+	for each (ESection_Resources_Form form in this->GetFormList()) if (FindInfo(form.Elements, element) != NULL) return form;
+	return NULL;
+}
+
 PLIB_INFO CodeProcess::FindLibInfo(UINT index)
 {
 	return this->FindLibInfo(this->GetLibraries()[index]);
