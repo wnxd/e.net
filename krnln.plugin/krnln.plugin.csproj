@@ -58,6 +58,9 @@
     <Compile Include="编辑框.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="菜单.cs">
+      <SubType>Component</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\plugin\plugin.vcxproj">

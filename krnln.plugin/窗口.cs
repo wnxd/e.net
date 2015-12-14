@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using wnxd.E_NET;
@@ -13,6 +14,11 @@ namespace krnln.plugin
     [LibType(0)]
     class 窗口 : Form, Base, Plugin
     {
+        [DllImport("User32.dll", EntryPoint = "PostMessage")]
+        static extern int PostMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [DllImport("User32.dll", EntryPoint = "LoadIcon")]
+        static extern IntPtr LoadIcon(IntPtr hInstance, int lpIconName);
+        private NotifyIcon notify;
         public 窗口()
         {
             this.Load += 窗口_Load;
@@ -376,6 +382,126 @@ namespace krnln.plugin
         {
             return this.Handle.ToInt32();
         }
+        [LibTypeTag((uint)krnln_method.销毁)]
+        public void 销毁(bool 立即销毁 = false)
+        {
+            this.Close();
+        }
+        [LibTypeTag((uint)krnln_method.获取焦点)]
+        public void 获取焦点()
+        {
+            this.Focus();
+        }
+        [LibTypeTag((uint)krnln_method.可有焦点)]
+        public bool 可有焦点()
+        {
+            return this.Focused;
+        }
+        [LibTypeTag((uint)krnln_method.取用户区宽度)]
+        public int 取用户区宽度()
+        {
+            return this.ClientSize.Width;
+        }
+        [LibTypeTag((uint)krnln_method.取用户区高度)]
+        public int 取用户区高度()
+        {
+            return this.ClientSize.Height;
+        }
+        [LibTypeTag((uint)krnln_method.禁止重画)]
+        public void 禁止重画()
+        {
+            this.SuspendLayout();
+        }
+        [LibTypeTag((uint)krnln_method.允许重画)]
+        public void 允许重画()
+        {
+            this.ResumeLayout();
+        }
+        [LibTypeTag((uint)krnln_method.重画)]
+        public void 重画()
+        {
+            this.Invalidate();
+        }
+        [LibTypeTag((uint)krnln_method.部分重画)]
+        public void 部分重画(int 欲重画区域的左边, int 欲重画区域的顶边, int 欲重画区域的宽度, int 欲重画区域的高度)
+        {
+            this.Invalidate(new Rectangle(欲重画区域的左边, 欲重画区域的顶边, 欲重画区域的宽度, 欲重画区域的高度));
+        }
+        [LibTypeTag((uint)krnln_method.刷新显示)]
+        public void 刷新显示()
+        {
+            this.Update();
+        }
+        [LibTypeTag((uint)krnln_method.移动)]
+        public void 移动(int? 左边 = null, int? 顶边 = null, int? 宽度 = null, int? 高度 = null)
+        {
+            if (左边.HasValue) this.Left = 左边.Value;
+            if (顶边.HasValue) this.Top = 顶边.Value;
+            if (宽度.HasValue) this.Width = 宽度.Value;
+            if (高度.HasValue) this.Height = 高度.Value;
+        }
+        [LibTypeTag((uint)krnln_method.弹出菜单)]
+        public void 弹出菜单(菜单 欲弹出的菜单, int 水平显示位置, int 垂直显示位置)
+        {
+            欲弹出的菜单.Show(this, 水平显示位置, 垂直显示位置);
+        }
+        [LibTypeTag((uint)krnln_method.发送信息)]
+        public int 发送信息(int 信息值, int 参数1, int 参数2)
+        {
+            Message msg = new Message()
+            {
+                HWnd = this.Handle,
+                Msg = 信息值,
+                WParam = (IntPtr)参数1,
+                LParam = (IntPtr)参数2
+            };
+            this.WndProc(ref msg);
+            return (int)msg.Result;
+        }
+        [LibTypeTag((uint)krnln_method.投递信息)]
+        public void 投递信息(int 信息值, int 参数1, int 参数2)
+        {
+            PostMessage(this.Handle, 信息值, 参数1, 参数2);
+        }
+        [LibTypeTag((uint)krnln_method.激活)]
+        public void 激活()
+        {
+            this.Activate();
+        }
+        [LibTypeTag((uint)krnln_method.置托盘图标)]
+        public void 置托盘图标(object 图标数据 = null, string 提示信息 = null)
+        {
+            if (图标数据 == null)
+            {
+                if (notify != null)
+                {
+                    notify.Dispose();
+                    notify = null;
+                }
+            }
+            else
+            {
+                if (notify == null) notify = new NotifyIcon();
+                if (图标数据 is string) notify.Icon = Icon.FromHandle(new Bitmap((string)图标数据).GetHicon());
+                else if (图标数据 is byte[]) using (MemoryStream ms = new MemoryStream((byte[])图标数据)) notify.Icon = Icon.FromHandle(new Bitmap(ms).GetHicon());
+                else if (图标数据 is int) notify.Icon = Icon.FromHandle(LoadIcon(IntPtr.Zero, (int)图标数据));
+                notify.Text = 提示信息;
+                notify.Visible = true;
+            }
+        }
+        [LibTypeTag((uint)krnln_method.弹出托盘菜单)]
+        public void 弹出托盘菜单(菜单 欲弹出的菜单)
+        {
+            ContextMenuStrip menu = notify.ContextMenuStrip;
+            notify.ContextMenuStrip = 欲弹出的菜单;
+            欲弹出的菜单.Show();
+            notify.ContextMenuStrip = menu;
+        }
+        [LibTypeTag((uint)krnln_method.置父窗口)]
+        public void 置父窗口(Control 父窗口或窗口组件)
+        {
+            this.Parent = 父窗口或窗口组件;
+        }
         //-方法-
         //-事件-
         [LibTypeTag(0)]
@@ -402,6 +528,18 @@ namespace krnln.plugin
         public event Action 被显示;
         [LibTypeTag(11)]
         public event Action 被隐藏;
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // 窗口
+            // 
+            this.ClientSize = new System.Drawing.Size(284, 262);
+            this.Name = "窗口";
+            this.ResumeLayout(false);
+
+        }
         //-事件-
     }
 }
