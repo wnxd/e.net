@@ -1982,7 +1982,7 @@ int Krnln::信息框(Object^ 提示信息, int 按钮, String^ 窗口标题, IWin32Window^ 父
 		if (bin == nullptr) str = 提示信息->ToString();
 		else str = Encoding::ASCII->GetString(bin);
 	}
-	return (int)MessageBox::Show(父窗口, str, 窗口标题, (MessageBoxButtons)(按钮 & 0xF), (MessageBoxIcon)(((按钮 >> 4) & 0xF) << 4), (MessageBoxDefaultButton)((按钮 >> 8) << 8));
+	return (int)MessageBox::Show(父窗口, str, 窗口标题 == nullptr ? "信息：" : 窗口标题, (MessageBoxButtons)(按钮 & 0xF), (MessageBoxIcon)(((按钮 >> 4) & 0xF) << 4), (MessageBoxDefaultButton)((按钮 >> 8) << 8));
 }
 
 void Krnln::标准输出(int 输出方向, ...array<Object^>^ 欲输出内容)

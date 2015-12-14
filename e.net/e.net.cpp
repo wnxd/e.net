@@ -394,7 +394,11 @@ bool ECompile::CompileClass()
 				type = gcnew TypeDefinition(_namespace, _typename, TypeAttributes::Class, module->TypeSystem->Object);
 				module->Types->Add(type);
 			}
-			if (!isstatic)
+			if (isstatic)
+			{
+				if (assembly.Remark == "public") type->Attributes = type->Attributes | TypeAttributes::Public;
+			}
+			else
 			{
 				typelist->Add(type, assembly.Base);
 				if (assembly.Status == ETagStatus::C_Public || this->_CodeProcess->GetTagStatus(assembly.Tag) == ETagStatus::C_Public) type->Attributes = type->Attributes | TypeAttributes::Public;

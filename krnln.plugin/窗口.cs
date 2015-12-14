@@ -443,7 +443,9 @@ namespace krnln.plugin
         [LibTypeTag((uint)krnln_method.弹出菜单)]
         public void 弹出菜单(菜单 欲弹出的菜单, int 水平显示位置, int 垂直显示位置)
         {
-            欲弹出的菜单.Show(this, 水平显示位置, 垂直显示位置);
+            ContextMenuStrip menu = new ContextMenuStrip();
+            menu.Items.AddRange(欲弹出的菜单.DropDownItems);
+            menu.Show(this, 水平显示位置, 垂直显示位置);
         }
         [LibTypeTag((uint)krnln_method.发送信息)]
         public int 发送信息(int 信息值, int 参数1, int 参数2)
@@ -493,8 +495,10 @@ namespace krnln.plugin
         public void 弹出托盘菜单(菜单 欲弹出的菜单)
         {
             ContextMenuStrip menu = notify.ContextMenuStrip;
-            notify.ContextMenuStrip = 欲弹出的菜单;
-            欲弹出的菜单.Show();
+            ContextMenuStrip m = new ContextMenuStrip();
+            m.Items.AddRange(欲弹出的菜单.DropDownItems);
+            notify.ContextMenuStrip = m;
+            m.Show();
             notify.ContextMenuStrip = menu;
         }
         [LibTypeTag((uint)krnln_method.置父窗口)]
@@ -528,18 +532,6 @@ namespace krnln.plugin
         public event Action 被显示;
         [LibTypeTag(11)]
         public event Action 被隐藏;
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            // 
-            // 窗口
-            // 
-            this.ClientSize = new System.Drawing.Size(284, 262);
-            this.Name = "窗口";
-            this.ResumeLayout(false);
-
-        }
         //-事件-
     }
 }
