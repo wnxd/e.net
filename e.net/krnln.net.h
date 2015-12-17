@@ -168,11 +168,19 @@ ref class Krnln : Plugin
 	[LibMethod(krnln_method::整除, EMethodMode::Embed)]
 	MethodDefinition^ CreateIDiv(ModuleDefinition^ module);
 	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateEqualValueNull1(ModuleDefinition^ module);
+	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateEqualValueNull2(ModuleDefinition^ module);
+	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
 	MethodDefinition^ CreateEqualNull1(ModuleDefinition^ module);
 	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
 	MethodDefinition^ CreateEqualNull2(ModuleDefinition^ module);
 	[LibMethod(krnln_method::等于, EMethodMode::Embed)]
 	MethodDefinition^ CreateEqual(ModuleDefinition^ module);
+	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateNotEqualValueNull1(ModuleDefinition^ module);
+	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
+	MethodDefinition^ CreateNotEqualValueNull2(ModuleDefinition^ module);
 	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]
 	MethodDefinition^ CreateNotEqualNull1(ModuleDefinition^ module);
 	[LibMethod(krnln_method::不等于, EMethodMode::Embed)]

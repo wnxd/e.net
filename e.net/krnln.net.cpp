@@ -274,6 +274,22 @@ MethodDefinition^ Krnln::CreateEqualNull2(ModuleDefinition^ module)
 	return method;
 }
 
+MethodDefinition^ Krnln::CreateEqualValueNull1(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->ImportReference(typeof(ValueType))), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Object, "Equals", typeof(Object), typeof(Object))));
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateEqualValueNull2(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->ImportReference(typeof(ValueType)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Object, "Equals", typeof(Object), typeof(Object))));
+	return method;
+}
+
 MethodDefinition^ Krnln::CreateNotEqual(ModuleDefinition^ module)
 {
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Object), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
@@ -299,6 +315,26 @@ MethodDefinition^ Krnln::CreateNotEqualNull2(ModuleDefinition^ module)
 	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->TypeSystem->Object)), STATICMETHOD);
 	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
 	AddILCode(ILProcessor, OpCodes::Ceq);
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateNotEqualValueNull1(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->ImportReference(typeof(ValueType))), CreateParameter("比较值", module->TypeSystem->Void)), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Object, "Equals", typeof(Object), typeof(Object))));
+	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
+	AddILCode(ILProcessor, OpCodes::Ceq);
+	return method;
+}
+
+MethodDefinition^ Krnln::CreateNotEqualValueNull2(ModuleDefinition^ module)
+{
+	MethodDefinition^ method = CreateMethod("不等于", module->TypeSystem->Boolean, ToList(CreateParameter("被比较值", module->TypeSystem->Void), CreateParameter("比较值", module->ImportReference(typeof(ValueType)))), STATICMETHOD);
+	ILProcessor^ ILProcessor = method->Body->GetILProcessor();
+	AddILCode(ILProcessor, OpCodes::Call, module->ImportReference(GetStaticMethod(Object, "Equals", typeof(Object), typeof(Object))));
 	AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
 	AddILCode(ILProcessor, OpCodes::Ceq);
 	return method;
@@ -1405,7 +1441,7 @@ array<String^>^ Krnln::分割文本(String^ 待分割文本, String^ 用作分割的文本, int 
 {
 	if (待分割文本 == nullptr) return nullptr;
 	array<String^>^ arr = 待分割文本->Split(用作分割的文本->ToCharArray());
-	if (要返回的子文本数目 > 0)  Array::Resize(arr, 要返回的子文本数目);
+	if (要返回的子文本数目 > 0) Array::Resize(arr, 要返回的子文本数目);
 	return arr;
 }
 

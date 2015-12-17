@@ -1072,7 +1072,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 										else if (vardata->Type == module->TypeSystem->Single) lastins->OpCode = OpCodes::Stelem_R4;
 										else if (vardata->Type == module->TypeSystem->Double) lastins->OpCode = OpCodes::Stelem_R8;
 										else if (vardata->Type == module->TypeSystem->IntPtr) lastins->OpCode = OpCodes::Stelem_I;
-										else  lastins->OpCode = OpCodes::Stobj;
+										else lastins->OpCode = OpCodes::Stobj;
 									}
 									else lastins->OpCode = OpCodes::Stelem_Ref;
 									break;
@@ -1186,7 +1186,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 			paramend:
 				if (LibID == this->krnln_id)
 				{
-					if ((mr->Tag == krnln_method::重定义数组 && params->Count >= 3) || (mr->Tag == krnln_method::载入 &&  params->Count >= 1))
+					if ((mr->Tag == krnln_method::重定义数组 && params->Count >= 3) || (mr->Tag == krnln_method::载入 && params->Count >= 1))
 					{
 						EParamData^ param = gcnew EParamData();
 						param->Type = module->ImportReference(typeof(RuntimeTypeHandle));
@@ -1360,14 +1360,7 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 					case EParamDataType::Null:
 						if (item->Defualt == nullptr)
 						{
-							if (item->Type->IsValueType)
-							{
-								if (item->Type == module->TypeSystem->Int64) AddILCode(ILProcessor, OpCodes::Ldc_I8, 0);
-								else if (item->Type == module->TypeSystem->Single) AddILCode(ILProcessor, OpCodes::Ldc_R4, 0);
-								else if (item->Type == module->TypeSystem->Double) AddILCode(ILProcessor, OpCodes::Ldc_R8, 0);
-								else AddILCode(ILProcessor, OpCodes::Ldc_I4_0);
-							}
-							else AddILCode(ILProcessor, OpCodes::Ldnull);
+							if (!item->Type->IsValueType) AddILCode(ILProcessor, OpCodes::Ldnull);
 						}
 						else
 						{
@@ -1511,13 +1504,15 @@ TypeReference^ ECompile::CompileCode_Call(EMethodInfo^ MethodInfo, ILProcessor^ 
 						for each (Instruction^ item in code) ILProcessor->Append(item);
 						break;
 					}
+					default:
+						throw Error(tagName, "赋值所用变量错误");
 					}
 				}
 				else
 				{
 					if (headcode != nullptr && md->Mode != EMethodMode::Newobj) for each (Instruction^ item in headcode) ILProcessor->Append(item);
 					int i = 0;
-					for each (EParamInfo^ item in  mr->Params)
+					for each (EParamInfo^ item in mr->Params)
 					{
 						int ii = 0;
 						if (item->IsVariable)
@@ -2480,7 +2475,7 @@ TypeDefinition^ ECompile::FindTypeDefinition(UINT tag)
 		vector<string> arr = split(assembly.Remark, SP);
 		String^ classname;
 		if (arr[0] == DONET_CLASS) classname = CStr2String(arr[1]);
-		else  classname = GetTypeName(assembly);
+		else classname = GetTypeName(assembly);
 		type = this->_CodeRefer->FindTypeDefine(classname);
 		if (type == nullptr)
 		{

@@ -247,7 +247,7 @@ IList<MethodDefinition^>^ Plugins::GetMethodList(MethodDefinition^ method)
 
 void Plugins::AddAllRefer(TypePackage^ package, TypeDefinition^ type)
 {
-	if (type->BaseType != nullptr && type != package->Type && type->Scope == nullptr)
+	if (type->BaseType != nullptr && type->BaseType != package->Type && type->BaseType->Scope == nullptr)
 	{
 		TypeDefinition^ T = type->BaseType->Resolve();
 		if (!package->ReferTypes->Contains(T))
