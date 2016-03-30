@@ -363,6 +363,18 @@ namespace krnln.plugin
         [LibTypeTag(28)]
         public string 数据列 { get; set; }
         //-属性-
+        //-方法-
+        [LibTypeTag((uint)krnln_method.调用反馈事件)]
+        public int 调用反馈事件(int 参数一 = 0, int 参数二 = 0, bool 事件传递方式 = true)
+        {
+            if (this.反馈事件 != null)
+            {
+                if (事件传递方式) return this.反馈事件(参数一, 参数二);
+                else this.反馈事件.BeginInvoke(参数一, 参数二, ar => this.反馈事件.EndInvoke(ar), null);
+            }
+            return 0;
+        }
+        //-方法-
         //-事件-
         [LibTypeTag(0)]
         public event Func<int, int, int> 反馈事件;

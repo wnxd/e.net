@@ -311,6 +311,13 @@ namespace krnln.plugin
         [LibTypeTag(28)]
         public string 数据列 { get; set; }
         //-属性-
+        //-方法-
+        [LibTypeTag((uint)krnln_method.加入文本)]
+        public void 加入文本(params string[] 欲加入文本)
+        {
+            foreach (string item in 欲加入文本) this.Text += item;
+        }
+        //-方法-
         //-事件-
         [LibTypeTag(0)]
         public event Action 内容被改变;

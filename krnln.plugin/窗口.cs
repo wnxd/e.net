@@ -443,9 +443,9 @@ namespace krnln.plugin
         [LibTypeTag((uint)krnln_method.弹出菜单)]
         public void 弹出菜单(菜单 欲弹出的菜单, int 水平显示位置, int 垂直显示位置)
         {
-            ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Items.AddRange(欲弹出的菜单.DropDownItems);
-            menu.Show(this, 水平显示位置, 垂直显示位置);
+            //ContextMenuStrip menu = new ContextMenuStrip();
+            //menu.Items.AddRange(欲弹出的菜单.DropDownItems);
+            //menu.Show(this, 水平显示位置, 垂直显示位置);
         }
         [LibTypeTag((uint)krnln_method.发送信息)]
         public int 发送信息(int 信息值, int 参数1, int 参数2)
@@ -494,12 +494,12 @@ namespace krnln.plugin
         [LibTypeTag((uint)krnln_method.弹出托盘菜单)]
         public void 弹出托盘菜单(菜单 欲弹出的菜单)
         {
-            ContextMenuStrip menu = notify.ContextMenuStrip;
-            ContextMenuStrip m = new ContextMenuStrip();
-            m.Items.AddRange(欲弹出的菜单.DropDownItems);
-            notify.ContextMenuStrip = m;
-            m.Show();
-            notify.ContextMenuStrip = menu;
+            //ContextMenuStrip menu = notify.ContextMenuStrip;
+            //ContextMenuStrip m = new ContextMenuStrip();
+            //m.Items.AddRange(欲弹出的菜单.DropDownItems);
+            //notify.ContextMenuStrip = m;
+            //m.Show();
+            //notify.ContextMenuStrip = menu;
         }
         [LibTypeTag((uint)krnln_method.置父窗口)]
         public void 置父窗口(Control 父窗口或窗口组件)
