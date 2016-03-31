@@ -3,6 +3,7 @@
 #include "common.h"
 #include <io.h>
 #include "elib.h"
+#include "../elib/PublicIDEFunctions.h"
 
 PFN_NOTIFY_SYS g_fnNotifySys = NULL;
 HWND ehwnd = NULL;
@@ -169,7 +170,7 @@ static LIB_INFO s_lib_info =
 	s_CmdInfo,
 	NULL,
 	addin_func,
-	TEXT("e.net编译\0编译为.net程序\0DoNET引用\0修改当前源码引用\0\0"),
+	TEXT("e.net编译\0编译为.net程序\0DoNET引用\0修改当前源码引用\0test\0test\0\0"),
 	notify_lib,
 	NULL,
 	NULL,

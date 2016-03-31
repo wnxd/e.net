@@ -375,6 +375,14 @@ struct ESection_Resources_FormElement : EBase
 	ESection_Resources_FormElement(nullptr_t);
 };
 
+struct ESection_Resources_FormMenu : EBase
+{
+	string Name;
+	string Title;
+	ETAG Type;
+
+};
+
 struct ESection_Resources_Form : EBase
 {
 	string Name;
